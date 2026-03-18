@@ -1,0 +1,47 @@
+name: spotly
+description: Aplicación de turismo para Bolivia
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Supabase
+  supabase_flutter: ^2.10.3
+  
+  # Variables de entorno
+  flutter_dotenv: ^6.0.0
+  
+  # Manejo de estado (elige uno)
+  provider: ^6.1.2
+  # O riverpod: ^2.5.1
+  # O flutter_bloc: ^8.1.6
+  
+  # Utilidades
+  equatable: ^2.0.7        # Para comparaciones de objetos
+  dartz: ^0.10.1           # Para Either (manejo de errores funcional)
+  intl: ^0.19.0            # Para internacionalización y fechas
+  image_picker: ^1.1.2     # Para seleccionar imágenes
+  geolocator: ^12.0.0      # Para geolocalización
+  google_maps_flutter: ^2.9.0  # Para mapas interactivos
+  
+  # Navegación
+  go_router: ^14.2.3       # Navegación declarativa
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.13    # Para generación de código
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - .env                  # Variables de entorno
+    - assets/images/        # Imágenes
+    - assets/icons/         # Iconos
