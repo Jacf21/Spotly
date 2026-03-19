@@ -2,12 +2,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  static final String supabaseUrl = 'SUPABASE_URL';
-  static final String supabaseAnonKey = 'SUPABASE_ANON_KEY';
-
   static Future<void> initialize() async {
-    final url = dotenv.get(supabaseUrl);
-    final key = dotenv.get(supabaseAnonKey);
+    final url = dotenv.env['SUPABASE_URL'];
+    final key = dotenv.env['SUPABASE_ANON_KEY'];
+
+    if (url == null || key == null) {
+      throw Exception('❌ Variables de entorno de Supabase no encontradas');
+    }
 
     await Supabase.initialize(
       url: url,
