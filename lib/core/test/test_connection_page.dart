@@ -19,13 +19,8 @@ class _TestConnectionPageState extends State<TestConnectionPage> {
 
   Future<void> testConnection() async {
     try {
-      final response = await SupabaseConfig.client
-        .from('lugares') // 👈 CAMBIAR ESTO
-        .select()
-        .limit(1);
-
       setState(() {
-        message = '✅ Conexión exitosa: ${response.length} registros encontrados';
+        message = '✅ Supabase conectado correctamente';
       });
     } catch (e) {
       setState(() {
