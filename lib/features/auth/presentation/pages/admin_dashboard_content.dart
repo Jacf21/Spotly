@@ -3,40 +3,23 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 class AdminDashboardContent extends StatelessWidget {
   final bool isDarkMode;
-  final bool isLoading;
   final int selectedIndex;
   final VoidCallback onToggleTheme;
   final Function(int) onNavTap;
   final VoidCallback onSearch;
   final Function(String) onRedirect;
+  final Widget child;
 
   const AdminDashboardContent({
     super.key,
     required this.isDarkMode,
-    required this.isLoading,
     required this.selectedIndex,
     required this.onToggleTheme,
     required this.onNavTap,
     required this.onSearch,
     required this.onRedirect,
+    required this.child,
   });
-
-  void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
-        ),
-        backgroundColor:
-            isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +31,6 @@ class AdminDashboardContent extends StatelessWidget {
             isDarkMode ? const Color(0xFF0A0F1A) : const Color(0xFFF8FAFF),
         body: Column(
           children: [
-            // 🔝 TOP BAR ADMIN
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               height: 70,
@@ -68,20 +50,12 @@ class AdminDashboardContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                      Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF9800),
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF9800).withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
                         ),
                         child: const Text(
                           'ADMIN',
@@ -97,45 +71,27 @@ class AdminDashboardContent extends StatelessWidget {
                           duration: const Duration(milliseconds: 300),
                           transitionBuilder: (child, animation) {
                             return ScaleTransition(
-                                scale: animation, child: child);
+                              scale: animation,
+                              child: child,
+                            );
                           },
                           child: Icon(
                             isDarkMode ? LucideIcons.sun : LucideIcons.moon,
                             key: ValueKey(isDarkMode),
-                            color: isDarkMode ? Colors.white : Colors.black87,
                           ),
                         ),
                         onPressed: onToggleTheme,
                       ),
                       IconButton(
-                        icon: Icon(
-                          LucideIcons.search,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                        onPressed: () {
-                          _showMessage(context, '🔍 Búsqueda administrativa');
-                          onSearch();
-                        },
+                        icon: const Icon(LucideIcons.search),
+                        onPressed: onSearch,
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-
-            // 🧠 CONTENIDO
-            Expanded(
-              child: isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          const Color(0xFF00BCD4),
-                        ),
-                      ),
-                    )
-                  : Container(),
-            ),
-            // 🔻 NAV ADMIN
+            Expanded(child: child),
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -147,18 +103,16 @@ class AdminDashboardContent extends StatelessWidget {
                     _navItem(LucideIcons.layoutDashboard, 0),
                     _navItemCustom(
                       LucideIcons.mapPin,
-                      () => _showMessage(context, '📍 Gestión de lugares'),
-                      label: 'Lugares',
+                      () => onRedirect('🗺️ Gestión de lugares'),
                     ),
+                    _plusButton(() => onRedirect('crear')),
                     _navItemCustom(
                       LucideIcons.users,
-                      () => _showMessage(context, '👥 Gestión de usuarios'),
-                      label: 'Usuarios',
+                      () => onRedirect('👥 Gestión de usuarios'),
                     ),
                     _navItemCustom(
                       LucideIcons.flag,
-                      () => _showMessage(context, '🚩 Gestión de reportes'),
-                      label: 'Reportes',
+                      () => onRedirect('📋 Reportes'),
                     ),
                   ],
                 ),
@@ -175,66 +129,58 @@ class AdminDashboardContent extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => onNavTap(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                icon,
-                color: isActive
-                    ? const Color(0xFF00BCD4)
-                    : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                size: isActive ? 26 : 24,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive
+                ? const Color(0xFF00BCD4)
+                : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+            size: isActive ? 26 : 24,
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(top: 4),
+            height: 4,
+            width: isActive ? 20 : 0,
+            decoration: BoxDecoration(
+              color: isActive ? const Color(0xFF00BCD4) : Colors.transparent,
+              borderRadius: BorderRadius.circular(2),
             ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 4,
-              width: isActive ? 20 : 0,
-              decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF00BCD4) : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _navItemCustom(IconData icon, VoidCallback onTap, {String? label}) {
+  Widget _navItemCustom(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                icon,
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                size: 24,
-              ),
-            ),
-            if (label != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                  child: Text(label),
-                ),
-              ),
-          ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _plusButton(VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF00BCD4),
+          borderRadius: BorderRadius.circular(20),
         ),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
