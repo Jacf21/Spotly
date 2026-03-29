@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart'; // IMPORTACIÓN VITAL
 import 'user_home_content.dart';
+import 'spotly_ui.dart'; // Para usar SpotlyColors
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -8,93 +10,94 @@ class UserHomePage extends StatefulWidget {
   State<UserHomePage> createState() => _UserHomePageState();
 }
 
-class _UserHomePageState extends State<UserHomePage>
-    with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
+class _UserHomePageState extends State<UserHomePage> {
   bool _isDarkMode = true;
-  bool _isLoading = true;
-  late AnimationController _animationController;
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    // Simulación carga
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 0) {
-      _showToast('✨ Bienvenido a Spotly');
-    } else {
-      _showToast(_getNavItemName(index));
-    }
-  }
-
-  String _getNavItemName(int index) {
-    switch (index) {
-      case 1:
-        return '🎬 Reels';
-      case 2:
-        return '💬 Mensajes';
-      case 3:
-        return '👤 Perfil';
-      default:
-        return '';
-    }
-  }
-
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$message (Próximamente)')),
-    );
-  }
-
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
-  }
-
-  void _onSearchPressed() {
-    _showToast('🔍 Buscando destinos');
-  }
-
-  void _onCreatePressed() {
-    _showToast('📸 Crear publicación');
-  }
+  void _onNavTap(int index) => setState(() => _selectedIndex = index);
+  void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
 
   @override
   Widget build(BuildContext context) {
+    // LISTA DE VISTAS PARA EL USUARIO LOGUEADO
+    final List<Widget> _userViews = [
+      // 0. Feed Principal
+      const _UserPlaceholder(
+        icon: LucideIcons.sparkles,
+        label: "Tu Feed Personalizado de Bolivia",
+      ),
+
+      // 1. Mapa Interactivo
+      const _UserPlaceholder(
+        icon: LucideIcons
+            .mapPin, // Corregido de mapPinned a mapPin por compatibilidad
+        label: "Explora lugares cercanos en el Mapa",
+      ),
+
+      // 2. Favoritos
+      const _UserPlaceholder(
+        icon: LucideIcons.heart, // Corregido de bookmarkHeart a heart
+        label: "Tus Spots Guardados",
+      ),
+
+      // 3. Perfil de Usuario
+      const _UserPlaceholder(
+        icon: LucideIcons.user, // Corregido de userCircle a user
+        label: "Configuración de tu Perfil",
+      ),
+    ];
+
     return UserHomeContent(
       isDarkMode: _isDarkMode,
-      isLoading: _isLoading,
       selectedIndex: _selectedIndex,
       onToggleTheme: _toggleTheme,
-      onNavItemTapped: _onNavItemTapped,
-      onSearch: _onSearchPressed,
-      onCreate: _onCreatePressed,
+      onNavTap: _onNavTap,
+      onSearch: () => debugPrint("Buscando lugares cerca de mí..."),
+      onAction: (type) => debugPrint("Acción de usuario: $type"),
+
+      // Mantenemos el estado de las páginas con IndexedStack para no recargar el mapa
+      child: IndexedStack(
+        index: _selectedIndex,
+        children: _userViews,
+      ),
+    );
+  }
+}
+
+// Widget auxiliar para diseño temporal optimizado con tu Arsenal
+class _UserPlaceholder extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _UserPlaceholder({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    // Detectamos el brillo para adaptar el placeholder
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: SpotlyColors.accent(isDark).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 52, color: SpotlyColors.accent(isDark)),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: SpotlyColors.text(isDark).withOpacity(0.6)),
+          ),
+        ],
+      ),
     );
   }
 }
