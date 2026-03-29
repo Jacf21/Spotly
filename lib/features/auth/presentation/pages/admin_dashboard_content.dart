@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'spotly_ui.dart';
 
 class AdminDashboardContent extends StatelessWidget {
   final bool isDarkMode;
@@ -23,99 +24,27 @@ class AdminDashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTheme(
-      data: isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      duration: const Duration(milliseconds: 300),
+    return AnimatedContainer(
+      duration: SpotlyConfig.animShort,
+      color: SpotlyColors.bg(isDarkMode),
       child: Scaffold(
-        backgroundColor:
-            isDarkMode ? const Color(0xFF0A0F1A) : const Color(0xFFF8FAFF),
+        backgroundColor: Colors.transparent,
+        // Usamos el BottomNavigationBar nativo para mayor estabilidad visual
+        bottomNavigationBar: _buildBottomNav(),
         body: Column(
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 70,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              color: isDarkMode ? const Color(0xFF111827) : Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'SPOTLY',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                          color: Color(0xFF00BCD4),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF9800),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'ADMIN',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          transitionBuilder: (child, animation) {
-                            return ScaleTransition(
-                              scale: animation,
-                              child: child,
-                            );
-                          },
-                          child: Icon(
-                            isDarkMode ? LucideIcons.sun : LucideIcons.moon,
-                            key: ValueKey(isDarkMode),
-                          ),
-                        ),
-                        onPressed: onToggleTheme,
-                      ),
-                      IconButton(
-                        icon: const Icon(LucideIcons.search),
-                        onPressed: onSearch,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            // TOP BAR con isAdmin: true para mostrar el badge PRO/ADMIN
+            SpotlyTopBar(
+              dark: isDarkMode,
+              isAdmin: true,
+              onTheme: onToggleTheme,
+              onSearch: onSearch,
             ),
-            Expanded(child: child),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: isDarkMode ? const Color(0xFF111827) : Colors.white,
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _navItem(LucideIcons.layoutDashboard, 0),
-                    _navItemCustom(
-                      LucideIcons.mapPin,
-                      () => onRedirect('🗺️ Gestión de lugares'),
-                    ),
-                    _plusButton(() => onRedirect('crear')),
-                    _navItemCustom(
-                      LucideIcons.users,
-                      () => onRedirect('👥 Gestión de usuarios'),
-                    ),
-                    _navItemCustom(
-                      LucideIcons.flag,
-                      () => onRedirect('📋 Reportes'),
-                    ),
-                  ],
-                ),
+
+            // CONTENIDO DINÁMICO CENTRAL
+            Expanded(
+              child: ClipRRect(
+                child: child,
               ),
             ),
           ],
@@ -124,63 +53,64 @@ class AdminDashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _navItem(IconData icon, int index) {
-    final isActive = selectedIndex == index;
-
-    return GestureDetector(
-      onTap: () => onNavTap(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive
-                ? const Color(0xFF00BCD4)
-                : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-            size: isActive ? 26 : 24,
+  Widget _buildBottomNav() {
+    return Container(
+      height: 95,
+      decoration: BoxDecoration(
+        color: SpotlyColors.nav(isDarkMode),
+        border: Border(
+          top: BorderSide(
+            color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
           ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(top: 4),
-            height: 4,
-            width: isActive ? 20 : 0,
-            decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF00BCD4) : Colors.transparent,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItemCustom(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _plusButton(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF00BCD4),
-          borderRadius: BorderRadius.circular(20),
         ),
-        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // 1. DASHBOARD (Métricas generales)
+            SpotlyNavItem(
+              icon: LucideIcons.layoutDashboard,
+              label: 'Inicio',
+              active: selectedIndex == 0,
+              dark: isDarkMode,
+              onTap: () => onNavTap(0),
+            ),
+
+            // 2. GESTIÓN (Mapa de Spots/Control)
+            SpotlyNavItem(
+              icon: LucideIcons.mapPin,
+              label: 'Gestión',
+              active: selectedIndex == 1,
+              dark: isDarkMode,
+              onTap: () => onNavTap(1),
+            ),
+
+            // 3. BOTÓN CENTRAL PLUS (Mismo estilo que User/Guest)
+            SpotlyAddButton(
+              dark: isDarkMode,
+              onTap: () => onRedirect('Crear'),
+            ),
+
+            // 4. REPORTES (Alertas de usuarios o errores)
+            SpotlyNavItem(
+              icon: LucideIcons.barChart3,
+              label: 'Reportes',
+              active: selectedIndex == 2,
+              dark: isDarkMode,
+              onTap: () => onNavTap(2),
+            ),
+
+            // 5. PANEL (Configuración técnica del sistema)
+            SpotlyNavItem(
+              icon: LucideIcons.shieldCheck,
+              label: 'Panel',
+              active: selectedIndex == 3,
+              dark: isDarkMode,
+              onTap: () => onNavTap(3),
+            ),
+          ],
+        ),
       ),
     );
   }
