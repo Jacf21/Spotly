@@ -46,6 +46,7 @@ app.*.map.json
 
 # Variables de entorno
 .env
+.env.template
 
 # Archivos generados
 *.g.dart

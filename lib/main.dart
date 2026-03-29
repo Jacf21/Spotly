@@ -1,29 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:spotly/config/supabase/supabase_config.dart';
-import 'package:spotly/core/test/test_connection_page.dart';
+import 'package:spotly/config/supabase/supabase_config.dart'; 
+import 'package:spotly/features/auth/presentation/pages/create_post_publication.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Cargar .env
-  await dotenv.load(fileName: '.env');
+  try {
+    //Cargamos el archivo de texto .env a la memoria
+    await dotenv.load(fileName: ".env");
 
-  // Inicializar Supabase
-  await SupabaseConfig.initialize();
+    //Llamamos al método que configura e inicializa Supabase
+    await SupabaseConfig.initialize();
+    
+    print("✅ Conexión establecida con el servidor de Spotly");
+  } catch (e) {
+    print("❌ Error crítico al iniciar la App: $e");
+  }
 
-  runApp(const TurismoBoliviaApp());
+  runApp(const SpotlyApp());
 }
 
-class TurismoBoliviaApp extends StatelessWidget {
-  const TurismoBoliviaApp({super.key});
+class SpotlyApp extends StatelessWidget {
+  const SpotlyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Turismo Bolivia',
+      title: 'Spotly Bolivia',
       debugShowCheckedModeBanner: false,
-      home: const TestConnectionPage(), // 👈 TEMPORAL para probar
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.cyan),
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const CreatePostPage(),
     );
   }
 }

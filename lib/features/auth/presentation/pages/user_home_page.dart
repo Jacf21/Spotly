@@ -89,12 +89,13 @@ class _UserHomePageState extends State<UserHomePage>
   Widget build(BuildContext context) {
     return UserHomeContent(
       isDarkMode: _isDarkMode,
-      isLoading: _isLoading,
+      //isLoading: _isLoading,
       selectedIndex: _selectedIndex,
       onToggleTheme: _toggleTheme,
       onNavItemTapped: _onNavItemTapped,
       onSearch: _onSearchPressed,
       onCreate: _onCreatePressed,
+      child: Text("Contenido aqui"), 
     );
   }
 }

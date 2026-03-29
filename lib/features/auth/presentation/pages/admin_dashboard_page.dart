@@ -75,6 +75,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       onNavTap: _onNavItemTapped,
       onSearch: _onSearch,
       onRedirect: _showRedirect,
+      child: Text("contenido aqui"),
     );
   }
 }

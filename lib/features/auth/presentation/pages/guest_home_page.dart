@@ -71,6 +71,7 @@ class _GuestHomePageState extends State<GuestHomePage>
       onNavItemTapped: _onNavItemTapped,
       onGuestAction: _triggerGuest,
       selectedIndex: _selectedIndex,
+      child: Text("contenido aqui"),
     );
   }
 }

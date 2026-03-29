@@ -18,7 +18,7 @@ class AdminDashboardContent extends StatelessWidget {
     required this.onNavTap,
     required this.onSearch,
     required this.onRedirect,
-    required this.child,
+    required this.child, required bool isLoading,
   });
 
   @override
