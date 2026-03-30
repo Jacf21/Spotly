@@ -8,73 +8,62 @@ class AdminDashboardPage extends StatefulWidget {
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends State<AdminDashboardPage>
-    with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
+class _AdminDashboardPageState extends State<AdminDashboardPage> {
   bool _isDarkMode = true;
-  bool _isLoading = true;
-  late AnimationController _animationController;
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    _showToast('Panel de administración');
-  }
-
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _showRedirect(String message) {
-    _showToast('$message (Próximamente)');
-  }
-
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
-  }
-
-  void _onSearch() {
-    _showRedirect('🔍 Buscador admin');
-  }
+  void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
 
   @override
   Widget build(BuildContext context) {
+    // LISTA DE VISTAS FUTURAS (AQUÍ LLAMARÁS A TU FEED O LOGIN)
+    final List<Widget> _adminViews = [
+      // 0. Dashboard / Feed Principal
+      const _ViewPlaceholder(label: "Dashboard: Feed de Actividad Reciente"),
+
+      // 1. Lugares
+      const _ViewPlaceholder(label: "Gestión de Lugares Turísticos"),
+
+      // 2. Usuarios
+      const _ViewPlaceholder(label: "Control de Usuarios e Influencers"),
+
+      // 3. Reportes
+      const _ViewPlaceholder(label: "Reportes y Estadísticas de Bolivia"),
+    ];
+
     return AdminDashboardContent(
       isDarkMode: _isDarkMode,
-      isLoading: _isLoading,
       selectedIndex: _selectedIndex,
       onToggleTheme: _toggleTheme,
-      onNavTap: _onNavItemTapped,
-      onSearch: _onSearch,
-      onRedirect: _showRedirect,
+      onSearch: () => debugPrint("Abriendo Buscador Global..."),
+
+      // EL HIJO DINÁMICO:
+      // Usamos IndexedStack para que al cambiar de pestaña no se pierda el scroll
+      child: IndexedStack(
+        index: _selectedIndex,
+        children: _adminViews,
+      ),
+    );
+  }
+}
+
+// Widget auxiliar para mantener el espacio limpio hasta que pongas el contenido real
+class _ViewPlaceholder extends StatelessWidget {
+  final String label;
+  const _ViewPlaceholder({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 16,
+          fontWeight: FontWeight.w300,
+        ),
+      ),
     );
   }
 }
