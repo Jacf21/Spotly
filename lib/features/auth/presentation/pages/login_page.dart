@@ -77,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
 
   /// 👀 CONTINUAR COMO INVITADO
   void _goGuest() {
-    context.go('/guest/home');
+    context.go('/feed');
   }
 
   void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
