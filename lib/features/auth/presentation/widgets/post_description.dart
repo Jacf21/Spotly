@@ -55,7 +55,7 @@ class _PostDescriptionInputState extends State<PostDescriptionInput> {
                 style: const TextStyle(fontSize: 15),
                 decoration: const InputDecoration(
                   hintText: "¿Qué hace especial a este rincón de Bolivia?...",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                  hintStyle: TextStyle(color: Color.fromARGB(255, 201, 200, 200), fontSize: 14),
                   border: InputBorder.none, // Quitamos la línea fea de abajo
                   counterText: "", 
                 ),
