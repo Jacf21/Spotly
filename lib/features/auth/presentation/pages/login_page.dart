@@ -104,6 +104,32 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+      //IR A REGISTRO
+   Widget _buildGoToRegisterButton() {
+    return SpotlyInteractive(
+     onTap: () => context.go('/register'),
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: SpotlyColors.accent(_isDarkMode),
+          ),
+         ),
+              child: Center(
+              child: Text(
+              "CREAR CUENTA NUEVA",
+              style: TextStyle(
+              color: SpotlyColors.accent(_isDarkMode),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+             ),
+           ),
+         ),
+       ),
+     );
+   }
 
   /// 🎯 CONTENIDO CENTRAL
   Widget _buildLoginContent() {
@@ -156,6 +182,10 @@ class _LoginPageState extends State<LoginPage> {
                       color: Color(0xFF2DD4BF),
                     )
                   : _buildLoginButton(),
+
+                  const SizedBox(height: 10),
+
+                  _buildGoToRegisterButton(),
 
               const SizedBox(height: 16),
 
