@@ -55,11 +55,18 @@ class _RegisterPageState extends State<RegisterPage>
     _controller.forward();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+ @override
+void dispose() {
+  _controller.dispose();
+
+  _nameController.dispose();
+  _lastNameController.dispose();
+  _emailController.dispose();
+  _passwordController.dispose();
+  _confirmPasswordController.dispose();
+
+  super.dispose();
+}
 
   /// VALIDACIÓN
   void _validarCampos() {
@@ -69,58 +76,46 @@ class _RegisterPageState extends State<RegisterPage>
           _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
           _confirmPasswordController.text.isNotEmpty;
+    
     });
   }
-
-  /// REGISTRO 🔥 CORREGIDO
   Future<void> _handleRegister() async {
-    if (!_camposValidos) {
-      SpotlyUI.toast(context, "Completa todos los campos");
-      return;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      SpotlyUI.toast(context, "Las contraseñas no coinciden");
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      /// 🔥 OBTENER USUARIO CORRECTAMENTE
-      final user = Supabase.instance.client.auth.currentUser;
-
-      if (user != null) {
-        await Supabase.instance.client.from('perfiles').insert({
-          'id_usuario': user.id,
-          'nombres': _nameController.text.trim(),
-          'apellidos': _lastNameController.text.trim(),
-          'rol': 'user',
-        });
-
-        if (!mounted) return;
-
-        SpotlyUI.toast(
-          context,
-          "Revisa tu correo para confirmar tu cuenta 📩",
-        );
-
-        context.go('/');
-      }
-    } on AuthException catch (e) {
-      SpotlyUI.toast(context, e.message);
-    } catch (e) {
-      debugPrint("ERROR COMPLETO: $e");
-      SpotlyUI.toast(context, "Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  if (!_camposValidos) {
+    SpotlyUI.toast(context, "Completa todos los campos");
+    return;
   }
+
+  if (_passwordController.text != _confirmPasswordController.text) {
+    SpotlyUI.toast(context, "Las contraseñas no coinciden");
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    await Supabase.instance.client.auth.signUp(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    SpotlyUI.toast(
+      context,
+      "Revisa tu correo para confirmar tu cuenta 📩",
+    );
+
+    context.go('/');
+
+  } on AuthException catch (e) {
+    SpotlyUI.toast(context, e.message);
+  } catch (e) {
+    debugPrint("ERROR COMPLETO: $e");
+    SpotlyUI.toast(context, "Error: $e");
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 
   void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
 

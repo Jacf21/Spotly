@@ -41,24 +41,44 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.user != null) {
-        final userData = await Supabase.instance.client
-            .from('perfiles')
-            .select('rol')
-            .eq('id_usuario', response.user!.id)
-            .single();
+  final user = response.user!;
 
-        final String userRol = (userData['rol'] ?? 'user').toString();
+  // 🔍 Buscar perfil
+  final perfil = await Supabase.instance.client
+      .from('perfiles')
+      .select()
+      .eq('id_usuario', user.id)
+      .maybeSingle();
 
-        if (!mounted) return;
+  // 🆕 Si no existe → crearlo
+  if (perfil == null) {
+    await Supabase.instance.client.from('perfiles').insert({
+      'id_usuario': user.id,
+      'nombres': 'Usuario',
+      'apellidos': '',
+      'rol': 'user',
+    });
+  }
 
-        if (userRol.toLowerCase() == 'admin') {
-          SpotlyUI.toast(context, "Modo Admin: Acceso Total");
-          context.go('/admin');
-        } else {
-          SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
-          context.go('/user');
-        }
-      }
+  // 🔄 Obtener rol (ya seguro existe)
+  final userData = await Supabase.instance.client
+      .from('perfiles')
+      .select('rol')
+      .eq('id_usuario', user.id)
+      .single();
+
+  final String userRol = (userData['rol'] ?? 'user').toString();
+
+  if (!mounted) return;
+
+  if (userRol.toLowerCase() == 'admin') {
+    SpotlyUI.toast(context, "Modo Admin: Acceso Total");
+    context.go('/admin');
+  } else {
+    SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
+    context.go('/user');
+  }
+}
     } on AuthException catch (e) {
       SpotlyUI.toast(context, "Credenciales incorrectas");
       debugPrint("Auth Error: ${e.message}");
