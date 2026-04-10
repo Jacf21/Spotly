@@ -10,6 +10,7 @@ import '../../../../core/widgets/common/spotly_logo.dart';
 import '../../../../core/widgets/common/spotly_card.dart';
 import '../../../../core/widgets/interactive/spotly_interactive.dart';
 import '../../../../core/utils/spotly_ui.dart';
+
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -60,7 +61,7 @@ class _RegisterPageState extends State<RegisterPage>
     super.dispose();
   }
 
-  /// ✅ VALIDACIÓN
+  /// VALIDACIÓN
   void _validarCampos() {
     setState(() {
       _camposValidos = _nameController.text.isNotEmpty &&
@@ -71,7 +72,7 @@ class _RegisterPageState extends State<RegisterPage>
     });
   }
 
-  /// 🔐 REGISTRO (MISMA LÓGICA QUE LOGIN)
+  /// REGISTRO 🔥 CORREGIDO
   Future<void> _handleRegister() async {
     if (!_camposValidos) {
       SpotlyUI.toast(context, "Completa todos los campos");
@@ -86,15 +87,18 @@ class _RegisterPageState extends State<RegisterPage>
     setState(() => _isLoading = true);
 
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      if (response.user != null) {
+      /// 🔥 OBTENER USUARIO CORRECTAMENTE
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user != null) {
         await Supabase.instance.client.from('perfiles').insert({
-          'id_usuario': response.user!.id,
-          'nombre': _nameController.text.trim(),
+          'id_usuario': user.id,
+          'nombres': _nameController.text.trim(),
           'apellidos': _lastNameController.text.trim(),
           'rol': 'user',
         });
@@ -111,7 +115,8 @@ class _RegisterPageState extends State<RegisterPage>
     } on AuthException catch (e) {
       SpotlyUI.toast(context, e.message);
     } catch (e) {
-      SpotlyUI.toast(context, "Error al registrar usuario");
+      debugPrint("ERROR COMPLETO: $e");
+      SpotlyUI.toast(context, "Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -121,186 +126,252 @@ class _RegisterPageState extends State<RegisterPage>
 
   void _goBack() => context.go('/');
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: SpotlyColors.bg(_isDarkMode),
-    body: SafeArea(
-      child: Column(
-        children: [
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: SpotlyColors.bg(_isDarkMode),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-          /// TOP BAR 
-          SpotlyTopBar(
-            dark: _isDarkMode,
-            isAdmin: false,
-            onTheme: _toggleTheme,
-            onSearch: () {},
-          ),
+                /// TOP BAR
+                SpotlyTopBar(
+                  dark: _isDarkMode,
+                  isAdmin: false,
+                  onTheme: _toggleTheme,
+                  onSearch: () {},
+                ),
 
-          const Spacer(),
+                const SizedBox(height: 30),
 
-          /// 💳 CARD ANIMADA
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: SpotlyCrystalCard(
-                dark: _isDarkMode,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                /// CARD
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SpotlyCrystalCard(
+                        dark: _isDarkMode,
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
 
-                    const SpotlyLogo(dark: true, size: 32)
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .scale(delay: 200.ms),
+                                const SpotlyLogo(dark: true, size: 32)
+                                    .animate()
+                                    .fadeIn(duration: 600.ms)
+                                    .scale(delay: 200.ms),
 
-                    const SizedBox(height: 10),
+                                const SizedBox(height: 10),
 
-                    Text(
-                      "Crear cuenta",
-                      style: TextStyle(
-                        color: SpotlyColors.text(_isDarkMode),
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ).animate().fadeIn(delay: 300.ms),
-
-                    const SizedBox(height: 30),
-
-                    _buildInput(
-                      "Nombres",
-                      LucideIcons.user,
-                      _nameController,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    _buildInput(
-                      "Apellidos",
-                      LucideIcons.userCheck,
-                      _lastNameController,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    _buildInput(
-                      "Correo electrónico",
-                      LucideIcons.mail,
-                      _emailController,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    _buildInput(
-                      "Contraseña",
-                      LucideIcons.lock,
-                      _passwordController,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    _buildInput(
-                      "Confirmar contraseña",
-                      LucideIcons.shieldCheck,
-                      _confirmPasswordController,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    /// 🔘 BOTÓN CON SPOTLY INTERACTIVE
-                    _isLoading
-                        ? const CircularProgressIndicator()
-                        : SpotlyInteractive(
-                            onTap: () {
-                             if (_camposValidos && !_isLoading) {
-                                      _handleRegister();
-                            } else {
-                               SpotlyUI.toast(context, "Completa todos los campos");
-                                   }
-                                    },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    SpotlyColors.accent(_isDarkMode),
-                                    const Color(0xFF2DD4BF),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: SpotlyColors.shadow(_isDarkMode),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  "CREAR CUENTA",
+                                Text(
+                                  "Crear cuenta",
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: SpotlyColors.text(_isDarkMode),
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                                  ),
+                                ).animate().fadeIn(delay: 300.ms),
+
+                                const SizedBox(height: 30),
+
+                                /// NOMBRES
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      "NOMBRES",
+                                      style: TextStyle(
+                                        color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                _buildInput("Nombres", LucideIcons.user, _nameController),
+                                const SizedBox(height: 15),
+
+                                /// APELLIDOS
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      "APELLIDOS",
+                                      style: TextStyle(
+                                        color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildInput("Apellidos", LucideIcons.userCheck, _lastNameController),
+                                const SizedBox(height: 15),
+
+                                /// CORREO
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      "CORREO ELECTRONICO",
+                                      style: TextStyle(
+                                        color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildInput("Correo electrónico", LucideIcons.mail, _emailController),
+                                const SizedBox(height: 15),
+
+                                /// PASSWORD
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      "CONTRASEÑA",
+                                      style: TextStyle(
+                                        color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildInput("Contraseña", LucideIcons.lock, _passwordController, obscure: true),
+                                const SizedBox(height: 15),
+
+                                /// CONFIRMAR
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      "CONFIRMAR CONTRASEÑA",
+                                      style: TextStyle(
+                                        color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildInput("Confirmar contraseña",
+                                 LucideIcons.shieldCheck, _confirmPasswordController, obscure: true),
+                                const SizedBox(height: 30),
+
+                                _isLoading
+                                    ? const CircularProgressIndicator()
+                                    : SpotlyInteractive(
+                                        onTap: () {
+                                          if (_camposValidos && !_isLoading) {
+                                            _handleRegister();
+                                          } else {
+                                            SpotlyUI.toast(context, "Completa todos los campos");
+                                          }
+                                        },
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                SpotlyColors.accent(_isDarkMode),
+                                                const Color(0xFF2DD4BF),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: SpotlyColors.shadow(_isDarkMode),
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              "CREAR CUENTA",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                const SizedBox(height: 15),
+
+                                TextButton(
+                                  onPressed: _goBack,
+                                  child: Text(
+                                    "¿Ya tienes cuenta? Iniciar sesión",
+                                    style: TextStyle(
+                                      color: SpotlyColors.subText(_isDarkMode),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-
-                    const SizedBox(height: 15),
-
-                    TextButton(
-                      onPressed: _goBack,
-                      child: Text(
-                        "¿Ya tienes cuenta? Iniciar sesión",
-                        style: TextStyle(
-                          color: SpotlyColors.subText(_isDarkMode),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 40),
+              ],
             ),
           ),
-
-          const Spacer(),
-        ],
+        ),
       ),
-    ),
-  );
-   }
+    );
+  }
 
-
-  /// INPUT 
+  /// INPUT
   Widget _buildInput(
-  String label,
-  IconData icon,
-  TextEditingController controller, {
-  bool obscure = false,
-}) {
-  return TextField(
-    controller: controller,
-    obscureText: obscure,
-    style: TextStyle(color: SpotlyColors.text(_isDarkMode)),
-    decoration: InputDecoration(
-      hintText: label,
-      hintStyle: TextStyle(
-        color: SpotlyColors.subText(_isDarkMode),
+    String label,
+    IconData icon,
+    TextEditingController controller, {
+    bool obscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: TextStyle(color: SpotlyColors.text(_isDarkMode)),
+      decoration: InputDecoration(
+        hintText: label,
+        hintStyle: TextStyle(
+          color: SpotlyColors.subText(_isDarkMode),
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: SpotlyColors.accent(_isDarkMode),
+        ),
+        filled: true,
+        fillColor: _isDarkMode
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.03),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
       ),
-      prefixIcon: Icon(
-        icon,
-        color: SpotlyColors.accent(_isDarkMode),
-      ),
-      filled: true,
-      fillColor: _isDarkMode
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.03),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-    ),
-  ).animate().fadeIn(duration: 400.ms);
-}
+    ).animate().fadeIn(duration: 400.ms);
+  }
 }
