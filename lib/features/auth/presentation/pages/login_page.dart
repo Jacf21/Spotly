@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../core/context/auth_context.dart';
+import '../../../../core/utils/theme_utils.dart';
 import '../../../../core/themes/spotly_colors.dart';
 import '../../../../core/widgets/layout/spotly_topbar.dart';
 import '../../../../core/widgets/common/spotly_logo.dart';
@@ -23,7 +26,10 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isDarkMode = true;
+
+  void _toggleTheme() {
+    ThemeUtils.toggle(context);
+  }
 
   /// 🔐 LOGIN REAL CON SUPABASE
   Future<void> _handleLogin() async {
@@ -41,54 +47,57 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.user != null) {
-  final user = response.user!;
+        final user = response.user!;
+        final auth = Provider.of<AuthProvider>(context, listen: false);
 
-  // 🔍 Buscar perfil
-  final perfil = await Supabase.instance.client
-      .from('perfiles')
-      .select()
-      .eq('id_usuario', user.id)
-      .maybeSingle();
+        // 🔍 Buscar perfil
+        final perfil = await Supabase.instance.client
+            .from('perfiles')
+            .select()
+            .eq('id_usuario', user.id)
+            .maybeSingle();
 
-  // 🆕 Si no existe → crearlo
-  if (perfil == null) {
-    await Supabase.instance.client.from('perfiles').insert({
-      'id_usuario': user.id,
-      'nombres': 'Usuario',
-      'apellidos': '',
-      'rol': 'user',
-    });
-  }
+        // 🆕 Si no existe → crearlo
+        if (perfil == null) {
+          await Supabase.instance.client.from('perfiles').insert({
+            'id_usuario': user.id,
+            'nombres': 'Usuario',
+            'apellidos': '',
+            'rol': 'user',
+          });
+        }
 
-  // 🔄 Obtener rol (ya seguro existe)
-  final userData = await Supabase.instance.client
-      .from('perfiles')
-      .select('rol')
-      .eq('id_usuario', user.id)
-      .single();
+        // 🔄 Obtener rol
+        final userData = await Supabase.instance.client
+            .from('perfiles')
+            .select('rol')
+            .eq('id_usuario', user.id)
+            .single();
 
-  final String userRol = (userData['rol'] ?? 'user').toString();
+        final String userRol = (userData['rol'] ?? 'user').toString();
 
-  if (!mounted) return;
+        /// ✅ GUARDAR SESIÓN GLOBAL
+        auth.login(userRol);
 
-  if (userRol.toLowerCase() == 'admin') {
-    SpotlyUI.toast(context, "Modo Admin: Acceso Total");
-    context.go('/admin');
-  } else {
-    SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
-    context.go('/user');
-  }
-}
+        if (!mounted) return;
+
+        if (userRol.toLowerCase() == 'admin') {
+          SpotlyUI.toast(context, "Modo Admin: Acceso Total");
+          context.go('/admin');
+        } else {
+          SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
+          context.go('/feed'); // 🔥 corregido
+        }
+      }
     } on AuthException catch (e) {
-      SpotlyUI.toast(context, "Credenciales incorrectas");
       debugPrint("Auth Error: ${e.message}");
+      SpotlyUI.toast(context, e.message);
     } catch (e) {
       debugPrint("Error crítico: $e");
-
       SpotlyUI.toast(context, "Error al verificar permisos");
 
       if (mounted) {
-        context.go('/user');
+        context.go('/feed');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -97,71 +106,74 @@ class _LoginPageState extends State<LoginPage> {
 
   /// 👀 CONTINUAR COMO INVITADO
   void _goGuest() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.logout();
     context.go('/feed');
   }
 
-  void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
-
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeUtils.isDark(context);
+
     return Scaffold(
-      backgroundColor: SpotlyColors.bg(_isDarkMode),
+      backgroundColor: SpotlyColors.bg(dark),
       body: SafeArea(
         child: Column(
           children: [
             /// 🔝 TOP BAR
             SpotlyTopBar(
-              dark: _isDarkMode,
+              dark: dark,
               isAdmin: false,
               onTheme: _toggleTheme,
               onSearch: () {},
             ),
 
             /// 📦 CONTENIDO
-            Expanded(child: _buildLoginContent()),
+            Expanded(child: _buildLoginContent(dark)),
           ],
         ),
       ),
     );
   }
-      //IR A REGISTRO
-   Widget _buildGoToRegisterButton() {
+
+  /// 🔗 IR A REGISTRO
+  Widget _buildGoToRegisterButton(bool dark) {
     return SpotlyInteractive(
-     onTap: () => context.go('/register'),
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: SpotlyColors.accent(_isDarkMode),
+      onTap: () => context.go('/register'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: SpotlyColors.accent(dark),
           ),
-         ),
-              child: Center(
-              child: Text(
-              "CREAR CUENTA NUEVA",
-              style: TextStyle(
-              color: SpotlyColors.accent(_isDarkMode),
+        ),
+        child: Center(
+          child: Text(
+            "CREAR CUENTA NUEVA",
+            style: TextStyle(
+              color: SpotlyColors.accent(dark),
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
-             ),
-           ),
-         ),
-       ),
-     );
-   }
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 🎯 CONTENIDO CENTRAL
-  Widget _buildLoginContent() {
+  Widget _buildLoginContent(bool dark) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: SpotlyCrystalCard(
-          dark: _isDarkMode,
+          dark: dark,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SpotlyLogo(dark: true, size: 36)
+              SpotlyLogo(dark: dark, size: 36)
                   .animate()
                   .fadeIn(duration: 600.ms)
                   .scale(delay: 200.ms),
@@ -171,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 "Gestión de Turismo Bolivia",
                 style: TextStyle(
-                  color: SpotlyColors.subText(_isDarkMode),
+                  color: SpotlyColors.subText(dark),
                   fontSize: 14,
                 ),
               ).animate().fadeIn(delay: 400.ms),
@@ -182,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                 controller: _emailController,
                 label: "Correo electrónico",
                 icon: LucideIcons.mail,
-                isDark: _isDarkMode,
+                isDark: dark,
               ),
 
               const SizedBox(height: 20),
@@ -191,21 +203,19 @@ class _LoginPageState extends State<LoginPage> {
                 controller: _passwordController,
                 label: "Contraseña",
                 icon: LucideIcons.lock,
-                isDark: _isDarkMode,
+                isDark: dark,
                 isPassword: true,
               ),
 
               const SizedBox(height: 30),
 
               _isLoading
-                  ? const CircularProgressIndicator(
-                      color: Color(0xFF2DD4BF),
-                    )
-                  : _buildLoginButton(),
+                  ? const CircularProgressIndicator()
+                  : _buildLoginButton(dark),
 
-                  const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-                  _buildGoToRegisterButton(),
+              _buildGoToRegisterButton(dark),
 
               const SizedBox(height: 16),
 
@@ -214,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Text(
                   "CONTINUAR COMO INVITADO",
                   style: TextStyle(
-                    color: SpotlyColors.accent(_isDarkMode),
+                    color: SpotlyColors.accent(dark),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -227,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// 🔘 BOTÓN LOGIN
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(bool dark) {
     return SpotlyInteractive(
       onTap: _handleLogin,
       child: Container(
@@ -236,12 +246,12 @@ class _LoginPageState extends State<LoginPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              SpotlyColors.accent(_isDarkMode),
+              SpotlyColors.accent(dark),
               const Color(0xFF2DD4BF),
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: SpotlyColors.shadow(_isDarkMode),
+          boxShadow: SpotlyColors.shadow(dark),
         ),
         child: const Center(
           child: Text(

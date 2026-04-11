@@ -3,10 +3,6 @@ import 'package:lucide_icons/lucide_icons.dart'; // IMPORTACIÓN VITAL
 import 'user_home_content.dart';
 
 import '../../../../core/themes/spotly_colors.dart';
-import '../../../../core/themes/spotly_config.dart';
-import '../../../../core/widgets/layout/spotly_topbar.dart';
-import '../../../../core/widgets/layout/spotly_nav_item.dart';
-import '../../../../core/widgets/layout/spotly_add_button.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});

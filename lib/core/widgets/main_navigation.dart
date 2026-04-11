@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../context/auth_context.dart';
+import '../utils/theme_utils.dart';
+import '../themes/spotly_colors.dart';
+import '../utils/spotly_ui.dart';
+import '../widgets/layout/spotly_add_button.dart';
+import '../widgets/layout/spotly_topbar.dart';
 
 class MainNavigation extends StatelessWidget {
   final Widget child;
@@ -20,37 +28,112 @@ class MainNavigation extends StatelessWidget {
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = _getIndex(location);
 
-    return Scaffold(
-      body: child, // 🔥 AQUÍ CAMBIAN LAS PÁGINAS
+    final auth = context.watch<AuthProvider>();
+    final isGuest = !auth.isLoggedIn;
+    final dark = ThemeUtils.isDark(context);
 
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/feed');
-              break;
-            case 1:
-              context.go('/map');
-              break;
-            case 2:
-              context.go('/post');
-              break;
-            case 3:
-              context.go('/alerts');
-              break;
-            case 4:
-              context.go('/profile');
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.warning), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-        ],
+    return Scaffold(
+      backgroundColor: SpotlyColors.bg(dark),
+
+      /// 🔝 HEADER GLOBAL
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: SpotlyTopBar(
+          dark: dark,
+          isAdmin: auth.role == 'admin',
+          onTheme: () => ThemeUtils.toggle(context),
+          onSearch: () {},
+        ),
+      ),
+
+      /// 📦 CONTENIDO
+      body: child,
+
+      /// 🔻 FOOTER GLOBAL
+      bottomNavigationBar: _buildBottomNav(
+        context,
+        currentIndex,
+        dark,
+        isGuest,
+        auth,
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(
+    BuildContext context,
+    int currentIndex,
+    bool dark,
+    bool isGuest,
+    AuthProvider auth,
+  ) {
+    return SafeArea(
+      child: Container(
+        height: 75,
+        decoration: BoxDecoration(
+          color: SpotlyColors.nav(dark),
+          border: Border(
+            top: BorderSide(
+              color: dark
+                  ? Colors.white10
+                  : Colors.black.withOpacity(0.05),
+            ),
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: SpotlyUI.buildNavItems(
+                currentIndex: currentIndex,
+                isDark: dark,
+                isAdmin: auth.role == 'admin',
+                onTap: (index) {
+                  if (isGuest && index > 1) {
+                    context.go('/login');
+                    return;
+                  }
+
+                  switch (index) {
+                    case 0:
+                      context.go('/feed');
+                      break;
+                    case 1:
+                      context.go('/map');
+                      break;
+                    case 2:
+                      context.go('/post');
+                      break;
+                    case 3:
+                      context.go('/alerts');
+                      break;
+                    case 4:
+                      context.go('/profile');
+                      break;
+                  }
+                },
+              ),
+            ),
+
+            /// ➕ BOTÓN CENTRAL
+            Center(
+              child: Transform.translate(
+                offset: const Offset(0, -25),
+                child: SpotlyAddButton(
+                  dark: dark,
+                  onTap: () {
+                    if (isGuest) {
+                      context.go('/login');
+                      return;
+                    }
+                    context.go('/post');
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
