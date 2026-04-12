@@ -95,6 +95,7 @@ class _FeedPageState extends State<FeedPage> {
     super.dispose();
   }
 
+  //context mode dark and login
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);

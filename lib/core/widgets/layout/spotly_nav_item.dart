@@ -27,9 +27,15 @@ class SpotlyNavItem extends StatelessWidget {
       child: SpotlyInteractive(
         onTap: onTap,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, // ✅ centra verticalmente
+          mainAxisSize: MainAxisSize.max,              // ✅ ocupa todo el alto del nav
           children: [
-            Icon(icon, color: color),
-            Text(label, style: TextStyle(color: color)),
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 3),                // ✅ espacio entre ícono y label
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 11),
+            ),
           ],
         ),
       ),

@@ -51,8 +51,8 @@ class SpotlyUI {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             SpotlyNavItem(
-              icon: isAdmin ? LucideIcons.layoutGrid : LucideIcons.heart,
-              label: isAdmin ? 'Gestión' : 'Favoritos',
+              icon: isAdmin ? LucideIcons.layoutGrid : LucideIcons.bell,
+              label: isAdmin ? 'Gestión' : 'Notificaciones',
               active: currentIndex == 3,
               dark: isDark,
               onTap: () => onTap(3),
