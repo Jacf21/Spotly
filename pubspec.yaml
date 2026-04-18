@@ -42,12 +42,14 @@ dependencies:
   # ⚙️ UTILS
   intl: ^0.19.0
   url_launcher: ^6.2.5
+  share_plus: ^13.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   build_runner: ^2.4.9
+  timeago: ^3.6.1
 
 flutter:
   uses-material-design: true

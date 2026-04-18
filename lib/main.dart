@@ -5,6 +5,7 @@ import 'config/router/app_router.dart';
 import 'package:provider/provider.dart';
 import 'core/context/auth_context.dart';
 import 'core/context/theme_context.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,7 @@ void main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+  timeago.setLocaleMessages('es', timeago.EsMessages());
 
   runApp(
     MultiProvider(
