@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'spotly_ui.dart';
+
+import '../../../../core/themes/spotly_colors.dart';
+import '../../../../core/themes/spotly_config.dart';
+import '../../../../core/widgets/layout/spotly_topbar.dart';
+import '../../../../core/widgets/layout/spotly_nav_item.dart';
+import '../../../../core/widgets/layout/spotly_add_button.dart';
 
 class UserHomeContent extends StatelessWidget {
   final bool isDarkMode;

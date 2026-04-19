@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'spotly_ui.dart';
+
+import '../../../../core/themes/spotly_colors.dart';
+import '../../../../core/themes/spotly_config.dart';
+import '../../../../core/widgets/layout/spotly_topbar.dart';
+import '../../../../core/widgets/layout/spotly_nav_item.dart';
+import '../../../../core/widgets/layout/spotly_add_button.dart';
 
 class GuestHomeContent extends StatelessWidget {
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
-  final Function(int) onNavItemTapped;
   final Function(String) onGuestAction;
-  final int selectedIndex;
   final Widget child;
 
   const GuestHomeContent({
     super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
-    required this.onNavItemTapped,
     required this.onGuestAction,
-    required this.selectedIndex,
     required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+
     return AnimatedContainer(
       duration: SpotlyConfig.animShort,
       color: SpotlyColors.bg(isDarkMode),
@@ -35,19 +39,15 @@ class GuestHomeContent extends StatelessWidget {
               onTheme: onToggleTheme,
               onSearch: () => onGuestAction('buscar destinos'),
             ),
-            Expanded(
-              child: ClipRRect(
-                child: child,
-              ),
-            ),
-            _buildBottomNav(),
+            Expanded(child: child),
+            _buildBottomNav(context, location),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context, String location) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -65,41 +65,45 @@ class GuestHomeContent extends StatelessWidget {
             SpotlyNavItem(
               icon: LucideIcons.home,
               label: 'Inicio',
-              active: selectedIndex == 0,
+              active: _isActive(location, '/guest/home'),
               dark: isDarkMode,
-              onTap: () => onNavItemTapped(0),
+              onTap: () => context.go('/guest/home'),
             ),
+
             SpotlyNavItem(
-              icon: LucideIcons.map, // Estandarizado a Mapa
+              icon: LucideIcons.map,
               label: 'Mapa',
-              active: selectedIndex == 1,
+              active: _isActive(location, '/guest/map'),
               dark: isDarkMode,
               onTap: () {
-                onNavItemTapped(1);
+                context.go('/guest/map');
                 onGuestAction('ver mapa');
               },
             ),
+
             SpotlyAddButton(
               dark: isDarkMode,
               onTap: () => onGuestAction('crear contenido'),
             ),
+
             SpotlyNavItem(
-              icon: LucideIcons.messageSquare, // Estandarizado a Mensajes
+              icon: LucideIcons.messageSquare,
               label: 'Mensajes',
-              active: selectedIndex == 2,
+              active: _isActive(location, '/guest/messages'),
               dark: isDarkMode,
               onTap: () {
-                onNavItemTapped(2);
+                context.go('/guest/messages');
                 onGuestAction('ver mensajes');
               },
             ),
+
             SpotlyNavItem(
               icon: LucideIcons.user,
               label: 'Perfil',
-              active: selectedIndex == 3,
+              active: _isActive(location, '/guest/profile'),
               dark: isDarkMode,
               onTap: () {
-                onNavItemTapped(3);
+                context.go('/guest/profile');
                 onGuestAction('ver perfil');
               },
             ),
@@ -107,5 +111,10 @@ class GuestHomeContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 🔥 Detecta tab activo según la ruta
+  bool _isActive(String location, String route) {
+    return location.startsWith(route);
   }
 }

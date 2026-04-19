@@ -12,7 +12,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   bool _isDarkMode = true;
   int _selectedIndex = 0;
 
-  void _onNavTap(int index) => setState(() => _selectedIndex = index);
   void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
 
   @override
@@ -36,9 +35,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       isDarkMode: _isDarkMode,
       selectedIndex: _selectedIndex,
       onToggleTheme: _toggleTheme,
-      onNavTap: _onNavTap,
       onSearch: () => debugPrint("Abriendo Buscador Global..."),
-      onRedirect: (route) => debugPrint("Redirigiendo a: $route"),
 
       // EL HIJO DINÁMICO:
       // Usamos IndexedStack para que al cambiar de pestaña no se pierda el scroll

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart'; // IMPORTACIÓN VITAL
 import 'user_home_content.dart';
-import 'spotly_ui.dart'; // Para usar SpotlyColors
+
+import '../../../../core/themes/spotly_colors.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});

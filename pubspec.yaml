@@ -56,6 +56,6 @@ flutter:
   assets:
     - .env
     - assets/images/
-    - assets/rive/
+    #- assets/rive/
 
   # 🖋️ FUENTES (Usando Google Fonts via paquete, no necesitas declararlas aquí)

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'spotly_ui.dart';
+
+import '../../../../core/themes/spotly_colors.dart';
+import '../../../../core/themes/spotly_config.dart';
+import '../../../../core/widgets/layout/spotly_topbar.dart';
+import '../../../../core/widgets/layout/spotly_nav_item.dart';
+import '../../../../core/widgets/layout/spotly_add_button.dart';
 
 class AdminDashboardContent extends StatelessWidget {
   final bool isDarkMode;
   final int selectedIndex;
   final VoidCallback onToggleTheme;
-  final Function(int) onNavTap;
   final VoidCallback onSearch;
-  final Function(String) onRedirect;
   final Widget child;
 
   const AdminDashboardContent({
@@ -16,9 +20,7 @@ class AdminDashboardContent extends StatelessWidget {
     required this.isDarkMode,
     required this.selectedIndex,
     required this.onToggleTheme,
-    required this.onNavTap,
     required this.onSearch,
-    required this.onRedirect,
     required this.child,
   });
 
@@ -29,31 +31,23 @@ class AdminDashboardContent extends StatelessWidget {
       color: SpotlyColors.bg(isDarkMode),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        // Usamos el BottomNavigationBar nativo para mayor estabilidad visual
-        bottomNavigationBar: _buildBottomNav(),
+        bottomNavigationBar: _buildBottomNav(context),
         body: Column(
           children: [
-            // TOP BAR con isAdmin: true para mostrar el badge PRO/ADMIN
             SpotlyTopBar(
               dark: isDarkMode,
               isAdmin: true,
               onTheme: onToggleTheme,
               onSearch: onSearch,
             ),
-
-            // CONTENIDO DINÁMICO CENTRAL
-            Expanded(
-              child: ClipRRect(
-                child: child,
-              ),
-            ),
+            Expanded(child: child),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       height: 95,
       decoration: BoxDecoration(
@@ -68,46 +62,41 @@ class AdminDashboardContent extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // 1. DASHBOARD (Métricas generales)
             SpotlyNavItem(
               icon: LucideIcons.layoutDashboard,
               label: 'Inicio',
               active: selectedIndex == 0,
               dark: isDarkMode,
-              onTap: () => onNavTap(0),
+              onTap: () => context.go('/admin/dashboard'),
             ),
 
-            // 2. GESTIÓN (Mapa de Spots/Control)
             SpotlyNavItem(
               icon: LucideIcons.mapPin,
               label: 'Gestión',
               active: selectedIndex == 1,
               dark: isDarkMode,
-              onTap: () => onNavTap(1),
+              onTap: () => context.go('/admin/gestion'),
             ),
 
-            // 3. BOTÓN CENTRAL PLUS (Mismo estilo que User/Guest)
             SpotlyAddButton(
               dark: isDarkMode,
-              onTap: () => onRedirect('Crear'),
+              onTap: () => context.go('/admin/create'),
             ),
 
-            // 4. REPORTES (Alertas de usuarios o errores)
             SpotlyNavItem(
               icon: LucideIcons.barChart3,
               label: 'Reportes',
               active: selectedIndex == 2,
               dark: isDarkMode,
-              onTap: () => onNavTap(2),
+              onTap: () => context.go('/admin/reports'),
             ),
 
-            // 5. PANEL (Configuración técnica del sistema)
             SpotlyNavItem(
               icon: LucideIcons.shieldCheck,
               label: 'Panel',
               active: selectedIndex == 3,
               dark: isDarkMode,
-              onTap: () => onNavTap(3),
+              onTap: () => context.go('/admin/panel'),
             ),
           ],
         ),
