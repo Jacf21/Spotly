@@ -76,8 +76,8 @@ class _LoginPageState extends State<LoginPage> {
 
         final String userRol = (userData['rol'] ?? 'user').toString();
 
-        /// ✅ GUARDAR SESIÓN GLOBAL
-        auth.login(userRol);
+        /// ✅ GUARDAR SESIÓN GLOBAL (Ahora pasando el ID del usuario)
+        auth.login(userRol, user.id);
 
         if (!mounted) return;
 
@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
           context.go('/admin');
         } else {
           SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
-          context.go('/feed'); // 🔥 corregido
+          context.go('/feed');
         }
       }
     } on AuthException catch (e) {
@@ -177,9 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                   .animate()
                   .fadeIn(duration: 600.ms)
                   .scale(delay: 200.ms),
-
               const SizedBox(height: 10),
-
               Text(
                 "Gestión de Turismo Bolivia",
                 style: TextStyle(
@@ -187,18 +185,14 @@ class _LoginPageState extends State<LoginPage> {
                   fontSize: 14,
                 ),
               ).animate().fadeIn(delay: 400.ms),
-
               const SizedBox(height: 40),
-
               _buildTextField(
                 controller: _emailController,
                 label: "Correo electrónico",
                 icon: LucideIcons.mail,
                 isDark: dark,
               ),
-
               const SizedBox(height: 20),
-
               _buildTextField(
                 controller: _passwordController,
                 label: "Contraseña",
@@ -206,19 +200,13 @@ class _LoginPageState extends State<LoginPage> {
                 isDark: dark,
                 isPassword: true,
               ),
-
               const SizedBox(height: 30),
-
               _isLoading
                   ? const CircularProgressIndicator()
                   : _buildLoginButton(dark),
-
               const SizedBox(height: 10),
-
               _buildGoToRegisterButton(dark),
-
               const SizedBox(height: 16),
-
               TextButton(
                 onPressed: _goGuest,
                 child: Text(
