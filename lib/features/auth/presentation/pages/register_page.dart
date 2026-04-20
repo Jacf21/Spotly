@@ -21,7 +21,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage>
     with SingleTickerProviderStateMixin {
-
   final _nameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -49,8 +48,7 @@ class _RegisterPageState extends State<RegisterPage>
       duration: const Duration(milliseconds: 700),
     );
 
-    _fadeAnimation =
-        CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     _controller.forward();
   }
@@ -71,8 +69,7 @@ class _RegisterPageState extends State<RegisterPage>
   /// VALIDACIÓN
   void _validarCampos() {
     setState(() {
-      _camposValidos =
-          _nameController.text.isNotEmpty &&
+      _camposValidos = _nameController.text.isNotEmpty &&
           _lastNameController.text.isNotEmpty &&
           _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
@@ -170,9 +167,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   .animate()
                                   .fadeIn(duration: 600.ms)
                                   .scale(delay: 200.ms),
-
                               const SizedBox(height: 10),
-
                               Text(
                                 "Crear cuenta",
                                 style: TextStyle(
@@ -181,31 +176,31 @@ class _RegisterPageState extends State<RegisterPage>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-
                               const SizedBox(height: 30),
-
-                              _buildInput("Nombres", LucideIcons.user, _nameController, dark),
+                              _buildInput("Nombres", LucideIcons.user,
+                                  _nameController, dark),
                               const SizedBox(height: 15),
-
-                              _buildInput("Apellidos", LucideIcons.userCheck, _lastNameController, dark),
+                              _buildInput("Apellidos", LucideIcons.userCheck,
+                                  _lastNameController, dark),
                               const SizedBox(height: 15),
-
-                              _buildInput("Correo electrónico", LucideIcons.mail, _emailController, dark),
+                              _buildInput("Correo electrónico",
+                                  LucideIcons.mail, _emailController, dark),
                               const SizedBox(height: 15),
-
-                              _buildInput("Contraseña", LucideIcons.lock, _passwordController, dark, obscure: true),
+                              _buildInput("Contraseña", LucideIcons.lock,
+                                  _passwordController, dark,
+                                  obscure: true),
                               const SizedBox(height: 15),
-
-                              _buildInput("Confirmar contraseña", LucideIcons.shieldCheck, _confirmPasswordController, dark, obscure: true),
-
+                              _buildInput(
+                                  "Confirmar contraseña",
+                                  LucideIcons.shieldCheck,
+                                  _confirmPasswordController,
+                                  dark,
+                                  obscure: true),
                               const SizedBox(height: 30),
-
                               _isLoading
                                   ? const CircularProgressIndicator()
                                   : _buildRegisterButton(dark),
-
                               const SizedBox(height: 15),
-
                               TextButton(
                                 onPressed: _goBack,
                                 child: Text(

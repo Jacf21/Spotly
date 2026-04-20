@@ -74,9 +74,7 @@ class MainNavigation extends StatelessWidget {
           color: SpotlyColors.nav(dark),
           border: Border(
             top: BorderSide(
-              color: dark
-                  ? Colors.white10
-                  : Colors.black.withOpacity(0.05),
+              color: dark ? Colors.white10 : Colors.black.withOpacity(0.05),
             ),
           ),
         ),

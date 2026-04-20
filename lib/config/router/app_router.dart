@@ -6,13 +6,13 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/admin_dashboard_page.dart';
 import '../../features/posts/presentation/pages/feed_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart'; // Agregado
 
 // layout
 import '../../core/widgets/main_navigation.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
-
   routes: [
     /// 🔓 PÚBLICAS (SIN NAVBAR)
     GoRoute(
@@ -35,29 +35,22 @@ final appRouter = GoRouter(
           path: '/feed',
           builder: (context, state) => const FeedPage(),
         ),
-
         GoRoute(
           path: '/map',
-          builder: (context, state) =>
-              const Center(child: Text("Mapa")),
+          builder: (context, state) => const Center(child: Text("Mapa")),
         ),
-
         GoRoute(
           path: '/post',
-          builder: (context, state) =>
-              const Center(child: Text("Publicar")),
+          builder: (context, state) => const Center(child: Text("Publicar")),
         ),
-
         GoRoute(
           path: '/alerts',
-          builder: (context, state) =>
-              const Center(child: Text("Alertas")),
+          builder: (context, state) => const Center(child: Text("Alertas")),
         ),
-
         GoRoute(
           path: '/profile',
           builder: (context, state) =>
-              const Center(child: Text("Perfil")),
+              const ProfilePage(), // Modificado para usar tu página
         ),
       ],
     ),

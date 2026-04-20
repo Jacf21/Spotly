@@ -3,6 +3,8 @@ import 'package:lucide_icons/lucide_icons.dart'; // IMPORTACIÓN VITAL
 import 'user_home_content.dart';
 
 import '../../../../core/themes/spotly_colors.dart';
+// Importación corregida basada en tu árbol de directorios
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -41,11 +43,8 @@ class _UserHomePageState extends State<UserHomePage> {
         label: "Tus Spots Guardados",
       ),
 
-      // 3. Perfil de Usuario
-      const _UserPlaceholder(
-        icon: LucideIcons.user, // Corregido de userCircle a user
-        label: "Configuración de tu Perfil",
-      ),
+      // 3. Perfil de Usuario REAL (Sustituimos el placeholder por la ProfilePage)
+      const ProfilePage(),
     ];
 
     return UserHomeContent(

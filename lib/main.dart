@@ -6,6 +6,14 @@ import 'package:provider/provider.dart';
 import 'core/context/auth_context.dart';
 import 'core/context/theme_context.dart';
 
+// Imports para BLoC y Perfil
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'features/profile/data/datasources/profile_remote_data_source.dart'; // IMPORTANTE
+import 'features/profile/data/repositories/profile_repository_impl.dart';
+import 'features/profile/domain/usecases/get_profile_usecase.dart';
+import 'features/profile/domain/usecases/update_profile_usecase.dart';
+import 'features/profile/presentation/bloc/profile_bloc.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +29,27 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+
+        // Inyección del ProfileBloc usando Clean Architecture
+        BlocProvider(
+          create: (context) {
+            // 1. Instanciamos el cliente de Supabase
+            final supabaseClient = Supabase.instance.client;
+
+            // 2. Instanciamos el Data Source pasándole el cliente
+            final remoteDataSource =
+                ProfileRemoteDataSourceImpl(supabaseClient);
+
+            // 3. Instanciamos el Repositorio pasándole el Data Source
+            final repository = ProfileRepositoryImpl(remoteDataSource);
+
+            // 4. Retornamos el BLoC con sus casos de uso
+            return ProfileBloc(
+              getProfileUseCase: GetProfileUseCase(repository),
+              updateProfileUseCase: UpdateProfileUseCase(repository),
+            );
+          },
+        ),
       ],
       child: const MyApp(),
     ),
@@ -35,6 +64,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      // Aplicamos el tema desde el context si es necesario
+      themeMode: ThemeMode.system,
     );
   }
 }
