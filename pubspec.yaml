@@ -50,6 +50,7 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   build_runner: ^2.4.9
   timeago: ^3.6.1
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -58,6 +59,10 @@ flutter:
   assets:
     - .env
     - assets/images/
+    - assets/icons/
     #- assets/rive/
 
   # 🖋️ FUENTES (Usando Google Fonts via paquete, no necesitas declararlas aquí)
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/SpotlyIcon.png"

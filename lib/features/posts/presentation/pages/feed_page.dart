@@ -239,19 +239,47 @@ class _FeedPageState extends State<FeedPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Header: avatar + usuario + lugar ──────────────────────────
-        ListTile(
-          leading: CircleAvatar(
-            backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
-            backgroundImage:
-                item.avatar.isNotEmpty ? NetworkImage(item.avatar) : null,
-            child: item.avatar.isEmpty
-                ? Icon(LucideIcons.user, color: subColor)
-                : null,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
+                backgroundImage: item.avatar.isNotEmpty
+                    ? NetworkImage(item.avatar)
+                    : null,
+                child: item.avatar.isEmpty
+                    ? Icon(LucideIcons.user, color: subColor, size: 20)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                item.usuario,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
-          title: Text(item.usuario,
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          subtitle: Text(item.lugar, style: TextStyle(color: subColor)),
         ),
+
+        // ── Descripción (justo debajo de la imagen) ───────────────────
+        if (item.descripcion != null && item.descripcion!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(color: textColor, fontSize: 14),
+                children: [
+                  TextSpan(text: item.descripcion),
+                ],
+              ),
+            ),
+          ),
 
         // ── Imagen ────────────────────────────────────────────────────
         Image.network(
@@ -265,24 +293,6 @@ class _FeedPageState extends State<FeedPage> {
             child: Icon(LucideIcons.imageOff, color: subColor),
           ),
         ),
-
-        // ── Descripción (justo debajo de la imagen) ───────────────────
-        if (item.descripcion != null && item.descripcion!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(color: textColor, fontSize: 14),
-                children: [
-                  TextSpan(
-                    text: '${item.usuario} ',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(text: item.descripcion),
-                ],
-              ),
-            ),
-          ),
 
         // ── Acciones con contadores inline ────────────────────────────
         Padding(
