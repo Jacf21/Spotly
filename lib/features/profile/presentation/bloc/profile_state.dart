@@ -4,19 +4,17 @@ abstract class ProfileState {}
 
 class ProfileInitial extends ProfileState {}
 
-class ProfileLoading extends ProfileState {} // Para mostrar el cargando
+class ProfileLoading extends ProfileState {}
 
 class ProfileLoaded extends ProfileState {
-  // Cuando los datos ya llegaron
-  final dynamic user;
-  ProfileLoaded(this.user);
+  final ProfileEntity profile;
+
+  ProfileLoaded(this.profile);
 }
 
+class ProfileUpdateSuccess extends ProfileState {}
+
 class ProfileError extends ProfileState {
-  // Si algo sale mal (ej: sin internet)
   final String message;
   ProfileError(this.message);
 }
-
-class ProfileUpdateSuccess
-    extends ProfileState {} // Para avisar que se guardó bien

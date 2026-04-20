@@ -10,12 +10,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<ProfileEntity> getProfile(String userId) async {
-    // 1. Obtenemos el ProfileModel (Data)
+    // Obtenemos el modelo desde el DataSource
     final model = await remoteDataSource.getProfile(userId);
 
-    // 2. Retornamos la ProfileEntity (Domain) mapeando los campos
+    // Mapeamos el modelo a la entidad para que el dominio lo entienda
     return ProfileEntity(
-      id: model.idUsuario,
+      id: model.idUsuario, // Usando los campos de tu ProfileModel
       email: model.email,
       nombres: model.nombres,
       apellidos: model.apellidos,
@@ -31,7 +31,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<void> updateProfile(ProfileEntity profile) async {
-    // 3. Convertimos la entidad de vuelta al modelo para la base de datos
+    // Convertimos la entidad de vuelta a ProfileModel para enviarla a Supabase
     final model = ProfileModel(
       idUsuario: profile.id,
       email: profile.email,
@@ -46,7 +46,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
       ciudadOrigen: profile.ciudad,
     );
 
-    // 4. Enviamos el modelo al DataSource
     await remoteDataSource.updateProfile(model);
   }
 }

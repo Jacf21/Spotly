@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-// Ruta corregida según tu estructura
-import '../../../auth/data/models/user_model.dart';
+// Importamos el modelo de perfil que creamos antes
+import '../models/profile_model.dart';
 
 abstract class ProfileRemoteDataSource {
-  Future<UserModel> getProfile(String userId);
-  Future<void> updateProfile(UserModel user);
+  Future<ProfileModel> getProfile(String userId);
+  Future<void> updateProfile(ProfileModel profile);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -13,28 +13,26 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   ProfileRemoteDataSourceImpl(this.supabaseClient);
 
   @override
-  Future<UserModel> getProfile(String userId) async {
+  Future<ProfileModel> getProfile(String userId) async {
     try {
       final response = await supabaseClient
-          .from('perfiles') // Asegúrate que este sea el nombre en Supabase
+          .from('perfiles')
           .select()
           .eq('id_usuario', userId)
           .single();
 
-      return UserModel.fromJson(response);
+      // Convertimos la respuesta directamente a ProfileModel
+      return ProfileModel.fromJson(response);
     } catch (e) {
-      // Si hay error, lanzamos una excepción clara para que el Bloc la capture
       throw Exception("Error al obtener datos de Supabase: $e");
     }
   }
 
   @override
-  Future<void> updateProfile(UserModel user) async {
+  Future<void> updateProfile(ProfileModel profile) async {
     try {
-      await supabaseClient
-          .from('perfiles')
-          .update(user.toJson())
-          .eq('id_usuario', user.id);
+      await supabaseClient.from('perfiles').update(profile.toJson()).eq(
+          'id_usuario', profile.idUsuario); // Usamos idUsuario del ProfileModel
     } catch (e) {
       throw Exception("Error al actualizar en Supabase: $e");
     }
