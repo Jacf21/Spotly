@@ -34,7 +34,7 @@ class SpotlyNavItem extends StatelessWidget {
             const SizedBox(height: 3),                // ✅ espacio entre ícono y label
             Text(
               label,
-              style: TextStyle(color: color, fontSize: 11),
+              style: TextStyle(color: color, fontSize: 9),
             ),
           ],
         ),

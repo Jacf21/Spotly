@@ -1,15 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   String? _role;
-  String? _userId; // Agregado para rastrear el UID de Supabase
+  String? _userId;
 
   bool get isLoggedIn => _isLoggedIn;
   String? get role => _role;
-  String? get userId => _userId; // Getter para el ID del usuario
+  String? get userId => _userId;
 
-  // Modificado para recibir el UID al iniciar sesión
+  AuthProvider() {
+    _init();
+  }
+
+  void _init() {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      _isLoggedIn = true;
+      _role = session.user.userMetadata?['role'] as String? ?? 'user';
+    }
+
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      final session = data.session;
+
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        _isLoggedIn = true;
+        _role = session.user.userMetadata?['role'] as String? ?? 'user';
+      } else if (event == AuthChangeEvent.signedOut) {
+        _isLoggedIn = false;
+        _role = null;
+      }
+
+      notifyListeners();
+    });
+  }
+
+  // ← de vuelta para compatibilidad con login_page.dart
   void login(String role, String userId) {
     _isLoggedIn = true;
     _role = role;
@@ -18,9 +46,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void logout() {
-    _isLoggedIn = false;
-    _role = null;
-    _userId = null;
-    notifyListeners();
+    Supabase.instance.client.auth.signOut();
   }
 }
