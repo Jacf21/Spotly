@@ -6,6 +6,10 @@ class ProfileEntity {
   final String username;
   final String? bio;
   final String? photoUrl;
+  final String? genero;
+  final String? fechaNacimiento;
+  final String? pais;
+  final String? ciudad;
 
   ProfileEntity({
     required this.id,
@@ -15,5 +19,9 @@ class ProfileEntity {
     required this.username,
     this.bio,
     this.photoUrl,
+    this.genero,
+    this.fechaNacimiento,
+    this.pais,
+    this.ciudad,
   });
 }

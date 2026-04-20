@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-// Asegúrate de que esta sea la ruta correcta a tu entidad User
-import '../../../auth/domain/entities/user.dart';
-import '../../domain/usecases/get_profile_usecase.dart';
-import '../../domain/usecases/update_profile_usecase.dart';
+// IMPORT CRUCIAL: Sin esto, los archivos 'part' no sabrán qué es ProfileEntity
+import 'package:spotly/features/profile/domain/entities/profile_entity.dart';
+import 'package:spotly/features/profile/domain/usecases/get_profile_usecase.dart';
+import 'package:spotly/features/profile/domain/usecases/update_profile_usecase.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';
@@ -15,46 +15,43 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     required this.getProfileUseCase,
     required this.updateProfileUseCase,
   }) : super(ProfileInitial()) {
-    // 1. CARGAR PERFIL
     on<OnFetchProfile>((event, emit) async {
       emit(ProfileLoading());
       try {
-        final user = await getProfileUseCase.execute(event.userId);
-        emit(ProfileLoaded(user));
+        final profile = await getProfileUseCase.execute(event.userId);
+        emit(ProfileLoaded(profile));
       } catch (e) {
-        emit(ProfileError("No se pudo cargar el perfil: ${e.toString()}"));
+        emit(ProfileError("Error al cargar perfil: ${e.toString()}"));
       }
     });
 
-    // 2. ACTUALIZAR PERFIL
     on<OnUpdateProfile>((event, emit) async {
       final currentState = state;
       if (currentState is ProfileLoaded) {
-        final currentUser = currentState.user;
-
+        final currentProfile = currentState.profile;
         emit(ProfileLoading());
 
         try {
-          final updatedUser = User(
-            id: currentUser.id,
-            email: currentUser.email,
+          final updatedProfile = ProfileEntity(
+            id: currentProfile.id,
+            email: currentProfile.email,
             nombres: event.nombres,
             apellidos: event.apellidos,
-            nombreUsuario: event.nombreUsuario,
-            rol: currentUser.rol,
+            username: event.nombreUsuario,
+            bio: event.biografia,
+            photoUrl: currentProfile.photoUrl,
+            genero: event.genero,
+            fechaNacimiento: event.fechaNacimiento,
+            pais: event.pais,
+            ciudad: event.ciudad,
           );
 
-          // CORRECCIÓN AQUÍ: Usamos el nombre correcto de la variable
-          await updateProfileUseCase.execute(updatedUser);
-
+          await updateProfileUseCase.execute(updatedProfile);
           emit(ProfileUpdateSuccess());
-
-          // Recargamos los datos para ver los cambios reflejados
-          add(OnFetchProfile(currentUser.id));
+          add(OnFetchProfile(currentProfile.id));
         } catch (e) {
           emit(ProfileError("Error al actualizar: ${e.toString()}"));
-          emit(ProfileLoaded(
-              currentUser)); // Devolvemos el estado anterior si falla
+          emit(ProfileLoaded(currentProfile));
         }
       }
     });
