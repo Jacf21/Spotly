@@ -101,7 +101,7 @@ class MainNavigation extends StatelessWidget {
                       context.go('/map');
                       break;
                     case 2:
-                      context.go('/post');
+                      context.push('/post');
                       break;
                     case 3:
                       context.go('/alerts');

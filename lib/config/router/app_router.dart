@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotly/features/posts/presentation/pages/publication_page.dart';
 
 // páginas
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -41,7 +42,8 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/post',
-          builder: (context, state) => const Center(child: Text("Publicar")),
+          builder: (context, state) =>
+              const CreatePostPage(),
         ),
         GoRoute(
           path: '/alerts',
