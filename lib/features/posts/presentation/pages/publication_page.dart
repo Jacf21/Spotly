@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,14 +32,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
   LatLng _currentLatLng = const LatLng(-17.3935, -66.1570);
   String _locationSubtitle = "Cochabamba";
   String municipio = "";
-
-  //VARIABLE DE ESTADO PARA LA CARGA
+  
+  bool dark = false;
   bool _isLoading = false;
-
  @override
   Widget build(BuildContext context) {
-    // 1. DETECTAMOS EL MODO (Igual que en tu Feed)
-    final dark = ThemeUtils.isDark(context);
+    //DETECTAMOS EL MODO
+    dark = ThemeUtils.isDark(context);
 
     return AnimatedContainer(
       duration: SpotlyConfig.animShort,
@@ -128,15 +128,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 onCommentsDisabledChanged: (val) => _disableComments = val,
               ),
               
-              const SizedBox(height: 40),
-
+              const SizedBox(height: 40), 
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _validateAndSubmit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan,
+                    backgroundColor: SpotlyColors.accent(dark),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 0,
@@ -213,7 +212,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green, 
+        backgroundColor:SpotlyColors.accent(dark),
         behavior: SnackBarBehavior.floating,
       ),
     );
