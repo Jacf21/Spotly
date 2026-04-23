@@ -21,4 +21,14 @@ class FeedRemoteDatasource {
 
     return response;
   }
+
+  Future<int> getCommentCount(int postId) async {
+    final response = await client
+        .from('comentarios')
+        .select('id_comentario')
+        .eq('id_publicacion', postId)
+        .count(CountOption.exact);
+
+    return response.count;
+  }
 }

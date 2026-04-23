@@ -316,12 +316,22 @@ class _FeedPageState extends State<FeedPage> {
                 dark: dark,
                 isGuest: isGuest,
                 count: item.comentarioCount,
-                onTap: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => CommentsPage(postId: item.id),
-                ),
+                onTap: () async {
+                  await showModalBottomSheet<int>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => CommentsPage(postId: item.id),
+                  );
+
+                  if (!mounted) return;
+                  final repo = FeedRepository(
+                    FeedRemoteDatasource(Supabase.instance.client),
+                  );
+                  final updatedCount = await repo.getCommentCount(item.id);
+                  if (!mounted) return;
+                  setState(() => item.comentarioCount = updatedCount);
+                },
               ),
 
               // Compartir (sin contador)

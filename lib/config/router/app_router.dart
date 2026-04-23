@@ -9,6 +9,7 @@ import '../../features/auth/presentation/pages/admin_dashboard_page.dart';
 import '../../features/posts/presentation/pages/feed_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart'; // Agregado
 
+import '../../features/notifications/alerts_page.dart';
 // layout
 import '../../core/widgets/main_navigation.dart';
 
@@ -37,6 +38,18 @@ final appRouter = GoRouter(
           builder: (context, state) => const FeedPage(),
         ),
         GoRoute(
+          path: '/post-detail/:id',
+           builder: (context, state) {
+            final id = state.pathParameters['id']!;
+             return Scaffold(
+                body: Center(
+                child: Text("Post ID: $id"),
+              ),
+             );
+           },
+         ),
+         
+        GoRoute(
           path: '/map',
           builder: (context, state) => const Center(child: Text("Mapa")),
         ),
@@ -47,7 +60,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/alerts',
-          builder: (context, state) => const Center(child: Text("Alertas")),
+          builder: (context, state) => const AlertsPage(),
         ),
         GoRoute(
           path: '/profile',

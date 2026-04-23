@@ -23,4 +23,8 @@ class FeedRepository {
         .map<FeedItemModel>((json) => FeedItemModel.fromJson(json))
         .toList();
   }
+
+  Future<int> getCommentCount(int postId) async {
+    return await datasource.getCommentCount(postId);
+  }
 }

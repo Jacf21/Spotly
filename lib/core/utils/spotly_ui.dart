@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-
 import '../widgets/layout/spotly_nav_item.dart';
 
 class SpotlyUI {
@@ -17,6 +16,7 @@ class SpotlyUI {
     required bool isDark,
     required bool isAdmin,
     required Function(int) onTap,
+    required int notifCount,
   }) {
     return [
       /// IZQUIERDA
@@ -42,7 +42,7 @@ class SpotlyUI {
         ),
       ),
 
-      /// ESPACIO CENTRAL REAL
+      /// ESPACIO CENTRAL
       const SizedBox(width: 80),
 
       /// DERECHA
@@ -56,6 +56,7 @@ class SpotlyUI {
               active: currentIndex == 3,
               dark: isDark,
               onTap: () => onTap(3),
+              badgeCount: notifCount, // ✅ del primero
             ),
             SpotlyNavItem(
               icon: isAdmin ? LucideIcons.shieldCheck : LucideIcons.user,

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 import '../../../../core/utils/theme_utils.dart';
 import '../../../../core/themes/spotly_colors.dart';
@@ -26,6 +27,8 @@ class _CommentsPageState extends State<CommentsPage> {
   List<CommentModel> _comments = [];
   bool _isLoading = true;
   bool _isSending = false;
+  int _addedCount = 0;
+  bool _showEmoji = false;
 
   late final CommentRemoteDatasource _datasource;
 
@@ -42,6 +45,15 @@ class _CommentsPageState extends State<CommentsPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _toggleEmoji() {
+    if (_showEmoji) {
+      _focusNode.requestFocus();
+    } else {
+      _focusNode.unfocus();
+    }
+    setState(() => _showEmoji = !_showEmoji);
   }
 
   Future<void> _loadComments() async {
@@ -73,6 +85,7 @@ class _CommentsPageState extends State<CommentsPage> {
       );
 
       setState(() => _comments.add(newComment));
+      _addedCount++;
 
       // Scroll al último comentario
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,19 +108,18 @@ class _CommentsPageState extends State<CommentsPage> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null || user.id != comment.userId) return;
 
-    // Confirmación
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(  // ← dialogContext separado
         title: const Text('Eliminar comentario'),
         content: const Text('¿Seguro que quieres eliminar este comentario?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(dialogContext).pop(false), // ← dialogContext
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),  // ← dialogContext
             child: const Text('Eliminar',
                 style: TextStyle(color: Colors.red)),
           ),
@@ -122,9 +134,17 @@ class _CommentsPageState extends State<CommentsPage> {
         commentId: comment.id,
         userId: user.id,
       );
-      setState(() => _comments.removeWhere((c) => c.id == comment.id));
+      setState(() {
+        _comments.removeWhere((c) => c.id == comment.id);
+        _addedCount--;
+      });
     } catch (e) {
       debugPrint('Error eliminando: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo eliminar el comentario')),
+        );
+      }
     }
   }
 
@@ -179,7 +199,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: () => context.pop(),
+                      onPressed: () => Navigator.of(context).pop(_addedCount),
                       icon: Icon(LucideIcons.x, color: subColor),
                     ),
                   ],
@@ -232,16 +252,68 @@ class _CommentsPageState extends State<CommentsPage> {
 
               Divider(height: 1, color: divColor),
 
+              // Antes del SizedBox del teclado
+              if (_showEmoji)
+                SizedBox(
+                  height: 250,
+                  child: EmojiPicker(
+                    onEmojiSelected: (_, emoji) {
+                      final text = _controller.text;
+                      final selection = _controller.selection;
+                      final newText = text.replaceRange(
+                        selection.start < 0 ? text.length : selection.start,
+                        selection.end < 0 ? text.length : selection.end,
+                        emoji.emoji,
+                      );
+                      _controller.value = TextEditingValue(
+                        text: newText,
+                        selection: TextSelection.collapsed(
+                          offset: (selection.start < 0 ? text.length : selection.start) +
+                              emoji.emoji.length,
+                        ),
+                      );
+                    },
+                    onBackspacePressed: () {
+                      final text = _controller.text;
+                      if (text.isEmpty) return;
+                      _controller.text = text.characters.skipLast(1).toString();
+                      _controller.selection = TextSelection.collapsed(
+                        offset: _controller.text.length,
+                      );
+                    },
+                    config: Config(
+                      height: 250,
+                      emojiViewConfig: EmojiViewConfig(
+                        backgroundColor:
+                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
+                      ),
+                      searchViewConfig: SearchViewConfig(
+                        backgroundColor:
+                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
+                      ),
+                      categoryViewConfig: CategoryViewConfig(
+                        backgroundColor:
+                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
+                        indicatorColor: SpotlyColors.accent(ThemeUtils.isDark(context)),
+                      ),
+                    ),
+                  ),
+                ),
+
+              SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+
               // ── Input ─────────────────────────────────────────────
               if (user != null)
                 _CommentInput(
                   controller: _controller,
                   focusNode: _focusNode,
                   isSending: _isSending,
+                  showEmoji: _showEmoji,
                   dark: dark,
                   textColor: textColor,
                   subColor: subColor,
                   onSend: _sendComment,
+                  onToggleEmoji: _toggleEmoji,
                 )
               else
                 Padding(
@@ -257,10 +329,6 @@ class _CommentsPageState extends State<CommentsPage> {
                     ),
                   ),
                 ),
-
-              // Padding para teclado
-              SizedBox(
-                  height: MediaQuery.of(context).viewInsets.bottom),
             ],
           ),
         );
@@ -353,19 +421,23 @@ class _CommentInput extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isSending;
+  final bool showEmoji;      // ← nuevo
   final bool dark;
   final Color textColor;
   final Color subColor;
   final VoidCallback onSend;
+  final VoidCallback onToggleEmoji;  // ← nuevo
 
   const _CommentInput({
     required this.controller,
     required this.focusNode,
     required this.isSending,
+    required this.showEmoji,
     required this.dark,
     required this.textColor,
     required this.subColor,
     required this.onSend,
+    required this.onToggleEmoji,
   });
 
   @override
@@ -374,6 +446,17 @@ class _CommentInput extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Row(
         children: [
+          // Botón emoji
+          GestureDetector(
+            onTap: onToggleEmoji,
+            child: Icon(
+              showEmoji ? LucideIcons.keyboard : LucideIcons.smile,
+              color: subColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 8),
+
           Expanded(
             child: TextField(
               controller: controller,
