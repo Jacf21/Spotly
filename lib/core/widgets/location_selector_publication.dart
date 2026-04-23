@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart'; 
-import 'package:latlong2/latlong.dart'; 
+import 'package:latlong2/latlong.dart';
+import 'package:spotly/core/themes/spotly_colors.dart'; 
 import 'package:spotly/core/utils/locationHelper.dart';
 import 'package:spotly/core/utils/theme_utils.dart'; 
 
@@ -104,7 +105,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
                   ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.my_location, size: 16),
               label: Text(_isSearching ? "Buscando..." : "Cambiar", 
-                  style: const TextStyle(color: Colors.cyan)),
+                  style: TextStyle(color: SpotlyColors.accent(dark))),
             ),
           ],
         ),
@@ -164,8 +165,8 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
           ),
           child: Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Colors.cyan,
+              CircleAvatar(
+                backgroundColor: SpotlyColors.accent(dark),
                 radius: 18,
                 child: Icon(Icons.map_outlined, color: Colors.white, size: 20),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spotly/core/themes/spotly_colors.dart';
 import '../../../../core/utils/theme_utils.dart';
 
 // Este es solo para la sección de ajustes en la pantalla de publicación
@@ -126,7 +127,7 @@ class _PostSettingsPanelState extends State<PostSettingsPanel> {
           color: dark ? Colors.white38 : Colors.grey
         )
       ),
-      activeColor: Colors.cyan,
+      activeColor: SpotlyColors.accent(dark),
       contentPadding: EdgeInsets.zero,
     );
   }
@@ -157,11 +158,11 @@ class _PrivacyOption extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isActive 
-                ? Colors.cyan.withOpacity(0.1) 
+                ? SpotlyColors.accent(dark).withOpacity(0.1)
                 : (dark ? Colors.white.withOpacity(0.05) : Colors.grey[50]),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isActive ? Colors.cyan : (dark ? Colors.white10 : Colors.grey[200]!),
+              color: isActive ? SpotlyColors.accent(dark) : (dark ? Colors.white10 : Colors.grey[200]!),
               width: 2,
             ),
           ),
@@ -169,13 +170,13 @@ class _PrivacyOption extends StatelessWidget {
             children: [
               Icon(
                 icon, 
-                color: isActive ? Colors.cyan : (dark ? Colors.white38 : Colors.grey)
+                color: isActive ? SpotlyColors.accent(dark) : (dark ? Colors.white38 : Colors.grey)
               ),
               const SizedBox(height: 4),
               Text(
                 label, 
                 style: TextStyle(
-                  color: isActive ? Colors.cyan : (dark ? Colors.white38 : Colors.grey),
+                  color: isActive ? SpotlyColors.accent(dark) : (dark ? Colors.white38 : Colors.grey),
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 )

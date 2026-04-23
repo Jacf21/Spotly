@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:spotly/core/themes/spotly_colors.dart';
 import '../../../../core/utils/imageHelper.dart';
 import '../../../../core/utils/theme_utils.dart';
 
@@ -142,7 +143,7 @@ class _PostImagePickerState extends State<PostImagePicker> {
         ),
         child: Icon(
           icon, 
-          color: Colors.cyan, 
+          color: SpotlyColors.accent(dark),
           size: 24
         ),
       ),
