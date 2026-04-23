@@ -17,6 +17,7 @@ class SpotlyUI {
     required bool isDark,
     required bool isAdmin,
     required Function(int) onTap,
+    required int notifCount,
   }) {
     return [
       /// IZQUIERDA
@@ -50,13 +51,14 @@ class SpotlyUI {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            SpotlyNavItem(
-              icon: isAdmin ? LucideIcons.layoutGrid : LucideIcons.bell,
-              label: isAdmin ? 'Gestión' : 'Notificaciones',
-              active: currentIndex == 3,
-              dark: isDark,
-              onTap: () => onTap(3),
-            ),
+                SpotlyNavItem(
+                     icon: LucideIcons.bell,
+                      label: isAdmin ? 'Gestión' : 'Notificaciones',
+                      active: currentIndex == 3,
+                          dark: isDark,
+                          onTap: () => onTap(3),
+                       badgeCount: notifCount, // 🔴 AQUÍ
+                              ),
             SpotlyNavItem(
               icon: isAdmin ? LucideIcons.shieldCheck : LucideIcons.user,
               label: isAdmin ? 'Panel' : 'Perfil',

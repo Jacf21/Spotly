@@ -96,6 +96,10 @@ void dispose() {
     await Supabase.instance.client.auth.signUp(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
+      data: {
+        'nombres': _nameController.text.trim(),
+        'apellidos': _lastNameController.text.trim(),
+      },
     );
 
     if (!mounted) return;
@@ -108,9 +112,15 @@ void dispose() {
     context.go('/login');
 
   } on AuthException catch (e) {
-    SpotlyUI.toast(context, e.message);
+    if (e.statusCode == '429') {
+      SpotlyUI.toast(
+        context,
+        "Espera un minuto antes de volver a intentar 📩",
+      );
+    } else {
+      SpotlyUI.toast(context, e.message);
+    }
   } catch (e) {
-    debugPrint("ERROR COMPLETO: $e");
     SpotlyUI.toast(context, "Error: $e");
   } finally {
     if (mounted) setState(() => _isLoading = false);
@@ -277,11 +287,10 @@ void dispose() {
                                     ? const CircularProgressIndicator()
                                     : SpotlyInteractive(
                                         onTap: () {
-                                          if (_camposValidos && !_isLoading) {
-                                            _handleRegister();
-                                          } else {
-                                            SpotlyUI.toast(context, "Completa todos los campos");
-                                          }
+                                        
+                                         if (!_isLoading) {
+                                    _handleRegister();
+                                         }
                                         },
                                         child: Container(
                                           width: double.infinity,

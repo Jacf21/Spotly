@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../context/auth_context.dart';
 import '../utils/theme_utils.dart';
@@ -8,6 +9,7 @@ import '../themes/spotly_colors.dart';
 import '../utils/spotly_ui.dart';
 import '../widgets/layout/spotly_add_button.dart';
 import '../widgets/layout/spotly_topbar.dart';
+import '../utils/notifications_helper.dart';
 
 class MainNavigation extends StatelessWidget {
   final Widget child;
@@ -21,6 +23,14 @@ class MainNavigation extends StatelessWidget {
     if (location.startsWith('/alerts')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
+  }
+
+  /// 🔴 CACHE SIMPLE DEL FUTURE (evita bugs)
+  Future<int> _getNotifFuture() {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return Future.value(0);
+
+    return getNotificationCount(userId);
   }
 
   @override
@@ -80,59 +90,70 @@ class MainNavigation extends StatelessWidget {
             ),
           ),
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: SpotlyUI.buildNavItems(
-                currentIndex: currentIndex,
-                isDark: dark,
-                isAdmin: auth.role == 'admin',
-                onTap: (index) {
-                  if (isGuest && index > 1) {
-                    context.go('/login');
-                    return;
-                  }
 
-                  switch (index) {
-                    case 0:
-                      context.go('/feed');
-                      break;
-                    case 1:
-                      context.go('/map');
-                      break;
-                    case 2:
-                      context.go('/post');
-                      break;
-                    case 3:
-                      context.go('/alerts');
-                      break;
-                    case 4:
-                      context.go('/profile');
-                      break;
-                  }
-                },
-              ),
-            ),
+        /// 🔴 FUTURE BUILDER PARA BADGE
+        child: FutureBuilder<int>(
+  key: ValueKey(GoRouterState.of(context).uri.toString()),
+  future: _getNotifFuture(),
+          builder: (context, snapshot) {
+            final notifCount = snapshot.data ?? 0;
 
-            /// ➕ BOTÓN CENTRAL
-            Center(
-              child: Transform.translate(
-                offset: const Offset(0, -25),
-                child: SpotlyAddButton(
-                  dark: dark,
-                  onTap: () {
-                    if (isGuest) {
-                      context.go('/login');
-                      return;
-                    }
-                    context.go('/post');
-                  },
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: SpotlyUI.buildNavItems(
+                    currentIndex: currentIndex,
+                    isDark: dark,
+                    isAdmin: auth.role == 'admin',
+                    notifCount: notifCount, // 🔴 BADGE AQUÍ
+                    onTap: (index) {
+                      if (isGuest && index > 1) {
+                        context.go('/login');
+                        return;
+                      }
+
+                      switch (index) {
+                        case 0:
+                          context.go('/feed');
+                          break;
+                        case 1:
+                          context.go('/map');
+                          break;
+                        case 2:
+                          context.go('/post');
+                          break;
+                        case 3:
+                          context.go('/alerts');
+                          break;
+                        case 4:
+                          context.go('/profile');
+                          break;
+                      }
+                    },
+                  ),
                 ),
-              ),
-            ),
-          ],
+
+                /// ➕ BOTÓN CENTRAL
+                Center(
+                  child: Transform.translate(
+                    offset: const Offset(0, -25),
+                    child: SpotlyAddButton(
+                      dark: dark,
+                      onTap: () {
+                        if (isGuest) {
+                          context.go('/login');
+                          return;
+                        }
+                        context.go('/post');
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -8,6 +8,7 @@ class SpotlyNavItem extends StatelessWidget {
   final bool active;
   final bool dark;
   final VoidCallback onTap;
+  final int? badgeCount;
 
   const SpotlyNavItem({
     super.key,
@@ -16,6 +17,7 @@ class SpotlyNavItem extends StatelessWidget {
     required this.active,
     required this.dark,
     required this.onTap,
+    this.badgeCount,
   });
 
   @override
@@ -26,16 +28,43 @@ class SpotlyNavItem extends StatelessWidget {
     return Expanded(
       child: SpotlyInteractive(
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // ✅ centra verticalmente
-          mainAxisSize: MainAxisSize.max,              // ✅ ocupa todo el alto del nav
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 3),                // ✅ espacio entre ícono y label
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 11),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(color: color, fontSize: 11),
+                ),
+              ],
             ),
+
+            /// 🔴 BADGE ROJO
+            if (badgeCount != null && badgeCount! > 0)
+              Positioned(
+                right: 18,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    badgeCount! > 9 ? "9+" : "$badgeCount",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
