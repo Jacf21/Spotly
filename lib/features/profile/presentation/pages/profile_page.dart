@@ -10,6 +10,9 @@ import 'package:spotly/core/widgets/common/spotly_card.dart';
 import 'package:spotly/core/widgets/interactive/spotly_interactive.dart';
 import 'package:spotly/core/utils/spotly_ui.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:spotly/core/context/auth_context.dart';
 
 // --- IMPORT DEL BLOC ---
 import 'package:spotly/features/profile/presentation/bloc/profile_bloc.dart';
@@ -119,6 +122,59 @@ class _ProfilePageState extends State<ProfilePage> {
     } finally {
       if (mounted) setState(() => _isUpdatingPass = false);
     }
+  }
+
+  Widget _buildLogoutButton(bool dark) {
+    return SpotlyInteractive(
+      onTap: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: SpotlyColors.bg(dark),
+            title: Text("Cerrar sesión",
+                style: TextStyle(color: SpotlyColors.text(dark))),
+            content: Text("¿Estás seguro que deseas salir?",
+                style: TextStyle(color: SpotlyColors.subText(dark))),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text("Cancelar",
+                    style: TextStyle(color: SpotlyColors.subText(dark))),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text("Salir",
+                    style: TextStyle(color: Colors.redAccent)),
+              ),
+            ],
+          ),
+        );
+
+        if (confirm == true && mounted) {
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          auth.logout();
+          context.go('/login');
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.redAccent),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: Text(
+            "CERRAR SESIÓN",
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -258,6 +314,8 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 25),
               _buildSaveButton(dark),
+              const SizedBox(height: 10),
+              _buildLogoutButton(dark),
               const SizedBox(height: 50),
             ],
           ),

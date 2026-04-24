@@ -17,6 +17,13 @@ import '../../core/widgets/main_navigation.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
+  redirect: (context, state) {
+    final location = state.uri.toString();
+    if (location.contains('login-callback') || location.contains('code=')) {
+      return '/auth/callback';
+    }
+    return null;
+  },
   routes: [
     /// 🔓 PÚBLICAS (SIN NAVBAR)
     GoRoute(
@@ -27,6 +34,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
+    ),
+
+    GoRoute(
+      path: '/login-callback',
+      builder: (context, state) => const AuthCallbackPage(),
     ),
 
     GoRoute(
