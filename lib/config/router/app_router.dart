@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spotly/features/posts/presentation/pages/publication_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // páginas
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/admin_dashboard_page.dart';
 import '../../features/posts/presentation/pages/feed_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart'; // Agregado
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/auth/presentation/pages/auth_callback_page.dart';
 
 import '../../features/notifications/alerts_page.dart';
 // layout
@@ -25,6 +27,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
+    ),
+
+    GoRoute(
+      path: '/auth/callback',
+      builder: (context, state) => const AuthCallbackPage(),
     ),
 
     /// 🔐 APP (CON NAVBAR GLOBAL)

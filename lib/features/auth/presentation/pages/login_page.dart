@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/context/auth_context.dart';
 import '../../../../core/utils/theme_utils.dart';
@@ -29,6 +30,37 @@ class _LoginPageState extends State<LoginPage> {
 
   void _toggleTheme() {
     ThemeUtils.toggle(context);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Escuchar cambios de auth para navegar después del callback de Google
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      auth.addListener(_onAuthChanged);
+    });
+  }
+
+  void _onAuthChanged() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.isLoggedIn && mounted) {
+      if (auth.role?.toLowerCase() == 'admin') {
+        context.go('/admin');
+      } else {
+        context.go('/feed');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.removeListener(_onAuthChanged);
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   /// 🔐 LOGIN REAL CON SUPABASE
@@ -81,6 +113,8 @@ class _LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
 
+        auth.removeListener(_onAuthChanged);
+
         if (userRol.toLowerCase() == 'admin') {
           SpotlyUI.toast(context, "Modo Admin: Acceso Total");
           context.go('/admin');
@@ -104,10 +138,35 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _handleGoogleRegister() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final redirectTo = kIsWeb
+        ? 'http://localhost:${Uri.base.port}/auth/callback'  // ← puerto dinámico
+        : 'io.supabase.flutter://login-callback/';
+        
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectTo,
+        authScreenLaunchMode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
+      );
+      // NO navegues aquí — el onAuthStateChange en AuthProvider lo maneja
+    } on AuthException catch (e) {
+      if (mounted) SpotlyUI.toast(context, e.message);
+    } catch (e) {
+      if (mounted) SpotlyUI.toast(context, "Error con Google: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   /// 👀 CONTINUAR COMO INVITADO
   void _goGuest() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    auth.logout();
+    if (auth.isLoggedIn) auth.logout();
     context.go('/feed');
   }
 
@@ -163,6 +222,45 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildGoogleRegisterButton(bool dark) {
+    return SpotlyInteractive(
+      onTap: _handleGoogleRegister,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: SpotlyColors.accent(dark), // mismo acento que el otro botón
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.g_mobiledata,
+              color: SpotlyColors.accent(dark),
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                "CONTINUAR CON GOOGLE",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: SpotlyColors.accent(dark),
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 🎯 CONTENIDO CENTRAL
   Widget _buildLoginContent(bool dark) {
     return Center(
@@ -206,6 +304,8 @@ class _LoginPageState extends State<LoginPage> {
                   : _buildLoginButton(dark),
               const SizedBox(height: 10),
               _buildGoToRegisterButton(dark),
+              const SizedBox(height: 10),
+              _buildGoogleRegisterButton(dark),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: _goGuest,

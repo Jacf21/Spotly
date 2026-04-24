@@ -54,17 +54,17 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
  @override
-void dispose() {
-  _controller.dispose();
+  void dispose() {
+    _controller.dispose();
 
-  _nameController.dispose();
-  _lastNameController.dispose();
-  _emailController.dispose();
-  _passwordController.dispose();
-  _confirmPasswordController.dispose();
+    _nameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
 
-  super.dispose();
-}
+    super.dispose();
+  }
 
   /// VALIDACIÓN
   void _validarCampos() {

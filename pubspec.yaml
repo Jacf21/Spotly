@@ -68,10 +68,11 @@ flutter:
   # 📁 RECURSOS
   assets:
     - .env
+    - assets/icons/
    # - assets/images/
    # - assets/rive/
 
   # 🖋️ FUENTES (Usando Google Fonts via paquete, no necesitas declararlas aquí)
 flutter_launcher_icons:
   android: true
-  image_path: "assets/icon/SpotlyIcon.png"
+  image_path: "assets/icon/SpotlyIcon1.png"

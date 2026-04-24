@@ -14,10 +14,43 @@ class AuthProvider extends ChangeNotifier {
     _init();
   }
 
+  Future<void> _syncGoogleProfile(User user) async {
+    try {
+      final perfil = await Supabase.instance.client
+          .from('perfiles')
+          .select()
+          .eq('id_usuario', user.id)
+          .maybeSingle();
+
+      if (perfil == null) {
+        final metadata = user.userMetadata ?? {};
+        await Supabase.instance.client.from('perfiles').insert({
+          'id_usuario': user.id,
+          'nombres': metadata['full_name'] ?? metadata['name'] ?? 'Usuario',
+          'apellidos': '',
+          'rol': 'user',
+        });
+      }
+
+      // Actualizar rol desde la BD
+      final userData = await Supabase.instance.client
+          .from('perfiles')
+          .select('rol')
+          .eq('id_usuario', user.id)
+          .single();
+
+      _role = (userData['rol'] ?? 'user').toString();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error syncing Google profile: $e');
+    }
+  }
+
   void _init() {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       _isLoggedIn = true;
+      _userId = session.user.id; // ← agregar
       _role = session.user.userMetadata?['role'] as String? ?? 'user';
     }
 
@@ -27,10 +60,13 @@ class AuthProvider extends ChangeNotifier {
 
       if (event == AuthChangeEvent.signedIn && session != null) {
         _isLoggedIn = true;
+        _userId = session.user.id; // ← agregar
         _role = session.user.userMetadata?['role'] as String? ?? 'user';
+        _syncGoogleProfile(session.user); // ← llamar sync (ver paso 2)
       } else if (event == AuthChangeEvent.signedOut) {
         _isLoggedIn = false;
         _role = null;
+        _userId = null;
       }
 
       notifyListeners();
@@ -46,6 +82,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void logout() {
+    _isLoggedIn = false;
+    _role = null;
+    _userId = null;
     Supabase.instance.client.auth.signOut();
+    notifyListeners(); // ← faltaba esto
   }
 }
