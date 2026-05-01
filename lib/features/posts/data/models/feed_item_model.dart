@@ -7,6 +7,8 @@ class FeedItemModel {
   final String usuario;
   final String avatar;
   final DateTime createdAt;
+  final bool comentarioActivado;
+  final String visiblePara;
 
   // 🆕 NUEVOS CAMPOS
   bool isLiked;
@@ -28,6 +30,8 @@ class FeedItemModel {
     required this.isSaved,
     required this.likesCount,
     required this.comentarioCount,
+    required this.comentarioActivado,
+    required this.visiblePara,
   });
 
   factory FeedItemModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +49,8 @@ class FeedItemModel {
       
       likesCount: int.tryParse(json['likes_count'].toString()) ?? 0,
       comentarioCount: int.tryParse(json['comentario_count'].toString()) ?? 0,
+      comentarioActivado: json['comentario_activado'] as bool? ?? true,
+      visiblePara:    json['visible_para']      as String? ?? 'public',
     );
   }
 }

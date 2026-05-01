@@ -24,15 +24,17 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
 
   @override
   Future<void> uploadPost({
-  required XFile imageFile,
-  required String title,
-  required String description,
-  required int deptoId,
-  required String city,
-  required double lat,
-  required double lng,
-  required String privacidad,
-  required bool permiteComen,
+    required XFile imageFile,
+    required String title,
+    required String description,
+    required int deptoId,
+    required String city,
+    required double lat,
+    required double lng,
+    required String privacidad,   // tu columa visible_para
+    required bool permiteComen,   // tu columna comentario_activado
+    String placeDescription = '',
+    int? categoriaId,
 
   }) async {
 
@@ -79,14 +81,16 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
       await supabase.rpc('publicar_contenido_completo', params: {
         'p_titulo': title,
         'p_descripcion_experiencia': description,
-        'p_nombre_lugar': title, 
+        'p_nombre_lugar': title,
         'p_departamento_id': deptoId,
         'p_city': city,
         'p_coords': 'POINT($lng $lat)',
         'p_id_usuario': userId,
-        'p_url_foto': imageUrl, 
-        'p_privacidad': privacidad,
-        'p_permite_comentarios': permiteComen,
+        'p_url_foto': imageUrl,
+        'p_privacidad': privacidad,           // → visible_para en tu BD
+        'p_permite_comentarios': permiteComen, // → comentario_activado en tu BD
+        'p_descripcion_lugar': placeDescription,
+        'p_categoria_id': categoriaId,        // int? — null si no seleccionó
       });
 
       print("¡Publicación creada exitosamente!");

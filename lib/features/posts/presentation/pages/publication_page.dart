@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +8,7 @@ import 'package:spotly/core/widgets/description_publication.dart';
 import 'package:spotly/core/widgets/location_selector_publication.dart';
 import 'package:spotly/core/widgets/setting_publication.dart';
 import 'package:spotly/features/posts/data/datasources/subida_storage.dart';
+import 'package:spotly/features/posts/presentation/widgets/place_profile_sheet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/theme_utils.dart';
 import '../../../../core/themes/spotly_colors.dart';
@@ -27,25 +27,23 @@ class _CreatePostPageState extends State<CreatePostPage> {
   String _privacy = "Público";
   bool _disableComments = false;
   String _title = "";
-  
-  // Valor inicial (Cochabamba)
+
   LatLng _currentLatLng = const LatLng(-17.3935, -66.1570);
   String _locationSubtitle = "Cochabamba";
   String municipio = "";
-  
+
   bool dark = false;
   bool _isLoading = false;
- @override
+
+  @override
   Widget build(BuildContext context) {
-    //DETECTAMOS EL MODO
     dark = ThemeUtils.isDark(context);
 
     return AnimatedContainer(
       duration: SpotlyConfig.animShort,
-      color: SpotlyColors.bg(dark), // Fondo dinámico
+      color: SpotlyColors.bg(dark),
       child: Scaffold(
-        //IMPORTANTE: Scaffold transparente para que se vea el color del AnimatedContainer
-        backgroundColor: Colors.transparent, 
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: dark ? Colors.white : Colors.black),
@@ -54,23 +52,22 @@ class _CreatePostPageState extends State<CreatePostPage> {
           title: Text(
             "Nueva publicación",
             style: TextStyle(
-              color: dark ? Colors.white : Colors.black, 
-              fontWeight: FontWeight.bold, 
-              fontSize: 18
+              color: dark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
         ),
-
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              
+
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: PostImagePicker(
@@ -83,10 +80,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
               Text(
                 "TÍTULO: NOMBRE DEL LUGAR",
                 style: TextStyle(
-                  fontSize: 12, 
-                  color: dark ? Colors.white70 : Colors.black87, // Color dinámico
-                  fontWeight: FontWeight.bold, 
-                  letterSpacing: 1.2
+                  fontSize: 12,
+                  color: dark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 8),
@@ -94,7 +91,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               TextField(
                 onChanged: (val) => _title = val,
                 style: TextStyle(
-                  fontSize: 16, 
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: dark ? Colors.white : Colors.black,
                 ),
@@ -104,7 +101,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   border: InputBorder.none,
                 ),
               ),
-              
+
               const SizedBox(height: 24),
 
               PostDescriptionInput(
@@ -112,6 +109,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               ),
 
               const SizedBox(height: 24),
+
               PostLocationSelector(
                 onLocationChanged: (coords, deptoName, city) {
                   setState(() {
@@ -121,14 +119,16 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   });
                 },
               ),
+
               const SizedBox(height: 24),
 
               PostSettingsPanel(
                 onPrivacyChanged: (val) => _privacy = val,
                 onCommentsDisabledChanged: (val) => _disableComments = val,
               ),
-              
-              const SizedBox(height: 40), 
+
+              const SizedBox(height: 40),
+
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -140,22 +140,23 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 0,
                   ),
-                  child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text("Publicar ahora", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Publicar ahora",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
+
               const SizedBox(height: 30),
-            ]
-          )
-        )
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Future<void> _validateAndSubmit() async {
-    
-    //Validaciones de UI
+    // 1. Validaciones previas al sheet (igual que antes)
     if (_selectedImage == null) {
       _showErrorSnackBar("¡Por favor selecciona una foto de tu aventura!");
       return;
@@ -165,32 +166,37 @@ class _CreatePostPageState extends State<CreatePostPage> {
       return;
     }
 
+    // 2. Abrir el sheet ANTES de subir — el usuario decide si agrega más datos
+    final profileData = await PlaceProfileSheet.show(context, _title, dark);
+    if (profileData == null) return; // usuario cerró el sheet sin confirmar
+
+    // 3. Convertir privacidad al valor de BD
     String privacidadDB = "public";
     if (_privacy == "Amigos") privacidadDB = "friends";
     if (_privacy == "Privado") privacidadDB = "private";
 
-    bool permiteComentarios = !_disableComments;
     setState(() => _isLoading = true);
+
     try {
       final remoteDataSource = PostRemoteDataSourceImpl(Supabase.instance.client);
-      int idParaDB = LocationHelper.getDeptoIdByName(_locationSubtitle);
+      final int idParaDB = LocationHelper.getDeptoIdByName(_locationSubtitle);
 
-      //Subida con datos REALES del estado del widget
       await remoteDataSource.uploadPost(
         imageFile: _selectedImage!,
         title: _title,
         description: _description,
         deptoId: idParaDB,
-        city: municipio, 
+        city: municipio,
         lat: _currentLatLng.latitude,
-        lng: _currentLatLng.longitude, 
+        lng: _currentLatLng.longitude,
         privacidad: privacidadDB,
-        permiteComen: permiteComentarios,
+        permiteComen: !_disableComments,
+        placeDescription: profileData.description,  // 👈 del sheet
+        categoriaId: profileData.categoriaId,        // 👈 del sheet (int? o null)
       );
+
       if (mounted) {
         _showSuccessSnackBar("✅ ¡Tu aventura se ha publicado con éxito!");
-
-        //volvemos al feed para ver cambios despues de publicar
         context.go('/feed');
       }
     } catch (e) {
@@ -212,7 +218,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:SpotlyColors.accent(dark),
+        backgroundColor: SpotlyColors.accent(dark),
         behavior: SnackBarBehavior.floating,
       ),
     );

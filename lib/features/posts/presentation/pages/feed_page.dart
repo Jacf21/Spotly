@@ -316,14 +316,27 @@ class _FeedPageState extends State<FeedPage> {
                 dark: dark,
                 isGuest: isGuest,
                 count: item.comentarioCount,
+                isActive: false,
+                // 👇 si comentarios desactivados, el ícono se ve apagado y no abre el sheet
+                activeColor: Colors.grey,
                 onTap: () async {
+                  if (!item.comentarioActivado) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("No puedes comentar esta publicación"),
+                        backgroundColor: dark ? Colors.white24 : Colors.black87,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                    return;
+                  }
                   await showModalBottomSheet<int>(
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
                     builder: (_) => CommentsPage(postId: item.id),
                   );
-
                   if (!mounted) return;
                   final repo = FeedRepository(
                     FeedRemoteDatasource(Supabase.instance.client),
