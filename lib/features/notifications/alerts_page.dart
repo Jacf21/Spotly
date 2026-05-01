@@ -198,15 +198,19 @@ for (final entry in groupedLikes.entries) {
 
       return GestureDetector(
         onTap: () async {
-          await markNotificationRead(n["readKey"]);
+  await markNotificationRead(n["readKey"]);
 
-          if (mounted) {
-            setState(() {});
-          }
+  if (mounted) setState(() {});
 
-          final postId = n["postId"];
-          context.push('/post-detail/$postId');
-        },
+  final postId = n["postId"];
+  final commentId = n["commentId"];
+
+  if (n["type"] == "comment" && commentId != null) {
+    context.push('/feed?postId=$postId&commentId=$commentId');
+  } else {
+    context.push('/feed?postId=$postId');
+  }
+},
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(14),

@@ -229,7 +229,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   child: Padding(
                                     padding: const EdgeInsets.only(bottom: 6),
                                     child: Text(
-                                      "CORREO ELECTRONICO",
+                                      "CORREO ELECTRONIC",
                                       style: TextStyle(
                                         color: SpotlyColors.accent(_isDarkMode).withOpacity(0.8),
                                         fontSize: 11,

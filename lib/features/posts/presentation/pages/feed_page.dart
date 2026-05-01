@@ -18,7 +18,14 @@ import '../../../posts/data/repositories/post_interaction_repository.dart';
 import '../../../comments/presentation/pages/comments_page.dart';
 
 class FeedPage extends StatefulWidget {
-  const FeedPage({super.key});
+  final String? targetPostId;
+  final String? targetCommentId; // 👈 AGREGA ESTO
+
+  const FeedPage({
+    super.key,
+    this.targetPostId,
+    this.targetCommentId, // 👈 AGREGA ESTO
+  });
 
   @override
   State<FeedPage> createState() => _FeedPageState();
@@ -31,6 +38,7 @@ class _FeedPageState extends State<FeedPage> {
   bool hasMore = true;
   List<FeedItemModel> feed = [];
   String? _currentUserId;
+  String? highlightedPostId;
 
   @override
   void initState() {
@@ -58,6 +66,51 @@ class _FeedPageState extends State<FeedPage> {
       }
     });
   }
+  void _scrollToTargetPost() {
+  if (widget.targetPostId == null) return;
+
+  final index = feed.indexWhere(
+    (item) => item.id.toString() == widget.targetPostId,
+  );
+
+  if (index == -1) return;
+
+  final targetPost = feed[index];
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    const itemHeight = 450.0;
+
+    final position = (index * itemHeight) -
+        (screenHeight / 2) +
+        (itemHeight / 2);
+
+    _scrollController.animateTo(
+      position < 0 ? 0 : position,
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeInOut,
+    );
+
+    setState(() {
+      highlightedPostId = widget.targetPostId;
+    });
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          highlightedPostId = null;
+        });
+      }
+    });
+
+    // 👇 abrir comentarios si viene desde notificación
+    if (widget.targetCommentId != null) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _openComments(targetPost);
+      });
+    }
+  });
+}
 
   void _resetAndReload() {
     setState(() {
@@ -139,6 +192,18 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  Future<void> _openComments(FeedItemModel item) async {
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => CommentsPage(
+      postId: item.id,
+      targetCommentId: widget.targetCommentId, // 👈 CLAVE
+    ),
+  );
+}
+
   Future<void> loadFeed() async {
     final userId = Supabase.instance.client.auth.currentUser?.id ??
         '00000000-0000-0000-0000-000000000000';
@@ -154,6 +219,8 @@ class _FeedPageState extends State<FeedPage> {
     );
 
     setState(() => feed = data);
+
+    _scrollToTargetPost();
   }
 
   Future<void> loadMore() async {

@@ -12,9 +12,13 @@ import '../../data/models/comment_model.dart';
 
 class CommentsPage extends StatefulWidget {
   final int postId;
+  final String? targetCommentId;
 
-  const CommentsPage({super.key, required this.postId});
-
+const CommentsPage({
+  super.key,
+  required this.postId,
+  this.targetCommentId,
+});
   @override
   State<CommentsPage> createState() => _CommentsPageState();
 }
@@ -23,6 +27,7 @@ class _CommentsPageState extends State<CommentsPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  final Map<String, GlobalKey> _commentKeys = {};
 
   List<CommentModel> _comments = [];
   bool _isLoading = true;
@@ -56,17 +61,43 @@ class _CommentsPageState extends State<CommentsPage> {
     setState(() => _showEmoji = !_showEmoji);
   }
 
-  Future<void> _loadComments() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await _datasource.getComments(widget.postId);
-      setState(() => _comments = data);
-    } catch (e) {
-      debugPrint('Error cargando comentarios: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  void _scrollToTargetComment() {
+  if (widget.targetCommentId == null) return;
+
+  final key = _commentKeys[widget.targetCommentId];
+
+  if (key?.currentContext != null) {
+    Scrollable.ensureVisible(
+      key!.currentContext!,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
+}
+
+  Future<void> _loadComments() async {
+  setState(() => _isLoading = true);
+
+  try {
+    final data = await _datasource.getComments(widget.postId);
+
+    setState(() => _comments = data);
+
+    // 🔥 CLAVE: esperar a que se renderice la lista
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.targetCommentId != null) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _scrollToTargetComment();
+        });
+      }
+    });
+
+  } catch (e) {
+    debugPrint('Error cargando comentarios: $e');
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
 
   Future<void> _sendComment() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -237,15 +268,24 @@ class _CommentsPageState extends State<CommentsPage> {
                             itemBuilder: (context, index) {
                               final comment = _comments[index];
                               final isOwn = user?.id == comment.userId;
+                              
+                              _commentKeys.putIfAbsent(
+                               comment.id.toString(),
+                               () => GlobalKey(),
+                             );
 
-                              return _CommentTile(
-                                comment: comment,
-                                isOwn: isOwn,
-                                dark: dark,
-                                textColor: textColor,
-                                subColor: subColor,
-                                onDelete: () => _deleteComment(comment),
-                              );
+return Container(
+  key: _commentKeys[comment.id.toString()],
+  child: _CommentTile(
+    comment: comment,
+    isOwn: isOwn,
+    dark: dark,
+    textColor: textColor,
+    subColor: subColor,
+    onDelete: () => _deleteComment(comment),
+    targetCommentId: widget.targetCommentId,
+  ),
+);
                             },
                           ),
               ),
@@ -345,6 +385,7 @@ class _CommentTile extends StatelessWidget {
   final Color textColor;
   final Color subColor;
   final VoidCallback onDelete;
+  final String? targetCommentId;
 
   const _CommentTile({
     required this.comment,
@@ -353,13 +394,22 @@ class _CommentTile extends StatelessWidget {
     required this.textColor,
     required this.subColor,
     required this.onDelete,
+    this.targetCommentId,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+    return Container(
+  padding: const EdgeInsets.symmetric(vertical: 8),
+  decoration: BoxDecoration(
+    color: comment.id.toString() == targetCommentId
+        ? Colors.blueAccent.withOpacity(0.15)
+        : Colors.transparent,
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Avatar
@@ -411,6 +461,7 @@ class _CommentTile extends StatelessWidget {
               ),
             ),
         ],
+       ),
       ),
     );
   }
