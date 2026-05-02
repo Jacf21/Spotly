@@ -3,10 +3,13 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
+import 'package:spotly/core/widgets/feed/spotly_feed_item.dart';
+import 'package:spotly/core/widgets/feed/spotly_image_viewer.dart';
 import '../../data/datasources/lugar_remote_datasource.dart';
 import '../../data/repositories/lugar_repository.dart';
 import '../../data/models/lugar_detalle_model.dart';
 import '../../data/models/lugar_post_model.dart';
+import '../../../posts/data/models/feed_item_model.dart';
 
 class LugarProfilePage extends StatefulWidget {
   final int lugarId;
@@ -22,15 +25,14 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   bool _loadingLugar = true;
   bool _loadingPosts = false;
   bool _hasMore = true;
+  bool _gridView = true;
 
   late final LugarRepository _repo;
 
   @override
   void initState() {
     super.initState();
-    _repo = LugarRepository(
-      LugarRemoteDatasource(Supabase.instance.client),
-    );
+    _repo = LugarRepository(LugarRemoteDatasource(Supabase.instance.client));
     _loadDetalle();
     _loadPosts();
   }
@@ -61,6 +63,25 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       _loadingPosts = false;
     });
   }
+
+  // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
+  FeedItemModel _toFeedItem(LugarPostModel p) => FeedItemModel(
+    id: p.id,
+    descripcion: p.descripcion,
+    mediaUrl: p.mediaUrl,
+    tipo: 'foto',
+    lugar: _lugar?.nombre ?? '',
+    usuario: p.usuario,
+    avatar: p.avatar,
+    createdAt: p.createdAt,
+    isLiked: p.isLiked,
+    isSaved: false,
+    likesCount: p.likesCount,
+    comentarioCount: p.comentarioCount,
+    comentarioActivado: true,
+    visiblePara: 'public',
+    lugarId: widget.lugarId,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -99,49 +120,51 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       },
       child: CustomScrollView(
         slivers: [
-          // ── AppBar con foto de portada ──────────────────────────────
+
+          // ── AppBar con foto de portada ──────────────────────────
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
             backgroundColor: SpotlyColors.bg(dark),
             leading: IconButton(
-              icon: Icon(Icons.arrow_back,
-                  color: l.fotoPortadaUrl != null ? Colors.white : SpotlyColors.text(dark)),
+              icon: Icon(
+                Icons.arrow_back,
+                color: l.fotoPortadaUrl != null
+                    ? Colors.white
+                    : SpotlyColors.text(dark),
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: l.fotoPortadaUrl != null
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(l.fotoPortadaUrl!,
-                            fit: BoxFit.cover),
-                        // gradiente para legibilidad
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.6),
-                              ],
-                            ),
+                  ? Stack(fit: StackFit.expand, children: [
+                      Image.network(l.fotoPortadaUrl!, fit: BoxFit.cover),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.6),
+                            ],
                           ),
                         ),
-                      ],
-                    )
+                      ),
+                    ])
                   : Container(color: SpotlyColors.card(dark)),
             ),
           ),
 
+          // ── Info del lugar ──────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Nombre + badges ──────────────────────────────
+
+                  // Nombre + badge verificado
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -161,7 +184,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
                   const SizedBox(height: 8),
 
-                  // ── Categoría + Departamento ─────────────────────
+                  // Categoría + Departamento
                   Row(children: [
                     if (l.categoria.isNotEmpty) ...[
                       Icon(LucideIcons.tag,
@@ -186,20 +209,19 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
                   const SizedBox(height: 20),
 
-                  // ── Datos rápidos (chips) ────────────────────────
+                  // Chips de datos rápidos
                   Wrap(spacing: 10, runSpacing: 8, children: [
                     if (l.alturaMsnm != null)
                       _chip("${l.alturaMsnm} msnm",
                           LucideIcons.mountain, dark),
                     if (l.climaRecomendado != null)
-                      _chip(l.climaRecomendado!,
-                          LucideIcons.cloud, dark),
+                      _chip(l.climaRecomendado!, LucideIcons.cloud, dark),
                     if (l.mejorEpocaVisitar != null)
                       _chip(l.mejorEpocaVisitar!,
                           LucideIcons.calendar, dark),
                   ]),
 
-                  // ── Descripción ──────────────────────────────────
+                  // Descripción
                   if (l.descripcion != null) ...[
                     const SizedBox(height: 20),
                     Text("Sobre este lugar",
@@ -215,13 +237,13 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                             height: 1.6)),
                   ],
 
-                  // ── Info útil ────────────────────────────────────
+                  // Info útil
                   if (l.informacionUtil != null) ...[
                     const SizedBox(height: 20),
                     _infoCard(l.informacionUtil!, dark),
                   ],
 
-                  // ── Separador publicaciones ──────────────────────
+                  // ── Cabecera de publicaciones + toggle de vista ──
                   const SizedBox(height: 28),
                   Row(children: [
                     Icon(LucideIcons.image,
@@ -232,6 +254,20 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: SpotlyColors.text(dark))),
+                    const Spacer(),
+                    _viewToggleBtn(
+                      icon: LucideIcons.layoutGrid,
+                      active: _gridView,
+                      dark: dark,
+                      onTap: () => setState(() => _gridView = true),
+                    ),
+                    const SizedBox(width: 4),
+                    _viewToggleBtn(
+                      icon: LucideIcons.list,
+                      active: !_gridView,
+                      dark: dark,
+                      onTap: () => setState(() => _gridView = false),
+                    ),
                   ]),
                   const SizedBox(height: 16),
                 ],
@@ -239,26 +275,56 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
             ),
           ),
 
-          // ── Grid de publicaciones ───────────────────────────────
-          _posts.isEmpty && !_loadingPosts
-              ? SliverToBoxAdapter(child: _buildNoPosts(dark))
-              : SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => _buildPostTile(_posts[i], dark),
-                      childCount: _posts.length,
-                    ),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.85,
+          // ── Vista GRID ─────────────────────────────────────────
+          if (_gridView)
+            _posts.isEmpty && !_loadingPosts
+                ? SliverToBoxAdapter(child: _buildNoPosts(dark))
+                : SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverGrid(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => GestureDetector(
+                          onTap: () => SpotlyImageViewer.show(
+                            context,
+                            initialIndex: i,
+                            items: _posts
+                                .map((p) => SpotlyImageItem(
+                                      imageUrl: p.mediaUrl,
+                                      descripcion: p.descripcion,
+                                      usuario: p.usuario,
+                                    ))
+                                .toList(),
+                          ),
+                          child: _buildPostTile(_posts[i], dark),
+                        ),
+                        childCount: _posts.length,
+                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.85,
+                      ),
                     ),
                   ),
-                ),
 
+          // ── Vista FEED ─────────────────────────────────────────
+          if (!_gridView)
+            _posts.isEmpty && !_loadingPosts
+                ? SliverToBoxAdapter(child: _buildNoPosts(dark))
+                : SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => SpotlyFeedItem(
+                        item: _toFeedItem(_posts[i]),
+                        dark: dark,
+                        showLugarButton: false,
+                      ),
+                      childCount: _posts.length,
+                    ),
+                  ),
+
+          // Loader de paginación
           if (_loadingPosts)
             const SliverToBoxAdapter(
               child: Padding(
@@ -273,61 +339,89 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     );
   }
 
+  // ── Helpers de UI ─────────────────────────────────────────────────────────
+
   Widget _buildPostTile(LugarPostModel post, bool dark) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(post.mediaUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                    color: SpotlyColors.card(dark),
-                    child: Icon(LucideIcons.imageOff,
-                        color: SpotlyColors.subText(dark)),
-                  )),
-          // overlay con likes
-          Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: Row(children: [
-                const Icon(LucideIcons.heart,
-                    size: 14, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(post.likesCount.toString(),
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 12)),
-              ]),
-            ),
+      child: Stack(fit: StackFit.expand, children: [
+        Image.network(
+          post.mediaUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: SpotlyColors.card(dark),
+            child: Icon(LucideIcons.imageOff,
+                color: SpotlyColors.subText(dark)),
           ),
-        ],
-      ),
+        ),
+        Positioned(
+          bottom: 0, left: 0, right: 0,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withOpacity(0.6),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: Row(children: [
+              const Icon(LucideIcons.heart,
+                  size: 14, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(post.likesCount.toString(),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 12)),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 
   Widget _buildNoPosts(bool dark) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 32),
     child: Center(
-      child: Text("Aún no hay publicaciones de este lugar",
-          style: TextStyle(
-              color: SpotlyColors.subText(dark), fontSize: 14)),
+      child: Text(
+        "Aún no hay publicaciones de este lugar",
+        style: TextStyle(
+            color: SpotlyColors.subText(dark), fontSize: 14),
+      ),
     ),
   );
 
+  Widget _viewToggleBtn({
+    required IconData icon,
+    required bool active,
+    required bool dark,
+    required VoidCallback onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: active
+                ? SpotlyColors.accent(dark).withOpacity(0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon,
+              size: 20,
+              color: active
+                  ? SpotlyColors.accent(dark)
+                  : SpotlyColors.subText(dark)),
+        ),
+      );
+
   Widget _badge(String label, IconData icon, Color color, bool dark) =>
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(20),
@@ -344,7 +438,8 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       );
 
   Widget _chip(String label, IconData icon, bool dark) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    padding:
+        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
     decoration: BoxDecoration(
       color: SpotlyColors.card(dark),
       borderRadius: BorderRadius.circular(20),

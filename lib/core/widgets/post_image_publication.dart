@@ -20,7 +20,7 @@ class _PostImagePickerState extends State<PostImagePicker> {
   XFile? _image;
 
   Future<void> _handleImagePick(ImageSource source) async {
-    final XFile? selected = (await ImageHelper.pickImage(source)) as XFile?;
+    final XFile? selected = (await ImageHelper.pickImage(source));
     if (selected != null) {
       setState(() {
         _image = selected;
