@@ -354,6 +354,14 @@ class _FeedPageState extends State<FeedPage> {
                     color: dark ? Colors.white70 : Colors.black54),
               ),
 
+              if (item.lugar.isNotEmpty)
+                IconButton(
+                  onPressed: () => context.push('/lugar/${item.lugarId}'),
+                  icon: Icon(LucideIcons.mapPin,
+                      color: dark ? Colors.white70 : Colors.black54),
+                  tooltip: item.lugar,
+                ),
+
               const Spacer(),
 
               // Guardar (sin contador)

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 
 import '../../themes/spotly_colors.dart';
 import '../interactive/spotly_interactive.dart';
 import '../common/spotly_logo.dart';
+import '../../context/auth_context.dart';
 
 class SpotlyTopBar extends StatelessWidget {
   final bool dark;
@@ -22,6 +24,7 @@ class SpotlyTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = context.watch<AuthProvider>().isLoggedIn;
     return Container(
       height: 90,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -51,11 +54,12 @@ class SpotlyTopBar extends StatelessWidget {
                   onTap: onTheme,
                 ),
                 const SizedBox(width: 12),
-                _TopBarIconButton(
-                  icon: LucideIcons.search,
-                  dark: dark,
-                  onTap: onSearch,
-                ),
+                if (isLoggedIn)
+                  _TopBarIconButton(
+                    icon: LucideIcons.search,
+                    dark: dark,
+                    onTap: onSearch,
+                  ),
               ],
             ),
           ],

@@ -38,7 +38,7 @@ class SpotlyNavItem extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Column(
-              mainAxisSize: MainAxisSize.min, // ✅ solo ocupa lo necesario
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

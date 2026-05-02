@@ -36,8 +36,6 @@ class _PostImagePickerState extends State<PostImagePicker> {
     final dark = ThemeUtils.isDark(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        //Ajustamos la relación de aspecto según el ancho disponible (aun no se esta usando)
-        double dynamicRatio = constraints.maxWidth > 600 ? 21 / 9 : 16 / 9;
 
         return AspectRatio(
           aspectRatio: 1,

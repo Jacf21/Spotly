@@ -9,6 +9,7 @@ import '../../features/auth/presentation/pages/admin_dashboard_page.dart';
 import '../../features/posts/presentation/pages/feed_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/auth_callback_page.dart';
+import '../../features/places/presentation/pages/lugar_profile_page.dart';
 
 import '../../features/notifications/alerts_page.dart';
 // layout
@@ -84,6 +85,13 @@ final appRouter = GoRouter(
           path: '/profile',
           builder: (context, state) =>
               const ProfilePage(), // Modificado para usar tu página
+        ),
+        GoRoute(
+          path: '/lugar/:id',
+          builder: (context, state) {
+            final id = int.parse(state.pathParameters['id']!);
+            return LugarProfilePage(lugarId: id);
+          },
         ),
       ],
     ),
