@@ -10,22 +10,26 @@ import '../../features/posts/presentation/pages/feed_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/auth_callback_page.dart';
 import '../../features/places/presentation/pages/lugar_profile_page.dart';
-
 import '../../features/notifications/alerts_page.dart';
+
 // layout
 import '../../core/widgets/main_navigation.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
+
   redirect: (context, state) {
     final location = state.uri.toString();
+
     if (location.contains('login-callback') || location.contains('code=')) {
       return '/auth/callback';
     }
+
     return null;
   },
+
   routes: [
-    /// 🔓 PÚBLICAS (SIN NAVBAR)
+    /// 🔓 RUTAS PÚBLICAS
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginPage(),
@@ -46,45 +50,49 @@ final appRouter = GoRouter(
       builder: (context, state) => const AuthCallbackPage(),
     ),
 
-    /// 🔐 APP (CON NAVBAR GLOBAL)
+    /// 🔐 APP CON NAVBAR
     ShellRoute(
       builder: (context, state, child) {
         return MainNavigation(child: child);
       },
       routes: [
+        /// FEED
         GoRoute(
-          path: '/feed',
-          builder: (context, state) => const FeedPage(),
-        ),
-        GoRoute(
-          path: '/post-detail/:id',
-           builder: (context, state) {
-            final id = state.pathParameters['id']!;
-             return Scaffold(
-                body: Center(
-                child: Text("Post ID: $id"),
-              ),
-             );
-           },
-         ),
-         
+  path: '/feed',
+  builder: (context, state) {
+    return FeedPage(
+      targetPostId: state.uri.queryParameters['postId'],
+      targetCommentId: state.uri.queryParameters['commentId'],
+    );
+  },
+),
+
+        /// MAPA
         GoRoute(
           path: '/map',
-          builder: (context, state) => const Center(child: Text("Mapa")),
+          builder: (context, state) =>
+              const Center(child: Text("Mapa")),
         ),
+
+        /// CREAR POST
         GoRoute(
           path: '/post',
           builder: (context, state) =>
               const CreatePostPage(),
         ),
+
+        /// ALERTAS
         GoRoute(
           path: '/alerts',
-          builder: (context, state) => const AlertsPage(),
+          builder: (context, state) =>
+              const AlertsPage(),
         ),
+
+        /// PERFIL
         GoRoute(
           path: '/profile',
           builder: (context, state) =>
-              const ProfilePage(), // Modificado para usar tu página
+              const ProfilePage(),
         ),
         GoRoute(
           path: '/lugar/:id',
@@ -96,10 +104,11 @@ final appRouter = GoRouter(
       ],
     ),
 
-    /// 🛠 ADMIN (SIN NAVBAR SI QUIERES)
+    /// 🛠 ADMIN
     GoRoute(
       path: '/admin',
-      builder: (context, state) => const AdminDashboardPage(),
+      builder: (context, state) =>
+          const AdminDashboardPage(),
     ),
   ],
 );
