@@ -9,6 +9,8 @@ import 'package:spotly/core/widgets/location_selector_publication.dart';
 import 'package:spotly/core/widgets/setting_publication.dart';
 import 'package:spotly/features/posts/data/datasources/subida_storage.dart';
 import 'package:spotly/features/posts/presentation/widgets/place_profile_sheet.dart';
+import 'package:spotly/features/posts/presentation/widgets/nearby_place_selector.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/theme_utils.dart';
 import '../../../../core/themes/spotly_colors.dart';
@@ -156,7 +158,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   Future<void> _validateAndSubmit() async {
-    // 1. Validaciones previas al sheet (igual que antes)
     if (_selectedImage == null) {
       _showErrorSnackBar("¡Por favor selecciona una foto de tu aventura!");
       return;
@@ -166,11 +167,40 @@ class _CreatePostPageState extends State<CreatePostPage> {
       return;
     }
 
-    // 2. Abrir el sheet ANTES de subir — el usuario decide si agrega más datos
+    // 1. Sheet de perfil del lugar
     final profileData = await PlaceProfileSheet.show(context, _title, dark);
-    if (profileData == null) return; // usuario cerró el sheet sin confirmar
+    if (profileData == null) return;
 
-    // 3. Convertir privacidad al valor de BD
+    // 2. Buscar lugares cercanos
+    int? lugarIdElegido;
+    try {
+      final remoteDataSource = PostRemoteDataSourceImpl(Supabase.instance.client);
+      final cercanos = await remoteDataSource.buscarLugaresCercanos(
+        lat: _currentLatLng.latitude,
+        lng: _currentLatLng.longitude,
+      );
+
+      // 3. Si hay lugares cercanos → mostrar selector
+      if (cercanos.isNotEmpty && mounted) {
+        final seleccion = await NearbyPlaceSelector.show(
+          context,
+          lugares: cercanos,
+          isDark: dark,
+        );
+
+        // Usuario cerró sin elegir → cancelar publicación
+        if (seleccion == null) return;
+
+        // null significa "crear nuevo", un id significa "usar existente"
+        lugarIdElegido = seleccion.lugarId;
+      }
+      // Si cercanos está vacío → lugarIdElegido queda null → RPC crea uno nuevo
+    } catch (_) {
+      // Si falla la búsqueda, continuar creando lugar nuevo
+      lugarIdElegido = null;
+    }
+
+    // 4. Convertir privacidad
     String privacidadDB = "public";
     if (_privacy == "Amigos") privacidadDB = "friends";
     if (_privacy == "Privado") privacidadDB = "private";
@@ -191,8 +221,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
         lng: _currentLatLng.longitude,
         privacidad: privacidadDB,
         permiteComen: !_disableComments,
-        placeDescription: profileData.description,  // 👈 del sheet
-        categoriaId: profileData.categoriaId,        // 👈 del sheet (int? o null)
+        placeDescription: profileData.description,
+        categoriaId: profileData.categoriaId,
+        lugarIdExistente: lugarIdElegido,  // 👈 null = crear nuevo
       );
 
       if (mounted) {
@@ -200,9 +231,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         context.go('/feed');
       }
     } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar("❌ Error al publicar: $e");
-      }
+      if (mounted) _showErrorSnackBar("❌ Error al publicar: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

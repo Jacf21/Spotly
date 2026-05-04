@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:spotly/core/utils/theme_utils.dart';
 
 class PostLocationSelector extends StatefulWidget {
   final void Function(LatLng coords, String deptoName, String city) onLocationChanged;
@@ -102,7 +103,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final dark = ThemeUtils.isDark(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,9 +131,12 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
             return Expanded(
               child: GestureDetector(
                 onTap: () async {
-                  setState(() { _mode = mode; _mapExpanded = mode == _LocationMode.map; });
+                  setState(() {
+                    _mode = mode;
+                    _mapExpanded = mode == _LocationMode.map;
+                  });
                   if (mode == _LocationMode.gps) {
-                    await _reverseGeocode(_pinLocation); // aquí integras tu LocationHelper real
+                    await _reverseGeocode(_pinLocation);
                   }
                 },
                 child: AnimatedContainer(
@@ -145,18 +149,21 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
                         : (dark ? Colors.white10 : Colors.grey.shade100),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: selected ? Colors.transparent : Colors.grey.shade300,
+                      color: selected
+                          ? Colors.transparent
+                          : (dark ? Colors.white12 : Colors.grey.shade300), // 👈
                     ),
                   ),
                   child: Column(
                     children: [
                       Icon(labels[mode]!.$2,
-                          size: 18, color: selected ? (dark ? Colors.white : Colors.white) : Colors.grey),
+                          size: 18,
+                          color: selected ? Colors.white : Colors.grey),
                       const SizedBox(height: 4),
                       Text(labels[mode]!.$1,
                           style: TextStyle(
                               fontSize: 11,
-                              color: selected ? (dark ? Colors.white : Colors.white) : Colors.grey)),
+                              color: selected ? Colors.white : Colors.grey)),
                     ],
                   ),
                 ),
@@ -167,20 +174,28 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
 
         const SizedBox(height: 12),
 
-        // Modo BUSCAR: campo de texto con resultados
+        // Modo BUSCAR
         if (_mode == _LocationMode.search) ...[
           TextField(
             controller: _searchController,
+            style: TextStyle(color: dark ? Colors.white : Colors.black), // 👈
             onChanged: (v) {
               _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 500), () => _searchPlaces(v));
+              _debounce = Timer(
+                  const Duration(milliseconds: 500), () => _searchPlaces(v));
             },
             decoration: InputDecoration(
               hintText: "Ej: Parque Nacional Tunari",
-              prefixIcon: const Icon(Icons.search, size: 20),
+              hintStyle: TextStyle( // 👈
+                  color: dark ? Colors.white38 : Colors.grey),
+              prefixIcon: Icon(Icons.search,
+                  size: 20,
+                  color: dark ? Colors.white54 : Colors.grey), // 👈
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
+                      icon: Icon(Icons.clear,
+                          size: 18,
+                          color: dark ? Colors.white54 : Colors.grey), // 👈
                       onPressed: () {
                         _searchController.clear();
                         setState(() => _searchResults = []);
@@ -194,29 +209,44 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
               ),
             ),
           ),
+
           // Lista de resultados
           if (_searchResults.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF1E1E1E) : Colors.white,
+                color: dark ? const Color(0xFF1E293B) : Colors.white, // 👈
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(dark ? 0.3 : 0.1),
+                      blurRadius: 8)
+                ],
               ),
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _searchResults.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: dark ? Colors.white12 : Colors.grey.shade200), // 👈
                 itemBuilder: (_, i) {
                   final r = _searchResults[i];
                   return ListTile(
-                    leading: const Icon(Icons.place_outlined, size: 18),
-                    title: Text(r['name'].toString().split(',').first,
-                        style: const TextStyle(fontSize: 14)),
+                    leading: Icon(Icons.place_outlined,
+                        size: 18,
+                        color: dark ? Colors.white54 : Colors.grey), // 👈
+                    title: Text(
+                      r['name'].toString().split(',').first,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: dark ? Colors.white : Colors.black), // 👈
+                    ),
                     subtitle: Text(
                       r['name'].toString().split(',').skip(1).take(2).join(','),
-                      style: const TextStyle(fontSize: 11),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: dark ? Colors.white38 : Colors.grey), // 👈
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -228,17 +258,18 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
           const SizedBox(height: 12),
         ],
 
-        // MAPA interactivo (visible en modo "map" o cuando se seleccionó un resultado de búsqueda)
+        // Mapa
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 300),
-          crossFadeState: (_mode == _LocationMode.map || (_mode == _LocationMode.search && _mapExpanded))
+          crossFadeState: (_mode == _LocationMode.map ||
+                  (_mode == _LocationMode.search && _mapExpanded))
               ? CrossFadeState.showFirst
               : CrossFadeState.showSecond,
           firstChild: _buildMap(dark),
           secondChild: const SizedBox.shrink(),
         ),
 
-        // Chip con la ubicación seleccionada
+        // Chip ubicación seleccionada
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -252,9 +283,14 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
               const SizedBox(width: 8),
               Expanded(
                 child: _isGeocoding
-                    ? const LinearProgressIndicator()
-                    : Text(_displayName,
-                        style: TextStyle(fontSize: 13, color: dark ? Colors.white70 : Colors.black87)),
+                    ? LinearProgressIndicator(
+                        color: dark ? Colors.white54 : Colors.grey) // 👈
+                    : Text(
+                        _displayName,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: dark ? Colors.white70 : Colors.black87),
+                      ),
               ),
             ],
           ),

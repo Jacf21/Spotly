@@ -133,7 +133,7 @@ class MainNavigation extends StatelessWidget {
 
                 /// ➕ BOTÓN CENTRADO REAL
                 Positioned(
-                  top: -25,
+                  top: 5,
                   left: 0,
                   right: 0,
                   child: Center(

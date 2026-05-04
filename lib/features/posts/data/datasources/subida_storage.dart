@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../models/lugar_cercano_model.dart';
 
 abstract class PostRemoteDataSource {
   Future<void> uploadPost({
@@ -22,6 +23,20 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
 
   PostRemoteDataSourceImpl(this.supabase);
 
+  Future<List<LugarCercanoModel>> buscarLugaresCercanos({
+    required double lat,
+    required double lng,
+    int radioMetros = 100,
+  }) async {
+    final res = await supabase.rpc('buscar_lugares_cercanos', params: {
+      'p_coords': 'POINT($lng $lat)',
+      'p_radio_metros': radioMetros,
+    });
+    return (res as List)
+        .map((j) => LugarCercanoModel.fromJson(j))
+        .toList();
+  }
+
   @override
   Future<void> uploadPost({
     required XFile imageFile,
@@ -35,6 +50,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
     required bool permiteComen,   // tu columna comentario_activado
     String placeDescription = '',
     int? categoriaId,
+    int? lugarIdExistente,
 
   }) async {
 
@@ -87,10 +103,11 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
         'p_coords': 'POINT($lng $lat)',
         'p_id_usuario': userId,
         'p_url_foto': imageUrl,
-        'p_privacidad': privacidad,           // → visible_para en tu BD
-        'p_permite_comentarios': permiteComen, // → comentario_activado en tu BD
+        'p_privacidad': privacidad,
+        'p_permite_comentarios': permiteComen,
         'p_descripcion_lugar': placeDescription,
-        'p_categoria_id': categoriaId,        // int? — null si no seleccionó
+        'p_categoria_id': categoriaId,
+        'p_lugar_id_existente': lugarIdExistente,
       });
 
       print("¡Publicación creada exitosamente!");
