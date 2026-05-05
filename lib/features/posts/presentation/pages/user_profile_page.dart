@@ -14,7 +14,13 @@ import '../../../comments/presentation/pages/comments_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
-  const UserProfilePage({super.key, required this.userId});
+  final bool showBackButton;
+
+  const UserProfilePage({
+    super.key,
+    required this.userId,
+    this.showBackButton = true,
+  });
 
   @override
   State<UserProfilePage> createState() => _UserProfilePageState();
@@ -82,12 +88,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> _handleLike(FeedItemModel item) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      context.push('/login');
+      if (mounted) context.push('/login');
       return;
     }
 
     final wasLiked = item.isLiked;
     final index = _posts.indexWhere((p) => p.id == item.id);
+
+    if (index == -1) return;
 
     setState(() {
       _posts[index].isLiked = !wasLiked;
@@ -104,22 +112,26 @@ class _UserProfilePageState extends State<UserProfilePage> {
         wasLiked: wasLiked,
       );
     } catch (e) {
-      setState(() {
-        _posts[index].isLiked = wasLiked;
-        _posts[index].likesCount += wasLiked ? 1 : -1;
-      });
+      if (mounted) {
+        setState(() {
+          _posts[index].isLiked = wasLiked;
+          _posts[index].likesCount += wasLiked ? 1 : -1;
+        });
+      }
     }
   }
 
   Future<void> _handleSave(FeedItemModel item) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      context.push('/login');
+      if (mounted) context.push('/login');
       return;
     }
 
     final wasSaved = item.isSaved;
     final index = _posts.indexWhere((p) => p.id == item.id);
+
+    if (index == -1) return;
 
     setState(() {
       _posts[index].isSaved = !wasSaved;
@@ -135,9 +147,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         wasSaved: wasSaved,
       );
     } catch (e) {
-      setState(() {
-        _posts[index].isSaved = wasSaved;
-      });
+      if (mounted) {
+        setState(() {
+          _posts[index].isSaved = wasSaved;
+        });
+      }
     }
   }
 
@@ -148,6 +162,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
       backgroundColor: Colors.transparent,
       builder: (_) => CommentsPage(postId: item.id),
     );
+    if (!mounted) return;
+
     final repo = FeedRepository(
       FeedRemoteDatasource(Supabase.instance.client),
     );
@@ -166,7 +182,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   void _navigateToUserProfile(String userId) {
     if (userId == widget.userId) return;
-    context.push('/user/$userId');
+    if (mounted) context.push('/user/$userId');
   }
 
   @override
@@ -183,10 +199,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
             color: SpotlyColors.text(dark),
           ),
         ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: SpotlyColors.text(dark)),
-          onPressed: () => context.pop(),
-        ),
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, color: SpotlyColors.text(dark)),
+                onPressed: () {
+                  if (mounted) context.pop();
+                },
+              )
+            : null,
         backgroundColor: SpotlyColors.bg(dark),
         elevation: 0,
       ),

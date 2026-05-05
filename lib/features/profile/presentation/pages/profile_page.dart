@@ -3,29 +3,83 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
-// --- IMPORTS DE CORE ---
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/core/widgets/common/spotly_card.dart';
 import 'package:spotly/core/widgets/interactive/spotly_interactive.dart';
 import 'package:spotly/core/utils/spotly_ui.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
-import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import 'package:spotly/core/context/auth_context.dart';
-
-// --- IMPORT DEL BLOC ---
 import 'package:spotly/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  Widget build(BuildContext context) {
+    final dark = ThemeUtils.isDark(context);
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (currentUserId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go('/login');
+      });
+      return const SizedBox.shrink();
+    }
+
+    return Scaffold(
+      backgroundColor: SpotlyColors.bg(dark),
+      appBar: AppBar(
+        title: Text(
+          'Mi Perfil',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: SpotlyColors.text(dark),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(LucideIcons.pencil, color: SpotlyColors.accent(dark)),
+            onPressed: () => _openEditProfile(context),
+            tooltip: 'Editar perfil',
+          ),
+        ],
+        backgroundColor: SpotlyColors.bg(dark),
+        elevation: 0,
+        automaticallyImplyLeading: false, // ← sin botón de atrás
+      ),
+      body: UserProfilePage(
+        userId: currentUserId,
+        showBackButton: false, // ← importante: oculta el botón de atrás interno
+      ),
+    );
+  }
+
+  void _openEditProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const EditProfilePage(),
+        fullscreenDialog: true,
+      ),
+    );
+  }
 }
 
-class _ProfilePageState extends State<ProfilePage> {
-  // Controladores Perfil
+// ============================================================================
+// Pantalla de edición de perfil (formulario completo)
+// ============================================================================
+class EditProfilePage extends StatefulWidget {
+  const EditProfilePage({super.key});
+
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
   final _nameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -36,11 +90,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _cityController = TextEditingController();
   String? _selectedGender;
 
-  // Controladores Seguridad (Password)
   final _currentPassController = TextEditingController();
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
-
   bool _isUpdatingPass = false;
 
   @override
@@ -76,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _birthDateController.text =
             "${picked.year}-${picked.month}-${picked.day}";
@@ -84,7 +136,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // --- LÓGICA DE CAMBIO DE CONTRASEÑA ---
   Future<void> _handleUpdatePassword() async {
     final current = _currentPassController.text.trim();
     final next = _newPassController.text.trim();
@@ -105,76 +156,22 @@ class _ProfilePageState extends State<ProfilePage> {
       final email = Supabase.instance.client.auth.currentUser?.email;
       if (email == null) return;
 
-      // Re-autenticar para validar contraseña antigua
       await Supabase.instance.client.auth
           .signInWithPassword(email: email, password: current);
-      // Actualizar a la nueva
       await Supabase.instance.client.auth
           .updateUser(UserAttributes(password: next));
 
-      SpotlyUI.toast(context, "✨ Contraseña actualizada");
+      if (mounted) SpotlyUI.toast(context, "✨ Contraseña actualizada");
       _currentPassController.clear();
       _newPassController.clear();
       _confirmPassController.clear();
     } catch (e) {
-      SpotlyUI.toast(
-          context, "Error de seguridad: Contraseña actual incorrecta");
+      if (mounted)
+        SpotlyUI.toast(
+            context, "Error de seguridad: Contraseña actual incorrecta");
     } finally {
       if (mounted) setState(() => _isUpdatingPass = false);
     }
-  }
-
-  Widget _buildLogoutButton(bool dark) {
-    return SpotlyInteractive(
-      onTap: () async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: SpotlyColors.bg(dark),
-            title: Text("Cerrar sesión",
-                style: TextStyle(color: SpotlyColors.text(dark))),
-            content: Text("¿Estás seguro que deseas salir?",
-                style: TextStyle(color: SpotlyColors.subText(dark))),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text("Cancelar",
-                    style: TextStyle(color: SpotlyColors.subText(dark))),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text("Salir",
-                    style: TextStyle(color: Colors.redAccent)),
-              ),
-            ],
-          ),
-        );
-
-        if (confirm == true && mounted) {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          auth.logout();
-          context.go('/login');
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.redAccent),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Center(
-          child: Text(
-            "CERRAR SESIÓN",
-            style: TextStyle(
-              color: Colors.redAccent,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -183,8 +180,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return BlocConsumer<ProfileBloc, ProfileState>(
       listener: (context, state) {
-        if (state is ProfileUpdateSuccess)
+        if (state is ProfileUpdateSuccess) {
           SpotlyUI.toast(context, "✨ Perfil actualizado");
+          if (mounted) Navigator.pop(context);
+        }
         if (state is ProfileError) SpotlyUI.toast(context, state.message);
         if (state is ProfileLoaded) {
           final p = state.profile;
@@ -200,124 +199,140 @@ class _ProfilePageState extends State<ProfilePage> {
       },
       builder: (context, state) {
         if (state is ProfileLoading && _nameController.text.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
-          child: Column(
-            children: [
-              _buildSectionTitle(dark, "MI IDENTIDAD SPOTLY"),
-              SpotlyCrystalCard(
-                dark: dark,
-                child: Padding(
-                  padding: const EdgeInsets.all(25),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundColor:
-                            SpotlyColors.accent(dark).withOpacity(0.1),
-                        child: Icon(LucideIcons.user,
-                            size: 40, color: SpotlyColors.accent(dark)),
-                      ).animate().scale(duration: 400.ms),
-                      const SizedBox(height: 25),
-                      _buildInput(
-                          "Nombres", LucideIcons.user, _nameController, dark),
-                      const SizedBox(height: 15),
-                      _buildInput("Apellidos", LucideIcons.userCheck,
-                          _lastNameController, dark),
-                      const SizedBox(height: 15),
-                      _buildInput("Nombre de Usuario", LucideIcons.atSign,
-                          _usernameController, dark),
-                      const SizedBox(height: 15),
-                      _buildInput("Biografía", LucideIcons.fileEdit,
-                          _bioController, dark,
-                          maxLines: 3),
-                    ],
+        return Scaffold(
+          backgroundColor: SpotlyColors.bg(dark),
+          appBar: AppBar(
+            title: Text("Editar perfil",
+                style: TextStyle(color: SpotlyColors.text(dark))),
+            leading: IconButton(
+              icon: Icon(Icons.close, color: SpotlyColors.text(dark)),
+              onPressed: () => Navigator.pop(context),
+            ),
+            backgroundColor: SpotlyColors.bg(dark),
+            elevation: 0,
+          ),
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+            child: Column(
+              children: [
+                _buildSectionTitle(dark, "MI IDENTIDAD SPOTLY"),
+                SpotlyCrystalCard(
+                  dark: dark,
+                  child: Padding(
+                    padding: const EdgeInsets.all(25),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 45,
+                          backgroundColor:
+                              SpotlyColors.accent(dark).withOpacity(0.1),
+                          child: Icon(LucideIcons.user,
+                              size: 40, color: SpotlyColors.accent(dark)),
+                        ).animate().scale(duration: 400.ms),
+                        const SizedBox(height: 25),
+                        _buildInput(
+                            "Nombres", LucideIcons.user, _nameController, dark),
+                        const SizedBox(height: 15),
+                        _buildInput("Apellidos", LucideIcons.userCheck,
+                            _lastNameController, dark),
+                        const SizedBox(height: 15),
+                        _buildInput("Nombre de Usuario", LucideIcons.atSign,
+                            _usernameController, dark),
+                        const SizedBox(height: 15),
+                        _buildInput("Biografía", LucideIcons.fileEdit,
+                            _bioController, dark,
+                            maxLines: 3),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
-              _buildSectionTitle(dark, "DETALLES ADICIONALES"),
-              SpotlyCrystalCard(
-                dark: dark,
-                child: Padding(
-                  padding: const EdgeInsets.all(25),
-                  child: Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        dropdownColor:
-                            dark ? const Color(0xFF1E293B) : Colors.white,
-                        style: TextStyle(color: SpotlyColors.text(dark)),
-                        decoration:
-                            _inputDecoration("Género", LucideIcons.users, dark),
-                        items: [
-                          'Masculino',
-                          'Femenino',
-                          'Otro',
-                          'Prefiero no decir'
-                        ]
-                            .map((g) =>
-                                DropdownMenuItem(value: g, child: Text(g)))
-                            .toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedGender = val),
-                      ),
-                      const SizedBox(height: 15),
-                      GestureDetector(
-                        onTap: () => _selectDate(context),
-                        child: AbsorbPointer(
-                          child: _buildInput("Fecha de Nacimiento",
-                              LucideIcons.calendar, _birthDateController, dark),
+                const SizedBox(height: 25),
+                _buildSectionTitle(dark, "DETALLES ADICIONALES"),
+                SpotlyCrystalCard(
+                  dark: dark,
+                  child: Padding(
+                    padding: const EdgeInsets.all(25),
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _selectedGender,
+                          dropdownColor:
+                              dark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(color: SpotlyColors.text(dark)),
+                          decoration: _inputDecoration(
+                              "Género", LucideIcons.users, dark),
+                          items: [
+                            'Masculino',
+                            'Femenino',
+                            'Otro',
+                            'Prefiero no decir'
+                          ]
+                              .map((g) =>
+                                  DropdownMenuItem(value: g, child: Text(g)))
+                              .toList(),
+                          onChanged: (val) =>
+                              setState(() => _selectedGender = val),
                         ),
-                      ),
-                      const SizedBox(height: 15),
-                      _buildInput(
-                          "País", LucideIcons.globe, _countryController, dark),
-                      const SizedBox(height: 15),
-                      _buildInput(
-                          "Ciudad", LucideIcons.mapPin, _cityController, dark),
-                    ],
+                        const SizedBox(height: 15),
+                        GestureDetector(
+                          onTap: () => _selectDate(context),
+                          child: AbsorbPointer(
+                            child: _buildInput(
+                                "Fecha de Nacimiento",
+                                LucideIcons.calendar,
+                                _birthDateController,
+                                dark),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        _buildInput("País", LucideIcons.globe,
+                            _countryController, dark),
+                        const SizedBox(height: 15),
+                        _buildInput("Ciudad", LucideIcons.mapPin,
+                            _cityController, dark),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
-              _buildSectionTitle(dark, "SEGURIDAD"),
-              SpotlyCrystalCard(
-                dark: dark,
-                child: Padding(
-                  padding: const EdgeInsets.all(25),
-                  child: Column(
-                    children: [
-                      _buildInput("Contraseña Actual", LucideIcons.key,
-                          _currentPassController, dark,
-                          obscure: true),
-                      const SizedBox(height: 15),
-                      _buildInput("Nueva Contraseña", LucideIcons.lock,
-                          _newPassController, dark,
-                          obscure: true),
-                      const SizedBox(height: 15),
-                      _buildInput("Confirmar Nueva", LucideIcons.shieldCheck,
-                          _confirmPassController, dark,
-                          obscure: true),
-                      const SizedBox(height: 20),
-                      _isUpdatingPass
-                          ? const CircularProgressIndicator()
-                          : _buildSecondaryButton(dark, "ACTUALIZAR CONTRASEÑA",
-                              _handleUpdatePassword),
-                    ],
+                const SizedBox(height: 25),
+                _buildSectionTitle(dark, "SEGURIDAD"),
+                SpotlyCrystalCard(
+                  dark: dark,
+                  child: Padding(
+                    padding: const EdgeInsets.all(25),
+                    child: Column(
+                      children: [
+                        _buildInput("Contraseña Actual", LucideIcons.key,
+                            _currentPassController, dark,
+                            obscure: true),
+                        const SizedBox(height: 15),
+                        _buildInput("Nueva Contraseña", LucideIcons.lock,
+                            _newPassController, dark,
+                            obscure: true),
+                        const SizedBox(height: 15),
+                        _buildInput("Confirmar Nueva", LucideIcons.shieldCheck,
+                            _confirmPassController, dark,
+                            obscure: true),
+                        const SizedBox(height: 20),
+                        _isUpdatingPass
+                            ? const CircularProgressIndicator()
+                            : _buildSecondaryButton(dark,
+                                "ACTUALIZAR CONTRASEÑA", _handleUpdatePassword),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
-              _buildSaveButton(dark),
-              const SizedBox(height: 10),
-              _buildLogoutButton(dark),
-              const SizedBox(height: 50),
-            ],
+                const SizedBox(height: 25),
+                _buildSaveButton(dark),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         );
       },
@@ -378,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Center(
-            child: Text("GUARDAR CAMBIOS TOTALES",
+            child: Text("GUARDAR CAMBIOS",
                 style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold))),
       ),
@@ -407,8 +422,7 @@ class _ProfilePageState extends State<ProfilePage> {
       enabled: enabled,
       obscureText: obscure,
       maxLines: maxLines,
-      style: TextStyle(
-          color: SpotlyColors.text(dark)), // CORRECCIÓN DE COLOR DE LETRA
+      style: TextStyle(color: SpotlyColors.text(dark)),
       decoration: _inputDecoration(label, icon, dark),
     );
   }
