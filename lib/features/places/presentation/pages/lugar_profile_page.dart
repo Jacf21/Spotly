@@ -39,49 +39,56 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
   Future<void> _loadDetalle() async {
     final data = await _repo.getDetalle(widget.lugarId);
-    if (mounted) setState(() { _lugar = data; _loadingLugar = false; });
+    if (mounted)
+      setState(() {
+        _lugar = data;
+        _loadingLugar = false;
+      });
   }
 
   Future<void> _loadPosts() async {
     if (_loadingPosts || !_hasMore) return;
     setState(() => _loadingPosts = true);
 
-    final userId = Supabase.instance.client.auth.currentUser?.id
-        ?? '00000000-0000-0000-0000-000000000000';
+    final userId = Supabase.instance.client.auth.currentUser?.id ??
+        '00000000-0000-0000-0000-000000000000';
 
     final newPosts = await _repo.getPublicaciones(
       lugarId: widget.lugarId,
       userId: userId,
-      lastCreatedAt: _posts.isEmpty
-          ? null
-          : _posts.last.createdAt.toIso8601String(),
+      lastCreatedAt:
+          _posts.isEmpty ? null : _posts.last.createdAt.toIso8601String(),
     );
 
     setState(() {
-      if (newPosts.isEmpty) _hasMore = false;
-      else _posts.addAll(newPosts);
+      if (newPosts.isEmpty)
+        _hasMore = false;
+      else
+        _posts.addAll(newPosts);
       _loadingPosts = false;
     });
   }
 
   // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
+  // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
   FeedItemModel _toFeedItem(LugarPostModel p) => FeedItemModel(
-    id: p.id,
-    descripcion: p.descripcion,
-    mediaUrl: p.mediaUrl,
-    tipo: 'foto',
-    lugar: _lugar?.nombre ?? '',
-    usuario: p.usuario,
-    avatar: p.avatar,
-    createdAt: p.createdAt,
-    isLiked: p.isLiked,
-    isSaved: false,
-    likesCount: p.likesCount,
-    comentarioCount: p.comentarioCount,
-    comentarioActivado: true,
-    visiblePara: 'public',
-    lugarId: widget.lugarId,
-  );
+        id: p.id,
+        userId: p.userId, // ← NUEVO: agregar este campo
+        descripcion: p.descripcion,
+        mediaUrl: p.mediaUrl,
+        tipo: 'foto',
+        lugar: _lugar?.nombre ?? '',
+        usuario: p.usuario,
+        avatar: p.avatar,
+        createdAt: p.createdAt,
+        isLiked: p.isLiked,
+        isSaved: false,
+        likesCount: p.likesCount,
+        comentarioCount: p.comentarioCount,
+        comentarioActivado: true,
+        visiblePara: 'public',
+        lugarId: widget.lugarId,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -90,8 +97,9 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     return Scaffold(
       backgroundColor: SpotlyColors.bg(dark),
       body: _loadingLugar
-          ? Center(child: CircularProgressIndicator(
-              color: SpotlyColors.accent(dark)))
+          ? Center(
+              child:
+                  CircularProgressIndicator(color: SpotlyColors.accent(dark)))
           : _lugar == null
               ? _buildError(dark)
               : _buildContent(dark),
@@ -99,17 +107,17 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   }
 
   Widget _buildError(bool dark) => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(LucideIcons.mapPin,
-            size: 48, color: SpotlyColors.subText(dark)),
-        const SizedBox(height: 12),
-        Text("Lugar no encontrado",
-            style: TextStyle(color: SpotlyColors.text(dark), fontSize: 16)),
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.mapPin,
+                size: 48, color: SpotlyColors.subText(dark)),
+            const SizedBox(height: 12),
+            Text("Lugar no encontrado",
+                style: TextStyle(color: SpotlyColors.text(dark), fontSize: 16)),
+          ],
+        ),
+      );
 
   Widget _buildContent(bool dark) {
     final l = _lugar!;
@@ -120,7 +128,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       },
       child: CustomScrollView(
         slivers: [
-
           // ── AppBar con foto de portada ──────────────────────────
           SliverAppBar(
             expandedHeight: 260,
@@ -163,7 +170,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Nombre + badge verificado
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,8 +198,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                       const SizedBox(width: 4),
                       Text(l.categoria,
                           style: TextStyle(
-                              color: SpotlyColors.subText(dark),
-                              fontSize: 13)),
+                              color: SpotlyColors.subText(dark), fontSize: 13)),
                       const SizedBox(width: 12),
                     ],
                     if (l.departamento.isNotEmpty) ...[
@@ -202,8 +207,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                       const SizedBox(width: 4),
                       Text(l.departamento,
                           style: TextStyle(
-                              color: SpotlyColors.subText(dark),
-                              fontSize: 13)),
+                              color: SpotlyColors.subText(dark), fontSize: 13)),
                     ],
                   ]),
 
@@ -212,13 +216,11 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                   // Chips de datos rápidos
                   Wrap(spacing: 10, runSpacing: 8, children: [
                     if (l.alturaMsnm != null)
-                      _chip("${l.alturaMsnm} msnm",
-                          LucideIcons.mountain, dark),
+                      _chip("${l.alturaMsnm} msnm", LucideIcons.mountain, dark),
                     if (l.climaRecomendado != null)
                       _chip(l.climaRecomendado!, LucideIcons.cloud, dark),
                     if (l.mejorEpocaVisitar != null)
-                      _chip(l.mejorEpocaVisitar!,
-                          LucideIcons.calendar, dark),
+                      _chip(l.mejorEpocaVisitar!, LucideIcons.calendar, dark),
                   ]),
 
                   // Descripción
@@ -350,15 +352,16 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
             color: SpotlyColors.card(dark),
-            child: Icon(LucideIcons.imageOff,
-                color: SpotlyColors.subText(dark)),
+            child:
+                Icon(LucideIcons.imageOff, color: SpotlyColors.subText(dark)),
           ),
         ),
         Positioned(
-          bottom: 0, left: 0, right: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
@@ -370,12 +373,10 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               ),
             ),
             child: Row(children: [
-              const Icon(LucideIcons.heart,
-                  size: 14, color: Colors.white),
+              const Icon(LucideIcons.heart, size: 14, color: Colors.white),
               const SizedBox(width: 4),
               Text(post.likesCount.toString(),
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 12)),
+                  style: const TextStyle(color: Colors.white, fontSize: 12)),
             ]),
           ),
         ),
@@ -384,15 +385,14 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   }
 
   Widget _buildNoPosts(bool dark) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 32),
-    child: Center(
-      child: Text(
-        "Aún no hay publicaciones de este lugar",
-        style: TextStyle(
-            color: SpotlyColors.subText(dark), fontSize: 14),
-      ),
-    ),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            "Aún no hay publicaciones de este lugar",
+            style: TextStyle(color: SpotlyColors.subText(dark), fontSize: 14),
+          ),
+        ),
+      );
 
   Widget _viewToggleBtn({
     required IconData icon,
@@ -420,8 +420,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
   Widget _badge(String label, IconData icon, Color color, bool dark) =>
       Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(20),
@@ -431,51 +430,45 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
           const SizedBox(width: 4),
           Text(label,
               style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+                  color: color, fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       );
 
   Widget _chip(String label, IconData icon, bool dark) => Container(
-    padding:
-        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-    decoration: BoxDecoration(
-      color: SpotlyColors.card(dark),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: SpotlyColors.shadow(dark),
-    ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 14, color: SpotlyColors.subText(dark)),
-      const SizedBox(width: 6),
-      Text(label,
-          style: TextStyle(
-              color: SpotlyColors.text(dark), fontSize: 12)),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: SpotlyColors.card(dark),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: SpotlyColors.shadow(dark),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: SpotlyColors.subText(dark)),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(color: SpotlyColors.text(dark), fontSize: 12)),
+        ]),
+      );
 
   Widget _infoCard(String info, bool dark) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: SpotlyColors.accent(dark).withOpacity(0.08),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-          color: SpotlyColors.accent(dark).withOpacity(0.2)),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(LucideIcons.info,
-            size: 18, color: SpotlyColors.accent(dark)),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(info,
-              style: TextStyle(
-                  color: SpotlyColors.text(dark),
-                  fontSize: 13,
-                  height: 1.5)),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: SpotlyColors.accent(dark).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SpotlyColors.accent(dark).withOpacity(0.2)),
         ),
-      ],
-    ),
-  );
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(LucideIcons.info, size: 18, color: SpotlyColors.accent(dark)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(info,
+                  style: TextStyle(
+                      color: SpotlyColors.text(dark),
+                      fontSize: 13,
+                      height: 1.5)),
+            ),
+          ],
+        ),
+      );
 }

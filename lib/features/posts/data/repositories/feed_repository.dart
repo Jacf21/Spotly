@@ -27,4 +27,12 @@ class FeedRepository {
   Future<int> getCommentCount(int postId) async {
     return await datasource.getCommentCount(postId);
   }
+
+  Future<List<FeedItemModel>> getPostsByUser(
+      String userId, String currentUserId) async {
+    final data = await datasource.getPostsByUser(userId, currentUserId);
+    return data
+        .map<FeedItemModel>((json) => FeedItemModel.fromJson(json))
+        .toList();
+  }
 }
