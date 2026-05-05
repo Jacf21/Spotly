@@ -26,6 +26,8 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   bool _loadingPosts = false;
   bool _hasMore = true;
   bool _gridView = true;
+  bool _isFavorite = false;
+
 
   late final LugarRepository _repo;
 
@@ -35,13 +37,29 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     _repo = LugarRepository(LugarRemoteDatasource(Supabase.instance.client));
     _loadDetalle();
     _loadPosts();
+   _loadFavoriteState(); 
   }
 
   Future<void> _loadDetalle() async {
     final data = await _repo.getDetalle(widget.lugarId);
     if (mounted) setState(() { _lugar = data; _loadingLugar = false; });
   }
+  
+  Future<void> _loadFavoriteState() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return;
 
+  final isFav = await _repo.isFavorite(
+    userId: user.id,
+    lugarId: widget.lugarId,
+  );
+
+  if (mounted) {
+    setState(() {
+      _isFavorite = isFav;
+    });
+  }
+}
   Future<void> _loadPosts() async {
     if (_loadingPosts || !_hasMore) return;
     setState(() => _loadingPosts = true);
@@ -64,6 +82,8 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     });
   }
 
+  
+
   // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
   FeedItemModel _toFeedItem(LugarPostModel p) => FeedItemModel(
     id: p.id,
@@ -85,8 +105,9 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+     print("BUILD 👉 isFavorite: $_isFavorite");
     final dark = ThemeUtils.isDark(context);
-
+  
     return Scaffold(
       backgroundColor: SpotlyColors.bg(dark),
       body: _loadingLugar
@@ -123,38 +144,43 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
           // ── AppBar con foto de portada ──────────────────────────
           SliverAppBar(
-            expandedHeight: 260,
-            pinned: true,
-            backgroundColor: SpotlyColors.bg(dark),
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back,
-                color: l.fotoPortadaUrl != null
-                    ? Colors.white
-                    : SpotlyColors.text(dark),
+  expandedHeight: 260,
+  pinned: true,
+  backgroundColor: SpotlyColors.bg(dark),
+
+  leading: IconButton(
+    icon: Icon(
+      Icons.arrow_back,
+      color: l.fotoPortadaUrl != null
+          ? Colors.white
+          : SpotlyColors.text(dark),
+    ),
+    onPressed: () => Navigator.of(context).pop(),
+  ),
+
+  flexibleSpace: FlexibleSpaceBar(
+    background: l.fotoPortadaUrl != null
+        ? Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(l.fotoPortadaUrl!, fit: BoxFit.cover),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.6),
+                    ],
+                  ),
+                ),
               ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: l.fotoPortadaUrl != null
-                  ? Stack(fit: StackFit.expand, children: [
-                      Image.network(l.fotoPortadaUrl!, fit: BoxFit.cover),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.6),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ])
-                  : Container(color: SpotlyColors.card(dark)),
-            ),
-          ),
+            ],
+          )
+        : Container(color: SpotlyColors.card(dark)),
+  ),
+),
 
           // ── Info del lugar ──────────────────────────────────────
           SliverToBoxAdapter(
@@ -166,21 +192,34 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
                   // Nombre + badge verificado
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(l.nombre,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: SpotlyColors.text(dark),
-                            )),
-                      ),
-                      if (l.esVerificado)
-                        _badge("Verificado", Icons.verified,
-                            SpotlyColors.accent(dark), dark),
-                    ],
-                  ),
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                   children: [
+                    Expanded(
+                    child: Text(
+                    l.nombre,
+                    style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: SpotlyColors.text(dark),
+                ),
+              ),
+           ),
+
+    // 💜 BOTÓN FAVORITO
+    _buildFavoriteButton(dark),
+
+    if (l.esVerificado)
+      Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: _badge(
+          "Verificado",
+          Icons.verified,
+          SpotlyColors.accent(dark),
+          dark,
+        ),
+      ),
+  ],
+),
 
                   const SizedBox(height: 8),
 
@@ -453,6 +492,8 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               color: SpotlyColors.text(dark), fontSize: 12)),
     ]),
   );
+  
+   
 
   Widget _infoCard(String info, bool dark) => Container(
     padding: const EdgeInsets.all(16),
@@ -478,4 +519,103 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       ],
     ),
   );
+   Widget _buildFavoriteButton(bool dark) {
+ 
+      return Tooltip(
+        message: _isFavorite
+            ? "Quitar de favoritos"
+            : "Marcar como favorito",
+
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+
+          onTap: () async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Debes iniciar sesión")),
+    );
+    return;
+  }
+
+  final previous = _isFavorite;
+
+  // ✅ SOLO ESTE
+  setState(() {
+    _isFavorite = !previous;
+  });
+
+  try {
+    await _repo.toggleFavorite(
+  userId: user.id,
+  lugarId: widget.lugarId,
+);
+await _loadFavoriteState();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isFavorite
+              ? "💜 Lugar agregado a favoritos"
+              : "❌ Lugar eliminado de favoritos",
+        ),
+      ),
+    );
+  } catch (e) {
+    // rollback
+    setState(() {
+      _isFavorite = previous;
+    });
+  }
+},
+
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.only(left: 8),
+            padding: const EdgeInsets.all(14),
+
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+
+              gradient: _isFavorite
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF8B5CF6),
+                        Color(0xFFD946EF),
+                      ],
+                    )
+                  : null,
+
+              color: !_isFavorite
+                  ? (dark ? Colors.white10 : Colors.grey.shade200)
+                  : null,
+
+              boxShadow: _isFavorite
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.6),
+                        blurRadius: 12,
+                      )
+                    ]
+                  : [],
+            ),
+
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 200),
+              scale: _isFavorite ? 1.2 : 1.0,
+              child: Icon(
+                LucideIcons.heart,
+                color: _isFavorite
+                    ? Colors.white
+                    : (dark ? Colors.white70 : Colors.black54),
+                size: 26,
+              ),
+            ),
+          ),
+        ),
+      );
+    
+}
+
 }
