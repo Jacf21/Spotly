@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart' show kIsWeb; 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:spotly/features/posts/data/models/location_model.dart';
+import '../../features/posts/data/models/location_model.dart'; // ← solo uno
 
-// Este Helper se encarga de obtener la ubicación actual del usuario, manejar los permisos y convertir las coordenadas en nombres geográficos legibles. También incluye una función para mapear el nombre del departamento a su ID correspondiente en la base de datos.
 class LocationHelper {
   // Obtiene la ubicación y los nombres geográficos
   static Future<LocationModel?> getCurrentLocationName() async {
@@ -30,13 +29,14 @@ class LocationHelper {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        return Future.error('Los permisos están bloqueados en los ajustes del sistema.');
+        return Future.error(
+            'Los permisos están bloqueados en los ajustes del sistema.');
       }
 
       //Obtener coordenadas actuales
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10), 
+        timeLimit: const Duration(seconds: 10),
       );
 
       //Manejo Web vs Móvil para obtener nombres
@@ -51,9 +51,7 @@ class LocationHelper {
       } else {
         try {
           List<Placemark> placemarks = await placemarkFromCoordinates(
-            position.latitude, 
-            position.longitude
-          );
+              position.latitude, position.longitude);
 
           if (placemarks.isNotEmpty) {
             Placemark place = placemarks[0];
@@ -84,8 +82,9 @@ class LocationHelper {
 
   // Basado en la estructura estándar de 9 departamentos de Bolivia
   static int getDeptoIdByName(String? deptoName) {
-    if (deptoName == null || deptoName.isEmpty) return 3; // Cochabamba por defecto
-    
+    if (deptoName == null || deptoName.isEmpty)
+      return 3; // Cochabamba por defecto
+
     final name = deptoName.toLowerCase();
 
     if (name.contains('chuquisaca')) return 1;
