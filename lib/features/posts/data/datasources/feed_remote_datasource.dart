@@ -18,7 +18,6 @@ class FeedRemoteDatasource {
       'last_created_at': lastCreatedAt,
       'limit_count': 20,
     });
-
     return response;
   }
 
@@ -26,9 +25,18 @@ class FeedRemoteDatasource {
     final response = await client
         .from('comentarios')
         .select('id_comentario')
-        .eq('id_publicacion', postId)
-        .count(CountOption.exact);
+        .eq('id_publicacion', postId);
+    return response.length;
+  }
 
-    return response.count;
+  Future<List<dynamic>> getPostsByUser(
+      String userId, String currentUserId) async {
+    final response = await client.rpc('get_user_posts_paginated', params: {
+      'user_uuid': currentUserId,
+      'target_user_uuid': userId,
+      'last_created_at': null,
+      'limit_count': 20,
+    });
+    return response;
   }
 }
