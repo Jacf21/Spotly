@@ -56,6 +56,12 @@ final appRouter = GoRouter(
           path: '/map',
           builder: (context, state) => const Center(child: Text("Mapa")),
         ),
+        /// CREAR POST
+        GoRoute(
+          path: '/post',
+          builder: (context, state) =>
+              const CreatePostPage(),
+        ),
         GoRoute(
           path: '/alerts',
           builder: (context, state) => const AlertsPage(),

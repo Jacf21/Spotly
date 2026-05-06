@@ -258,6 +258,60 @@ class _FeedPageState extends State<FeedPage> {
     });
   }
 
+ Future<void> _reportPost(FeedItemModel item) async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    if (context.mounted) context.push('/login');
+    return;
+  }
+
+  final controller = TextEditingController();
+
+  final motivo = await showDialog<String>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text("Reportar publicación"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: "Motivo (opcional)",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text),
+            child: const Text("Reportar"),
+          ),
+        ],
+      );
+    },
+  );
+
+  controller.dispose();
+
+  if (motivo == null) return;
+
+  await Supabase.instance.client.from('reportes_publicaciones').insert({
+    'id_publicacion': item.id,
+    'user_id': user.id,
+    'motivo': motivo,
+  });
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Publicación reportada')),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -339,10 +393,46 @@ class _FeedPageState extends State<FeedPage> {
                     fontSize: 14,
                   ),
                 ),
+
+              const Spacer(),
+
+                PopupMenuButton<String>(
+                icon: Icon(LucideIcons.moreVertical, color: subColor),
+                color: SpotlyColors.card(dark),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+
+                onSelected: (value) {
+                if (value == 'report') {
+                  Future.delayed(Duration.zero, () {
+                    _reportPost(item);
+                  });
+                }
+              },
+
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'report',
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.flag, color: Colors.redAccent, size: 18),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Reportar publicación',
+                          style: TextStyle(color: SpotlyColors.text(dark)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+  
               ],
             ),
           ),
         ),
+    
 
         // ── Descripción (justo debajo de la imagen) ───────────────────
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
