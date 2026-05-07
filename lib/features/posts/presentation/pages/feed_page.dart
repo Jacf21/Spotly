@@ -76,7 +76,7 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _scrollToTargetPost() {
-    if (widget.targetPostId == null) return;
+    if (widget.targetPostId == null || feed.isEmpty) return;
 
     final index = feed.indexWhere(
       (item) => item.id.toString() == widget.targetPostId,
@@ -87,35 +87,47 @@ class _FeedPageState extends State<FeedPage> {
     final targetPost = feed[index];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final screenHeight = MediaQuery.of(context).size.height;
-      const itemHeight = 450.0;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
 
-      final position =
-          (index * itemHeight) - (screenHeight / 2) + (itemHeight / 2);
+        final screenHeight = MediaQuery.of(context).size.height;
+        
+        // --- AJUSTES DE MEDIDAS REALES ---
+        const double altoHeader = 60.0;    // Avatar + Nombre
+        const double altoImagen = 300.0;   // La imagen central
+        const double altoAcciones = 60.0;  // Likes, comentarios, etc.
+        const double paddingExtra = 20.0;  // Divisores y espacios
+        
+        const double itemHeight = altoHeader + altoImagen + altoAcciones + paddingExtra; 
 
-      _scrollController.animateTo(
-        position < 0 ? 0 : position,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOut,
-      );
+        // --- LÓGICA PARA CENTRAR LA IMAGEN ---
+        // 1. Llegamos al inicio del post: (index * itemHeight)
+        // 2. Bajamos hasta donde empieza la imagen: + altoHeader
+        // 3. Bajamos hasta la mitad de la imagen: + (altoImagen / 2)
+        // 4. Restamos la mitad de la pantalla para que ese punto sea el centro: - (screenHeight / 2)
+        
+        final double position = (index * itemHeight) + altoHeader + (altoImagen / 2) - (screenHeight / 2);
 
-      setState(() {
-        highlightedPostId = widget.targetPostId;
-      });
+        _scrollController.animateTo(
+          position < 0 ? 0 : position,
+          duration: const Duration(milliseconds: 1000), // Un poco más lento para que se note el centrado
+          curve: Curves.fastOutSlowIn,
+        );
 
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            highlightedPostId = null;
+        setState(() {
+          highlightedPostId = widget.targetPostId;
+        });
+
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) setState(() => highlightedPostId = null);
+        });
+
+        if (widget.targetCommentId != null) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _openComments(targetPost);
           });
         }
       });
-
-      if (widget.targetCommentId != null) {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          _openComments(targetPost);
-        });
-      }
     });
   }
 
@@ -126,6 +138,19 @@ class _FeedPageState extends State<FeedPage> {
       isLoading = false;
     });
     loadFeed();
+  }
+
+  // 🚩 AÑÁDELO AQUÍ (Justo después del initState)
+  @override
+  void didUpdateWidget(covariant FeedPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Esta lógica es crucial porque si el usuario ya está en el Feed
+    // y busca otra publicación, Flutter no vuelve a ejecutar initState,
+    // pero sí ejecuta didUpdateWidget porque el 'targetPostId' cambió.
+    if (widget.targetPostId != oldWidget.targetPostId && widget.targetPostId != null) {
+      _scrollToTargetPost();
+    }
   }
 
   @override
@@ -224,10 +249,17 @@ class _FeedPageState extends State<FeedPage> {
       lat: -16.5,
       lng: -68.15,
     );
+    if (mounted) {
+        setState(() => feed = data);
 
-    setState(() => feed = data);
-
-    _scrollToTargetPost();
+        // 🚩 CAMBIO CLAVE: Esperamos a que el frame se dibuje
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Damos un pequeño respiro extra para asegurar que el ListView cargó los items
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _scrollToTargetPost();
+          });
+        });
+      }
   }
 
   Future<void> loadMore() async {
