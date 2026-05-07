@@ -89,28 +89,20 @@ class _FeedPageState extends State<FeedPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!mounted) return;
-
         final screenHeight = MediaQuery.of(context).size.height;
-        
-        // --- AJUSTES DE MEDIDAS REALES ---
-        const double altoHeader = 60.0;    // Avatar + Nombre
-        const double altoImagen = 300.0;   // La imagen central
-        const double altoAcciones = 60.0;  // Likes, comentarios, etc.
-        const double paddingExtra = 20.0;  // Divisores y espacios
+
+        // AJUSTES DE MEDIDAS REALES PARA AUTO SCROLL
+        const double altoHeader = 60.0;   
+        const double altoImagen = 300.0;   
+        const double altoAcciones = 60.0;  
+        const double paddingExtra = 20.0;  
         
         const double itemHeight = altoHeader + altoImagen + altoAcciones + paddingExtra; 
-
-        // --- LÓGICA PARA CENTRAR LA IMAGEN ---
-        // 1. Llegamos al inicio del post: (index * itemHeight)
-        // 2. Bajamos hasta donde empieza la imagen: + altoHeader
-        // 3. Bajamos hasta la mitad de la imagen: + (altoImagen / 2)
-        // 4. Restamos la mitad de la pantalla para que ese punto sea el centro: - (screenHeight / 2)
-        
         final double position = (index * itemHeight) + altoHeader + (altoImagen / 2) - (screenHeight / 2);
 
         _scrollController.animateTo(
           position < 0 ? 0 : position,
-          duration: const Duration(milliseconds: 1000), // Un poco más lento para que se note el centrado
+          duration: const Duration(milliseconds: 1000), // Un poco más lento para que se note el efecto
           curve: Curves.fastOutSlowIn,
         );
 
@@ -139,15 +131,10 @@ class _FeedPageState extends State<FeedPage> {
     });
     loadFeed();
   }
-
-  // 🚩 AÑÁDELO AQUÍ (Justo después del initState)
+  // Metodo de busqueda para no hacer initState con parametros
   @override
   void didUpdateWidget(covariant FeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
-    // Esta lógica es crucial porque si el usuario ya está en el Feed
-    // y busca otra publicación, Flutter no vuelve a ejecutar initState,
-    // pero sí ejecuta didUpdateWidget porque el 'targetPostId' cambió.
     if (widget.targetPostId != oldWidget.targetPostId && widget.targetPostId != null) {
       _scrollToTargetPost();
     }
@@ -251,10 +238,8 @@ class _FeedPageState extends State<FeedPage> {
     );
     if (mounted) {
         setState(() => feed = data);
-
-        // 🚩 CAMBIO CLAVE: Esperamos a que el frame se dibuje
+        // Esperamos a que el frame se dibuje para luego hacer el scroll
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Damos un pequeño respiro extra para asegurar que el ListView cargó los items
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) _scrollToTargetPost();
           });
@@ -398,7 +383,7 @@ class _FeedPageState extends State<FeedPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header: avatar + usuario (ahora con GestureDetector) ────────
+        // Header: avatar + usuario (ahora con GestureDetector)
         GestureDetector(
           onTap: () => _navigateToUserProfile(item.userId),
           behavior: HitTestBehavior.opaque,
@@ -465,8 +450,7 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
     
-
-        // ── Descripción (justo debajo de la imagen) ───────────────────
+        // Descripción (justo debajo de la imagen) 
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -480,7 +464,7 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ),
 
-        // ── Imagen ────────────────────────────────────────────────────
+        // Imagen
         Image.network(
           item.mediaUrl,
           width: double.infinity,
@@ -493,7 +477,7 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
 
-        // ── Acciones con contadores inline ────────────────────────────
+        // Acciones con contadores inline 
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(
