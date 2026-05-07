@@ -10,15 +10,21 @@ import '../../../../core/themes/spotly_colors.dart';
 import '../../data/datasources/comment_remote_datasource.dart';
 import '../../data/models/comment_model.dart';
 
+part 'comment_tile.dart';
+part 'comment_input.dart';
+part 'emoji_picker_section.dart';
+part 'comment_like_button.dart';
+
 class CommentsPage extends StatefulWidget {
   final int postId;
   final String? targetCommentId;
 
-const CommentsPage({
-  super.key,
-  required this.postId,
-  this.targetCommentId,
-});
+  const CommentsPage({
+    super.key,
+    required this.postId,
+    this.targetCommentId,
+  });
+
   @override
   State<CommentsPage> createState() => _CommentsPageState();
 }
@@ -30,6 +36,8 @@ class _CommentsPageState extends State<CommentsPage> {
   final Map<String, GlobalKey> _commentKeys = {};
 
   List<CommentModel> _comments = [];
+  CommentModel? _replyingTo;
+
   bool _isLoading = true;
   bool _isSending = false;
   int _addedCount = 0;
@@ -52,6 +60,13 @@ class _CommentsPageState extends State<CommentsPage> {
     super.dispose();
   }
 
+  void _setReplyingTo(CommentModel comment) {
+    setState(() => _replyingTo = comment);
+    _focusNode.requestFocus();
+  }
+
+  void _cancelReply() => setState(() => _replyingTo = null);
+
   void _toggleEmoji() {
     if (_showEmoji) {
       _focusNode.requestFocus();
@@ -62,74 +77,85 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   void _scrollToTargetComment() {
-  if (widget.targetCommentId == null) return;
-
-  final key = _commentKeys[widget.targetCommentId];
-
-  if (key?.currentContext != null) {
-    Scrollable.ensureVisible(
-      key!.currentContext!,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
+    if (widget.targetCommentId == null) return;
+    final key = _commentKeys[widget.targetCommentId];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
-}
 
   Future<void> _loadComments() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      final userId = user?.id ?? '';
 
-  try {
-    final data = await _datasource.getComments(widget.postId);
-
-    setState(() => _comments = data);
-
-    // 🔥 CLAVE: esperar a que se renderice la lista
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.targetCommentId != null) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _scrollToTargetComment();
-        });
+      // Usar el método con likes si el usuario está logueado
+      if (userId.isNotEmpty) {
+        final data =
+            await _datasource.getCommentsWithLikes(widget.postId, userId);
+        setState(() => _comments = data);
+      } else {
+        final data = await _datasource.getComments(widget.postId);
+        setState(() => _comments = data);
       }
-    });
 
-  } catch (e) {
-    debugPrint('Error cargando comentarios: $e');
-  } finally {
-    setState(() => _isLoading = false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (widget.targetCommentId != null) {
+          Future.delayed(
+              const Duration(milliseconds: 300), _scrollToTargetComment);
+        }
+      });
+    } catch (e) {
+      debugPrint('Error cargando comentarios: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
-}
 
   Future<void> _sendComment() async {
     final user = Supabase.instance.client.auth.currentUser;
     final texto = _controller.text.trim();
-
     if (user == null || texto.isEmpty || _isSending) return;
 
     setState(() => _isSending = true);
+
+    final replyingTo = _replyingTo;
+    final replyToId = replyingTo?.id;
+    final replyToUserName = replyingTo?.nombreUsuario;
+
+    String finalTexto = texto;
+    if (replyingTo != null) {
+      finalTexto = '@${replyingTo.nombreUsuario} $texto';
+    }
+
     _controller.clear();
+    _cancelReply();
 
     try {
       final newComment = await _datasource.addComment(
         postId: widget.postId,
         userId: user.id,
-        texto: texto,
+        texto: finalTexto,
+        parentId: replyToId,
+        replyToUserName: replyToUserName,
       );
 
-      setState(() => _comments.add(newComment));
-      _addedCount++;
-
-      // Scroll al último comentario
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
+      setState(() {
+        _comments.add(newComment);
+        _addedCount++;
       });
     } catch (e) {
       debugPrint('Error enviando comentario: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al enviar comentario')),
+        );
+      }
     } finally {
       setState(() => _isSending = false);
     }
@@ -141,18 +167,17 @@ class _CommentsPageState extends State<CommentsPage> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(  // ← dialogContext separado
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar comentario'),
         content: const Text('¿Seguro que quieres eliminar este comentario?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false), // ← dialogContext
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),  // ← dialogContext
-            child: const Text('Eliminar',
-                style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -161,10 +186,7 @@ class _CommentsPageState extends State<CommentsPage> {
     if (confirm != true) return;
 
     try {
-      await _datasource.deleteComment(
-        commentId: comment.id,
-        userId: user.id,
-      );
+      await _datasource.deleteComment(commentId: comment.id, userId: user.id);
       setState(() {
         _comments.removeWhere((c) => c.id == comment.id);
         _addedCount--;
@@ -179,10 +201,69 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
+  // Método para actualizar el like de un comentario localmente (callback desde el botón)
+  void _updateCommentLike(int commentId, bool isLiked, int newLikeCount) {
+    setState(() {
+      final index = _comments.indexWhere((c) => c.id == commentId);
+      if (index != -1) {
+        _comments[index] = _comments[index].copyWith(
+          isLiked: isLiked,
+          likeCount: newLikeCount,
+        );
+      }
+    });
+  }
+
+  List<CommentModel> get _rootComments =>
+      _comments.where((c) => c.parentId == null).toList();
+
+  List<CommentModel> _repliesOf(int parentId) =>
+      _comments.where((c) => c.parentId == parentId).toList();
+
+  Widget _buildThread(CommentModel comment, bool dark, Color textColor,
+      Color subColor, User? user) {
+    final isOwn = user?.id == comment.userId;
+    final replies = _repliesOf(comment.id);
+
+    _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CommentTile(
+            comment: comment,
+            isOwn: isOwn,
+            dark: dark,
+            textColor: textColor,
+            subColor: subColor,
+            onDelete: () => _deleteComment(comment),
+            onReply: () => _setReplyingTo(comment),
+            onLikeUpdate: (isLiked, newCount) =>
+                _updateCommentLike(comment.id, isLiked, newCount),
+            targetCommentId: widget.targetCommentId,
+          ),
+          if (replies.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Column(
+                children: replies
+                    .map(
+                        (r) => _buildThread(r, dark, textColor, subColor, user))
+                    .toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
     final user = Supabase.instance.client.auth.currentUser;
+
     final bgColor = dark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = dark ? Colors.white : Colors.black;
     final subColor = dark ? Colors.white54 : Colors.black45;
@@ -197,53 +278,34 @@ class _CommentsPageState extends State<CommentsPage> {
         return Container(
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
-              // ── Handle ────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: subColor,
-                    borderRadius: BorderRadius.circular(2),
+              if (_replyingTo != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: divColor,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Respondiendo a @${_replyingTo!.nombreUsuario}',
+                          style: TextStyle(color: textColor),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _cancelReply,
+                        icon: const Icon(Icons.close, size: 18),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-
-              // ── Título ────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Row(
-                  children: [
-                    Text(
-                      'Comentarios',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(_addedCount),
-                      icon: Icon(LucideIcons.x, color: subColor),
-                    ),
-                  ],
-                ),
-              ),
-
-              Divider(height: 1, color: divColor),
-
-              // ── Lista de comentarios ──────────────────────────────
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _comments.isEmpty
+                    : _rootComments.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -260,89 +322,17 @@ class _CommentsPageState extends State<CommentsPage> {
                               ],
                             ),
                           )
-                        : ListView.builder(
+                        : ListView(
                             controller: _scrollController,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            itemCount: _comments.length,
-                            itemBuilder: (context, index) {
-                              final comment = _comments[index];
-                              final isOwn = user?.id == comment.userId;
-                              
-                              _commentKeys.putIfAbsent(
-                               comment.id.toString(),
-                               () => GlobalKey(),
-                             );
-
-return Container(
-  key: _commentKeys[comment.id.toString()],
-  child: _CommentTile(
-    comment: comment,
-    isOwn: isOwn,
-    dark: dark,
-    textColor: textColor,
-    subColor: subColor,
-    onDelete: () => _deleteComment(comment),
-    targetCommentId: widget.targetCommentId,
-  ),
-);
-                            },
+                            padding: const EdgeInsets.all(16),
+                            children: _rootComments
+                                .map((c) => _buildThread(
+                                    c, dark, textColor, subColor, user))
+                                .toList(),
                           ),
               ),
-
-              Divider(height: 1, color: divColor),
-
-              // Antes del SizedBox del teclado
-              if (_showEmoji)
-                SizedBox(
-                  height: 250,
-                  child: EmojiPicker(
-                    onEmojiSelected: (_, emoji) {
-                      final text = _controller.text;
-                      final selection = _controller.selection;
-                      final newText = text.replaceRange(
-                        selection.start < 0 ? text.length : selection.start,
-                        selection.end < 0 ? text.length : selection.end,
-                        emoji.emoji,
-                      );
-                      _controller.value = TextEditingValue(
-                        text: newText,
-                        selection: TextSelection.collapsed(
-                          offset: (selection.start < 0 ? text.length : selection.start) +
-                              emoji.emoji.length,
-                        ),
-                      );
-                    },
-                    onBackspacePressed: () {
-                      final text = _controller.text;
-                      if (text.isEmpty) return;
-                      _controller.text = text.characters.skipLast(1).toString();
-                      _controller.selection = TextSelection.collapsed(
-                        offset: _controller.text.length,
-                      );
-                    },
-                    config: Config(
-                      height: 250,
-                      emojiViewConfig: EmojiViewConfig(
-                        backgroundColor:
-                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
-                      ),
-                      searchViewConfig: SearchViewConfig(
-                        backgroundColor:
-                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
-                      ),
-                      categoryViewConfig: CategoryViewConfig(
-                        backgroundColor:
-                            ThemeUtils.isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
-                        indicatorColor: SpotlyColors.accent(ThemeUtils.isDark(context)),
-                      ),
-                    ),
-                  ),
-                ),
-
+              if (_showEmoji) _EmojiPickerSection(controller: _controller),
               SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-
-              // ── Input ─────────────────────────────────────────────
               if (user != null)
                 _CommentInput(
                   controller: _controller,
@@ -354,6 +344,7 @@ return Container(
                   subColor: subColor,
                   onSend: _sendComment,
                   onToggleEmoji: _toggleEmoji,
+                  replyingToUserName: _replyingTo?.nombreUsuario,
                 )
               else
                 Padding(
@@ -373,181 +364,6 @@ return Container(
           ),
         );
       },
-    );
-  }
-}
-
-// ── Tile de comentario ─────────────────────────────────────────────────
-class _CommentTile extends StatelessWidget {
-  final CommentModel comment;
-  final bool isOwn;
-  final bool dark;
-  final Color textColor;
-  final Color subColor;
-  final VoidCallback onDelete;
-  final String? targetCommentId;
-
-  const _CommentTile({
-    required this.comment,
-    required this.isOwn,
-    required this.dark,
-    required this.textColor,
-    required this.subColor,
-    required this.onDelete,
-    this.targetCommentId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-  padding: const EdgeInsets.symmetric(vertical: 8),
-  decoration: BoxDecoration(
-    color: comment.id.toString() == targetCommentId
-        ? Colors.blueAccent.withOpacity(0.15)
-        : Colors.transparent,
-    borderRadius: BorderRadius.circular(8),
-  ),
-  child: Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
-            backgroundImage: comment.avatarUrl.isNotEmpty
-                ? NetworkImage(comment.avatarUrl)
-                : null,
-            child: comment.avatarUrl.isEmpty
-                ? Icon(LucideIcons.user, size: 16, color: subColor)
-                : null,
-          ),
-          const SizedBox(width: 10),
-
-          // Texto
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: TextStyle(color: textColor, fontSize: 14),
-                    children: [
-                      TextSpan(
-                        text: '${comment.nombreUsuario} ',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(text: comment.texto),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  timeago.format(comment.createdAt, locale: 'es'),
-                  style: TextStyle(color: subColor, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-
-          // Eliminar (solo el dueño)
-          if (isOwn)
-            GestureDetector(
-              onTap: onDelete,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Icon(LucideIcons.trash2, size: 16, color: subColor),
-              ),
-            ),
-        ],
-       ),
-      ),
-    );
-  }
-}
-
-// ── Input de comentario ────────────────────────────────────────────────
-class _CommentInput extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool isSending;
-  final bool showEmoji;      // ← nuevo
-  final bool dark;
-  final Color textColor;
-  final Color subColor;
-  final VoidCallback onSend;
-  final VoidCallback onToggleEmoji;  // ← nuevo
-
-  const _CommentInput({
-    required this.controller,
-    required this.focusNode,
-    required this.isSending,
-    required this.showEmoji,
-    required this.dark,
-    required this.textColor,
-    required this.subColor,
-    required this.onSend,
-    required this.onToggleEmoji,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-      child: Row(
-        children: [
-          // Botón emoji
-          GestureDetector(
-            onTap: onToggleEmoji,
-            child: Icon(
-              showEmoji ? LucideIcons.keyboard : LucideIcons.smile,
-              color: subColor,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: TextStyle(color: textColor, fontSize: 14),
-              maxLines: null,
-              textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
-                hintText: 'Agrega un comentario...',
-                hintStyle: TextStyle(color: subColor, fontSize: 14),
-                filled: true,
-                fillColor: dark
-                    ? Colors.white.withOpacity(0.07)
-                    : Colors.black.withOpacity(0.04),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          isSending
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : GestureDetector(
-                  onTap: onSend,
-                  child: Icon(
-                    LucideIcons.send,
-                    color: SpotlyColors.accent(dark),
-                    size: 26,
-                  ),
-                ),
-        ],
-      ),
     );
   }
 }

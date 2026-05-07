@@ -19,12 +19,12 @@ import '../../../comments/presentation/pages/comments_page.dart';
 
 class FeedPage extends StatefulWidget {
   final String? targetPostId;
-  final String? targetCommentId; // 👈 AGREGA ESTO
+  final String? targetCommentId;
 
   const FeedPage({
     super.key,
     this.targetPostId,
-    this.targetCommentId, // 👈 AGREGA ESTO
+    this.targetCommentId,
   });
 
   @override
@@ -46,13 +46,11 @@ class _FeedPageState extends State<FeedPage> {
     _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     loadFeed();
 
-    // ← escucha cambios de sesión
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
 
       final newUserId = data.session?.user.id;
 
-      // Si cambió el usuario (login con otra cuenta o logout+login)
       if (newUserId != _currentUserId) {
         _currentUserId = newUserId;
         _resetAndReload();
@@ -66,50 +64,59 @@ class _FeedPageState extends State<FeedPage> {
       }
     });
   }
+
+  void _navigateToUserProfile(String userId) {
+    if (userId.isEmpty) return; // ← Agrega esta línea
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == userId) {
+      context.push('/profile');
+    } else {
+      context.push('/user/$userId');
+    }
+  }
+
   void _scrollToTargetPost() {
-  if (widget.targetPostId == null) return;
+    if (widget.targetPostId == null) return;
 
-  final index = feed.indexWhere(
-    (item) => item.id.toString() == widget.targetPostId,
-  );
-
-  if (index == -1) return;
-
-  final targetPost = feed[index];
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    const itemHeight = 450.0;
-
-    final position = (index * itemHeight) -
-        (screenHeight / 2) +
-        (itemHeight / 2);
-
-    _scrollController.animateTo(
-      position < 0 ? 0 : position,
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeInOut,
+    final index = feed.indexWhere(
+      (item) => item.id.toString() == widget.targetPostId,
     );
 
-    setState(() {
-      highlightedPostId = widget.targetPostId;
-    });
+    if (index == -1) return;
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          highlightedPostId = null;
+    final targetPost = feed[index];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final screenHeight = MediaQuery.of(context).size.height;
+      const itemHeight = 450.0;
+
+      final position =
+          (index * itemHeight) - (screenHeight / 2) + (itemHeight / 2);
+
+      _scrollController.animateTo(
+        position < 0 ? 0 : position,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOut,
+      );
+
+      setState(() {
+        highlightedPostId = widget.targetPostId;
+      });
+
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            highlightedPostId = null;
+          });
+        }
+      });
+
+      if (widget.targetCommentId != null) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          _openComments(targetPost);
         });
       }
     });
-
-    // 👇 abrir comentarios si viene desde notificación
-    if (widget.targetCommentId != null) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        _openComments(targetPost);
-      });
-    }
-  });
   }
 
   void _resetAndReload() {
@@ -183,7 +190,7 @@ class _FeedPageState extends State<FeedPage> {
       await repo.toggleSave(
         post: item,
         userId: user.id,
-        wasSaved: wasSaved, // ← estado correcto
+        wasSaved: wasSaved,
       );
     } catch (e) {
       setState(() {
@@ -193,16 +200,16 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Future<void> _openComments(FeedItemModel item) async {
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => CommentsPage(
-      postId: item.id,
-      targetCommentId: widget.targetCommentId, // 👈 CLAVE
-    ),
-  );
-}
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CommentsPage(
+        postId: item.id,
+        targetCommentId: widget.targetCommentId,
+      ),
+    );
+  }
 
   Future<void> loadFeed() async {
     final userId = Supabase.instance.client.auth.currentUser?.id ??
@@ -251,6 +258,60 @@ class _FeedPageState extends State<FeedPage> {
     });
   }
 
+ Future<void> _reportPost(FeedItemModel item) async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    if (context.mounted) context.push('/login');
+    return;
+  }
+
+  final controller = TextEditingController();
+
+  final motivo = await showDialog<String>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text("Reportar publicación"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: "Motivo (opcional)",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text),
+            child: const Text("Reportar"),
+          ),
+        ],
+      );
+    },
+  );
+
+  controller.dispose();
+
+  if (motivo == null) return;
+
+  await Supabase.instance.client.from('reportes_publicaciones').insert({
+    'id_publicacion': item.id,
+    'user_id': user.id,
+    'motivo': motivo,
+  });
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Publicación reportada')),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -259,7 +320,8 @@ class _FeedPageState extends State<FeedPage> {
     return AnimatedContainer(
       duration: SpotlyConfig.animShort,
       color: SpotlyColors.bg(dark),
-      child: feed.isEmpty ? _buildEmptyState(dark) : _buildFeedList(dark, isGuest),
+      child:
+          feed.isEmpty ? _buildEmptyState(dark) : _buildFeedList(dark, isGuest),
     );
   }
 
@@ -268,13 +330,12 @@ class _FeedPageState extends State<FeedPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.image, size: 64,
-              color: dark ? Colors.white38 : Colors.black38),
+          Icon(LucideIcons.image,
+              size: 64, color: dark ? Colors.white38 : Colors.black38),
           const SizedBox(height: 16),
           Text("No hay publicaciones aún 📭",
               style: TextStyle(
-                  color: dark ? Colors.white70 : Colors.black54,
-                  fontSize: 16)),
+                  color: dark ? Colors.white70 : Colors.black54, fontSize: 16)),
           const SizedBox(height: 8),
           TextButton(onPressed: loadFeed, child: const Text("Reintentar")),
         ],
@@ -305,34 +366,73 @@ class _FeedPageState extends State<FeedPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header: avatar + usuario + lugar ──────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
-                backgroundImage: item.avatar.isNotEmpty
-                    ? NetworkImage(item.avatar)
-                    : null,
-                child: item.avatar.isEmpty
-                    ? Icon(LucideIcons.user, color: subColor, size: 20)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                item.usuario,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  fontSize: 14,
+        // ── Header: avatar + usuario (ahora con GestureDetector) ────────
+        GestureDetector(
+          onTap: () => _navigateToUserProfile(item.userId),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
+                  backgroundImage:
+                      item.avatar.isNotEmpty ? NetworkImage(item.avatar) : null,
+                  child: item.avatar.isEmpty
+                      ? Icon(LucideIcons.user, color: subColor, size: 20)
+                      : null,
                 ),
+                const SizedBox(width: 12),
+                Text(
+                  item.usuario,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontSize: 14,
+                  ),
+                ),
+
+              const Spacer(),
+
+                PopupMenuButton<String>(
+                icon: Icon(LucideIcons.moreVertical, color: subColor),
+                color: SpotlyColors.card(dark),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+
+                onSelected: (value) {
+                if (value == 'report') {
+                  Future.delayed(Duration.zero, () {
+                    _reportPost(item);
+                  });
+                }
+              },
+
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'report',
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.flag, color: Colors.redAccent, size: 18),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Reportar publicación',
+                          style: TextStyle(color: SpotlyColors.text(dark)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+  
+              ],
+            ),
           ),
         ),
+    
 
         // ── Descripción (justo debajo de la imagen) ───────────────────
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
@@ -384,13 +484,13 @@ class _FeedPageState extends State<FeedPage> {
                 isGuest: isGuest,
                 count: item.comentarioCount,
                 isActive: false,
-                // 👇 si comentarios desactivados, el ícono se ve apagado y no abre el sheet
                 activeColor: Colors.grey,
                 onTap: () async {
                   if (!item.comentarioActivado) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text("No puedes comentar esta publicación"),
+                        content:
+                            const Text("No puedes comentar esta publicación"),
                         backgroundColor: dark ? Colors.white24 : Colors.black87,
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
@@ -467,11 +567,12 @@ class _FeedPageState extends State<FeedPage> {
     Color activeColor = Colors.red,
     int count = 0,
   }) {
-    final color = isActive ? activeColor : (dark ? Colors.white70 : Colors.black54);
+    final color =
+        isActive ? activeColor : (dark ? Colors.white70 : Colors.black54);
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: onTap, // ← directo, sin check de isGuest aquí
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
