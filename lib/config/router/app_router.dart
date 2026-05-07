@@ -58,14 +58,14 @@ final appRouter = GoRouter(
       routes: [
         /// FEED
         GoRoute(
-  path: '/feed',
-  builder: (context, state) {
-    return FeedPage(
-      targetPostId: state.uri.queryParameters['postId'],
-      targetCommentId: state.uri.queryParameters['commentId'],
-    );
-  },
-),
+          path: '/feed',
+          builder: (context, state) {
+            return FeedPage(
+              targetPostId: state.uri.queryParameters['postId'],
+              targetCommentId: state.uri.queryParameters['commentId'],
+            );
+          },
+        ),
 
         /// MAPA
         GoRoute(

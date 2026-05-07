@@ -110,7 +110,7 @@ class _FeedPageState extends State<FeedPage> {
       });
     }
   });
-}
+  }
 
   void _resetAndReload() {
     setState(() {
