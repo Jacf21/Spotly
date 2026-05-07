@@ -89,9 +89,8 @@ class _FeedPageState extends State<FeedPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 300), () {
         if (!mounted) return;
-
         final screenHeight = MediaQuery.of(context).size.height;
-        
+
         // AJUSTES DE MEDIDAS REALES PARA AUTO SCROLL
         const double altoHeader = 60.0;   
         const double altoImagen = 300.0;   
@@ -451,8 +450,7 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
     
-
-        // ── Descripción (justo debajo de la imagen) ───────────────────
+        // Descripción (justo debajo de la imagen) 
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -466,7 +464,7 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ),
 
-        // ── Imagen ────────────────────────────────────────────────────
+        // Imagen
         Image.network(
           item.mediaUrl,
           width: double.infinity,
