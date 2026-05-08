@@ -11,7 +11,6 @@ import 'package:spotly/core/widgets/common/spotly_card.dart';
 import 'package:spotly/core/widgets/interactive/spotly_interactive.dart';
 import 'package:spotly/core/utils/spotly_ui.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
-import 'package:spotly/core/context/auth_context.dart';
 import 'package:spotly/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 

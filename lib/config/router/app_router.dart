@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spotly/features/auth/presentation/pages/login_page.dart';
 import 'package:spotly/features/auth/presentation/pages/register_page.dart';
@@ -10,6 +9,7 @@ import 'package:spotly/features/profile/presentation/pages/profile_page.dart';
 import 'package:spotly/features/places/presentation/pages/lugar_profile_page.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 import 'package:spotly/features/notifications/alerts_page.dart';
+import 'package:spotly/features/map/presentation/pages/map_page.dart';
 import 'package:spotly/core/widgets/main_navigation.dart';
 
 final appRouter = GoRouter(
@@ -54,9 +54,9 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/map',
-          builder: (context, state) => const Center(child: Text("Mapa")),
+          builder: (context, state) => 
+              const MapPage(),
         ),
-        /// CREAR POST
         GoRoute(
           path: '/post',
           builder: (context, state) =>
