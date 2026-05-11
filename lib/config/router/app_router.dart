@@ -11,6 +11,7 @@ import 'package:spotly/features/places/presentation/pages/lugar_profile_page.dar
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 import 'package:spotly/features/notifications/alerts_page.dart';
 import 'package:spotly/core/widgets/main_navigation.dart';
+import 'package:spotly/features/places/presentation/pages/favorites_places_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -52,6 +53,10 @@ final appRouter = GoRouter(
             );
           },
         ),
+        GoRoute(
+  path: '/favoritos',
+  builder: (context, state) => const FavoritesPlacesPage(),
+),
         GoRoute(
           path: '/map',
           builder: (context, state) => const Center(child: Text("Mapa")),

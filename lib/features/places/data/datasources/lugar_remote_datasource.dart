@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:spotly/features/destinations/data/models/favorite_place_model.dart';
+
 
 class LugarRemoteDatasource {
   final SupabaseClient client;
@@ -23,4 +25,46 @@ class LugarRemoteDatasource {
       'p_last_created_at': lastCreatedAt,
     });
   }
+
+Future<List<FavoritePlaceModel>> getFavoritePlaces(String userId) async {
+  try {
+    final response = await client
+        .from('favoritos_lugares')
+        .select('''
+          lugar_id,
+          lugares (
+            id_lugar,
+            nombre_lugar,
+            foto_portada_url,
+            id_categoria,
+            id_departamento,
+            es_verificado
+          )
+        ''')
+        .eq('user_id', userId);
+
+    final List data = response as List;
+
+    return data
+        .where((item) =>
+            item['lugares'] != null &&
+            item['lugares']['id_lugar'] != null)
+        .map((item) {
+      final lugar = item['lugares'];
+
+      return FavoritePlaceModel.fromMap({
+        "id_lugar": lugar['id_lugar'],
+        "nombre_lugar": lugar['nombre_lugar'] ?? '',
+        "foto_portada_url": lugar['foto_portada_url'] ?? '',
+        "id_categoria": lugar['id_categoria'],
+        "id_departamento": lugar['id_departamento'],
+        "es_verificado": lugar['es_verificado'] ?? false,
+      });
+    }).toList();
+  } catch (e) {
+    print("❌ ERROR FAVORITES: $e");
+    return [];
+  }
+}
+
 }

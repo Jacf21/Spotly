@@ -2,6 +2,7 @@ import '../datasources/lugar_remote_datasource.dart';
 import '../models/lugar_detalle_model.dart';
 import '../models/lugar_post_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:spotly/features/destinations/data/models/favorite_place_model.dart';
 
 
 class LugarRepository {
@@ -14,6 +15,12 @@ class LugarRepository {
     if (data == null) return null;
     return LugarDetalleModel.fromJson(data);
   }
+
+  Future<List<FavoritePlaceModel>> getFavoritePlaces(
+  String userId,
+) async {
+  return await datasource.getFavoritePlaces(userId);
+}
 
   Future<List<LugarPostModel>> getPublicaciones({
     required int lugarId,
