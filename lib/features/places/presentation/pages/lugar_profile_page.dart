@@ -211,8 +211,15 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               ),
            ),
 
-    // 💜 BOTÓN FAVORITO
+    Column(
+  children: [
     _buildFavoriteButton(dark),
+
+    const SizedBox(height: 10),
+
+    _buildSuggestButton(dark),
+  ],
+),
 
     if (l.esVerificado)
       Padding(
@@ -612,6 +619,146 @@ await _loadFavoriteState();
         ),
       );
     
+}
+//boton para sugerir lugar
+Widget _buildSuggestButton(bool dark) {
+  return Tooltip(
+    message: "Sugerir lugar",
+
+    child: InkWell(
+      borderRadius: BorderRadius.circular(30),
+
+      onTap: () async {
+        final user = Supabase.instance.client.auth.currentUser;
+
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Debes iniciar sesión"),
+            ),
+          );
+          return;
+        }
+
+        try {
+          // 🔹 Obtener seguidores
+          final seguidores = await Supabase.instance.client
+              .from('seguidores')
+              .select('id_usuario_seguidor')
+              .eq('id_usuario_seguido', user.id);
+
+          if (seguidores.isEmpty) {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No tienes seguidores"),
+              ),
+            );
+            return;
+          }
+
+          // 🔹 Obtener nombre del usuario actor
+          final perfil = await Supabase.instance.client
+              .from('perfiles')
+              .select('nombre_usuario')
+              .eq('id_usuario', user.id)
+              .single();
+
+          final nombreUsuario =
+              perfil['nombre_usuario'] ?? 'Alguien';
+
+          // 🔹 Crear lista de notificaciones
+          final notifications = seguidores.map((seguidor) {
+            return {
+              'id_usuario_destino':
+                  seguidor['id_usuario_seguidor'],
+
+              'id_usuario_actor': user.id,
+
+              'tipo': 'sugerencia_lugar',
+
+              'contenido':
+                  '$nombreUsuario te sugirió visitar ${_lugar?.nombre} 📍',
+
+              'id_lugar': widget.lugarId,
+            };
+          }).toList();
+
+          // 🔹 Insertar todas las notificaciones
+          await Supabase.instance.client
+              .from('notificaciones')
+              .insert(notifications);
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '📍 Lugar sugerido a ${seguidores.length} seguidores',
+              ),
+            ),
+          );
+        } catch (e) {
+          debugPrint(e.toString());
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Error al sugerir lugar',
+              ),
+            ),
+          );
+        }
+      },
+
+      child: Container(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 10,
+  ),
+
+  decoration: BoxDecoration(
+    color: SpotlyColors.accent(dark),
+
+    borderRadius: BorderRadius.circular(14),
+
+    boxShadow: [
+      BoxShadow(
+        color: SpotlyColors.accent(dark)
+            .withOpacity(0.25),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  ),
+
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Icon(
+        LucideIcons.send,
+        color: Colors.white,
+        size: 16,
+      ),
+
+      const SizedBox(width: 8),
+
+      const Text(
+        'Sugerir lugar',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+    ],
+  ),
+),
+    ),
+  );
 }
 
 }

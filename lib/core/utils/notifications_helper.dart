@@ -1,61 +1,44 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-/// 🔑 clave por usuario
-String _notifKey(String userId) => 'last_seen_notifications_$userId';
-
+/// 🔔 Contar notificaciones NO leídas
 Future<int> getNotificationCount(String userId) async {
-  final prefs = await SharedPreferences.getInstance();
 
-  final saved = prefs.getString(_notifKey(userId));
+  final response = await Supabase.instance.client
+      .from('notificaciones')
+      .select('id_notificacion')
+      .eq('id_usuario_destino', userId)
+      .eq('leido', false);
 
-  final lastSeen =
-      saved != null ? DateTime.parse(saved) : DateTime(2000);
-
-  final posts = await Supabase.instance.client
-      .from('publicaciones')
-      .select('id_publicacion')
-      .eq('id_usuario', userId);
-
-  if (posts.isEmpty) return 0;
-
-  final ids = posts.map((e) => e['id_publicacion']).toList();
-
-  final likes = await Supabase.instance.client
-      .from('likes')
-      .select()
-      .inFilter('id_publicacion', ids)
-      .neq('id_usuario', userId)
-      .gt('created_at', lastSeen.toIso8601String());
-
-  final comments = await Supabase.instance.client
-      .from('comentarios')
-      .select()
-      .inFilter('id_publicacion', ids)
-      .neq('id_usuario', userId)
-      .gt('created_at', lastSeen.toIso8601String());
-
-  return likes.length + comments.length;
+  return response.length;
 }
 
-/// 👁 marcar todas como vistas
+/// 👁 Marcar TODAS como leídas
 Future<void> markNotificationsAsSeen(String userId) async {
-  final prefs = await SharedPreferences.getInstance();
 
-  await prefs.setString(
-    _notifKey(userId),
-    DateTime.now().toUtc().toIso8601String(),
-  );
+  await Supabase.instance.client
+      .from('notificaciones')
+      .update({'leido': true})
+      .eq('id_usuario_destino', userId)
+      .eq('leido', false);
 }
 
-/// ✅ saber si UNA notificación fue leída
-Future<bool> isNotificationRead(String key) async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool(key) ?? false;
+/// ✅ Marcar UNA notificación como leída
+Future<void> markNotificationRead(int notificationId) async {
+
+  await Supabase.instance.client
+      .from('notificaciones')
+      .update({'leido': true})
+      .eq('id_notificacion', notificationId);
 }
 
-/// ✅ marcar UNA notificación como leída
-Future<void> markNotificationRead(String key) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(key, true);
+/// ✅ Saber si una notificación está leída
+Future<bool> isNotificationRead(int notificationId) async {
+
+  final response = await Supabase.instance.client
+      .from('notificaciones')
+      .select('leido')
+      .eq('id_notificacion', notificationId)
+      .single();
+
+  return response['leido'] ?? false;
 }

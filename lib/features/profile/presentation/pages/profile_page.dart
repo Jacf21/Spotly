@@ -55,13 +55,16 @@ class ProfilePage extends StatelessWidget {
   ),
 
   onSelected: (value) {
+  Future.microtask(() {
     if (value == 'favoritos') {
-    context.push('/favoritos');
-  }
-    if (value == 'edit_profile') {
-      _openEditProfile(context);
+      context.push('/favoritos');
     }
-  },
+
+    if (value == 'edit_profile') {
+      context.push('/edit-profile');
+    }
+  });
+},
 
   itemBuilder: (context) => [
      PopupMenuItem(
@@ -117,13 +120,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _openEditProfile(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const EditProfilePage(),
-        fullscreenDialog: true,
-      ),
-    );
+    context.push('/edit-profile');
   }
 }
 
