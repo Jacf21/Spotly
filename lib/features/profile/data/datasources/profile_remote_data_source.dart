@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 abstract class ProfileRemoteDataSource {
   Future<ProfileModel> getProfile(String userId);
   Future<void> updateProfile(ProfileModel profile);
+  Future<String> uploadAvatar(String userId, XFile file);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -23,6 +25,37 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       return ProfileModel.fromJson(response);
     } catch (e) {
       throw Exception("Error al obtener datos de Supabase: $e");
+    }
+  }
+
+  @override
+  Future<String> uploadAvatar(String userId, XFile file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final fileExt = file.name.split('.').last;
+      final filePath = 'perfiles/$userId/avatar.$fileExt';
+
+      await supabaseClient.storage
+          .from('spotly-media')          // ← cambia por tu bucket real
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(upsert: true), // sobreescribe si ya existe
+          );
+
+      final publicUrl = supabaseClient.storage
+          .from('spotly-media')
+          .getPublicUrl(filePath);
+
+      // Actualiza foto_perfil_url en la tabla perfiles
+      await supabaseClient
+          .from('perfiles')
+          .update({'foto_perfil_url': publicUrl})
+          .eq('id_usuario', userId);
+
+      return publicUrl;
+    } catch (e) {
+      throw Exception('Error subiendo avatar: $e');
     }
   }
 

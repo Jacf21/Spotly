@@ -1,17 +1,20 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import 'package:spotly/core/utils/imageHelper.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/core/widgets/common/spotly_card.dart';
 import 'package:spotly/core/widgets/interactive/spotly_interactive.dart';
 import 'package:spotly/core/utils/spotly_ui.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
-import 'package:spotly/core/context/auth_context.dart';
 import 'package:spotly/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 
@@ -94,6 +97,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
   bool _isUpdatingPass = false;
+
+  XFile? _pendingAvatar;
+  String? _currentAvatarUrl;
 
   @override
   void initState() {
@@ -186,6 +192,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         }
         if (state is ProfileError) SpotlyUI.toast(context, state.message);
         if (state is ProfileLoaded) {
+          _currentAvatarUrl = state.profile.photoUrl;
           final p = state.profile;
           _nameController.text = p.nombres;
           _lastNameController.text = p.apellidos;
@@ -228,13 +235,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     padding: const EdgeInsets.all(25),
                     child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 45,
-                          backgroundColor:
-                              SpotlyColors.accent(dark).withOpacity(0.1),
-                          child: Icon(LucideIcons.user,
-                              size: 40, color: SpotlyColors.accent(dark)),
-                        ).animate().scale(duration: 400.ms),
+                        _buildAvatarPicker(dark),
                         const SizedBox(height: 25),
                         _buildInput(
                             "Nombres", LucideIcons.user, _nameController, dark),
@@ -339,6 +340,81 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  Widget _buildAvatarPicker(bool dark) {
+    return GestureDetector(
+      onTap: () => _showAvatarOptions(dark),
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          CircleAvatar(
+            radius: 45,
+            backgroundColor: SpotlyColors.accent(dark).withOpacity(0.1),
+            backgroundImage: _buildAvatarImage(),
+            child: _buildAvatarImage() == null
+                ? Icon(LucideIcons.user, size: 40, color: SpotlyColors.accent(dark))
+                : null,
+          ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: SpotlyColors.accent(dark),
+              shape: BoxShape.circle,
+              border: Border.all(color: SpotlyColors.bg(dark), width: 2),
+            ),
+            child: const Icon(LucideIcons.camera, size: 14, color: Colors.white),
+          ),
+        ],
+      ),
+    ).animate().scale(duration: 400.ms);
+  }
+
+  ImageProvider? _buildAvatarImage() {
+    if (_pendingAvatar != null) {
+      return kIsWeb
+          ? NetworkImage(_pendingAvatar!.path)
+          : FileImage(File(_pendingAvatar!.path)) as ImageProvider;
+    }
+    if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
+      return NetworkImage(_currentAvatarUrl!);
+    }
+    return null;
+  }
+
+  void _showAvatarOptions(bool dark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: SpotlyColors.card(dark),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(LucideIcons.camera, color: SpotlyColors.accent(dark)),
+              title: Text('Tomar foto', style: TextStyle(color: SpotlyColors.text(dark))),
+              onTap: () async {
+                Navigator.pop(context);
+                final file = await ImageHelper.pickImage(ImageSource.camera);
+                if (file != null && mounted) setState(() => _pendingAvatar = file);
+              },
+            ),
+            ListTile(
+              leading: Icon(LucideIcons.image, color: SpotlyColors.accent(dark)),
+              title: Text('Elegir de galería', style: TextStyle(color: SpotlyColors.text(dark))),
+              onTap: () async {
+                Navigator.pop(context);
+                final file = await ImageHelper.pickImage(ImageSource.gallery);
+                if (file != null && mounted) setState(() => _pendingAvatar = file);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(bool dark, String title) {
     return Container(
       width: double.infinity,
@@ -373,6 +449,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildSaveButton(bool dark) {
     return SpotlyInteractive(
       onTap: () {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId == null) return;
+        if (_pendingAvatar != null) {
+          context.read<ProfileBloc>().add(
+            OnUpdateAvatar(userId: userId, file: _pendingAvatar!),
+          );
+        }
         context.read<ProfileBloc>().add(OnUpdateProfile(
               nombres: _nameController.text.trim(),
               apellidos: _lastNameController.text.trim(),
