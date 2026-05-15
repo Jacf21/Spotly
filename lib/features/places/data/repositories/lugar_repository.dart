@@ -24,4 +24,9 @@ class LugarRepository {
     );
     return data.map((j) => LugarPostModel.fromJson(j)).toList();
   }
+
+  // MÉTODO AGREGADO PARA ACTUALIZAR LUGAR
+  Future<void> actualizarLugar(int id, Map<String, dynamic> data) async {
+    return await datasource.updateLugar(id, data);
+  }
 }

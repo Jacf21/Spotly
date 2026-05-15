@@ -10,6 +10,7 @@ import '../../data/repositories/lugar_repository.dart';
 import '../../data/models/lugar_detalle_model.dart';
 import '../../data/models/lugar_post_model.dart';
 import '../../../posts/data/models/feed_item_model.dart';
+import 'edit_lugar_page.dart';
 
 class LugarProfilePage extends StatefulWidget {
   final int lugarId;
@@ -38,12 +39,20 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   }
 
   Future<void> _loadDetalle() async {
-    final data = await _repo.getDetalle(widget.lugarId);
-    if (mounted)
-      setState(() {
-        _lugar = data;
-        _loadingLugar = false;
-      });
+    try {
+      final data = await _repo.getDetalle(widget.lugarId);
+      if (mounted) {
+        setState(() {
+          _lugar = data;
+          _loadingLugar = false;
+        });
+      }
+    } catch (e) {
+      print("Error cargando detalle: $e");
+      if (mounted) {
+        setState(() => _loadingLugar = false);
+      }
+    }
   }
 
   Future<void> _loadPosts() async {
@@ -70,10 +79,9 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   }
 
   // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
-  // Convierte LugarPostModel → FeedItemModel para SpotlyFeedItem
   FeedItemModel _toFeedItem(LugarPostModel p) => FeedItemModel(
         id: p.id,
-        userId: p.userId, // ← NUEVO: agregar este campo
+        userId: p.userId,
         descripcion: p.descripcion,
         mediaUrl: p.mediaUrl,
         tipo: 'foto',
@@ -142,6 +150,29 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  Icons.edit,
+                  color: l.fotoPortadaUrl != null
+                      ? Colors.white
+                      : SpotlyColors.text(dark),
+                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditLugarPage(lugar: l),
+                      fullscreenDialog: true,
+                    ),
+                  );
+                  if (result == true && mounted) {
+                    _loadDetalle(); // Recargar datos después de editar
+                  }
+                },
+                tooltip: 'Editar lugar turístico',
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: l.fotoPortadaUrl != null
                   ? Stack(fit: StackFit.expand, children: [
