@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:spotly/features/search/presentation/filter_results_page.dart';
 
 import '../../themes/spotly_colors.dart';
 import '../interactive/spotly_interactive.dart';
@@ -54,6 +55,21 @@ class SpotlyTopBar extends StatelessWidget {
                   onTap: onTheme,
                 ),
                 const SizedBox(width: 12),
+                if (isLoggedIn)
+                  // Botón de Filtros para la HU de ubicación
+                  _TopBarIconButton(
+                    icon: LucideIcons.slidersHorizontal, 
+                    dark: dark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FilterResultsPage(dark: dark),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 12),
                 if (isLoggedIn)
                   _TopBarIconButton(
                     icon: LucideIcons.search,
