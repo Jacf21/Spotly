@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
+import 'package:spotly/core/utils/location_permission.dart';
 import 'package:spotly/features/search/data/repositories/search_repository.dart';
 
 // Este widget es el que muestra la grilla de lugares filtrados por distancia o departamento
@@ -17,15 +18,15 @@ class PlacesGrid extends StatelessWidget {
     required this.dark,
   });
 
-  Future<List<Map<String, dynamic>>> _fetchData() async {
+  Future<List<Map<String, dynamic>>> _fetchData(BuildContext context) async {
     final repo = SearchRepository();
 
     if (type == 'distancia') {
-      // 1. Obtener ubicación actual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      // Consultar RPC de Supabase
+      // pedimos permiso para activar gps y permiso para la app
+      Position? position = await LocationUtil.determinePosition(context);
+      
+      // Si la posición es nula (permiso denegado), detenemos la búsqueda
+      if (position == null) return [];
       return await repo.getNearbyPlaces(
         position.latitude, 
         position.longitude, 
@@ -41,7 +42,7 @@ class PlacesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchData(),
+      future: _fetchData(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
