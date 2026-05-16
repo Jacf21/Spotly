@@ -76,7 +76,7 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _scrollToTargetPost() {
-    if (widget.targetPostId == null) return;
+    if (widget.targetPostId == null || feed.isEmpty) return;
 
     final index = feed.indexWhere(
       (item) => item.id.toString() == widget.targetPostId,
@@ -87,35 +87,39 @@ class _FeedPageState extends State<FeedPage> {
     final targetPost = feed[index];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final screenHeight = MediaQuery.of(context).size.height;
-      const itemHeight = 450.0;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        final screenHeight = MediaQuery.of(context).size.height;
 
-      final position =
-          (index * itemHeight) - (screenHeight / 2) + (itemHeight / 2);
+        // AJUSTES DE MEDIDAS REALES PARA AUTO SCROLL
+        const double altoHeader = 60.0;   
+        const double altoImagen = 300.0;   
+        const double altoAcciones = 60.0;  
+        const double paddingExtra = 20.0;  
+        
+        const double itemHeight = altoHeader + altoImagen + altoAcciones + paddingExtra; 
+        final double position = (index * itemHeight) + altoHeader + (altoImagen / 2) - (screenHeight / 2);
 
-      _scrollController.animateTo(
-        position < 0 ? 0 : position,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOut,
-      );
+        _scrollController.animateTo(
+          position < 0 ? 0 : position,
+          duration: const Duration(milliseconds: 1000), // Un poco más lento para que se note el efecto
+          curve: Curves.fastOutSlowIn,
+        );
 
-      setState(() {
-        highlightedPostId = widget.targetPostId;
-      });
+        setState(() {
+          highlightedPostId = widget.targetPostId;
+        });
 
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            highlightedPostId = null;
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) setState(() => highlightedPostId = null);
+        });
+
+        if (widget.targetCommentId != null) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _openComments(targetPost);
           });
         }
       });
-
-      if (widget.targetCommentId != null) {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          _openComments(targetPost);
-        });
-      }
     });
   }
 
@@ -126,6 +130,14 @@ class _FeedPageState extends State<FeedPage> {
       isLoading = false;
     });
     loadFeed();
+  }
+  // Metodo de busqueda para no hacer initState con parametros
+  @override
+  void didUpdateWidget(covariant FeedPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.targetPostId != oldWidget.targetPostId && widget.targetPostId != null) {
+      _scrollToTargetPost();
+    }
   }
 
   @override
@@ -224,10 +236,15 @@ class _FeedPageState extends State<FeedPage> {
       lat: -16.5,
       lng: -68.15,
     );
-
-    setState(() => feed = data);
-
-    _scrollToTargetPost();
+    if (mounted) {
+        setState(() => feed = data);
+        // Esperamos a que el frame se dibuje para luego hacer el scroll
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _scrollToTargetPost();
+          });
+        });
+      }
   }
 
   Future<void> loadMore() async {
@@ -366,7 +383,7 @@ class _FeedPageState extends State<FeedPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header: avatar + usuario (ahora con GestureDetector) ────────
+        // Header: avatar + usuario (ahora con GestureDetector)
         GestureDetector(
           onTap: () => _navigateToUserProfile(item.userId),
           behavior: HitTestBehavior.opaque,
@@ -433,8 +450,7 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
     
-
-        // ── Descripción (justo debajo de la imagen) ───────────────────
+        // Descripción (justo debajo de la imagen) 
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -448,7 +464,7 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ),
 
-        // ── Imagen ────────────────────────────────────────────────────
+        // Imagen
         Image.network(
           item.mediaUrl,
           width: double.infinity,
@@ -461,7 +477,7 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
 
-        // ── Acciones con contadores inline ────────────────────────────
+        // Acciones con contadores inline 
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(

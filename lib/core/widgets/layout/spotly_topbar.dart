@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:spotly/features/search/presentation/filter_results_page.dart';
 
 import '../../themes/spotly_colors.dart';
 import '../interactive/spotly_interactive.dart';
 import '../common/spotly_logo.dart';
 import '../../context/auth_context.dart';
+import '../auth/logout_service.dart';
 
 class SpotlyTopBar extends StatelessWidget {
   final bool dark;
@@ -53,15 +55,79 @@ class SpotlyTopBar extends StatelessWidget {
                   dark: dark,
                   onTap: onTheme,
                 ),
+
                 const SizedBox(width: 12),
+
+                if (isLoggedIn)
+                  // Botón de Filtros para la HU de ubicación
+                  _TopBarIconButton(
+                    icon: LucideIcons.slidersHorizontal, 
+                    dark: dark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FilterResultsPage(dark: dark),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 12),
                 if (isLoggedIn)
                   _TopBarIconButton(
                     icon: LucideIcons.search,
                     dark: dark,
                     onTap: onSearch,
                   ),
+
+                if (isLoggedIn) ...[
+                  const SizedBox(width: 12),
+
+                  PopupMenuButton<String>(
+                    color: SpotlyColors.card(dark),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    icon: Icon(
+                      LucideIcons.moreVertical,
+                      color: SpotlyColors.text(dark),
+                      size: 22,
+                    ),
+
+                    onSelected: (value) async {
+                      if (value == 'logout') {
+                        await LogoutService.logout(
+                          context: context,
+                          dark: dark,
+                        );
+                      }
+                    },
+
+                    itemBuilder: (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.logOut,
+                              color: Colors.redAccent,
+                              size: 18,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Cerrar sesión',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ),
+            )
           ],
         ),
       ),

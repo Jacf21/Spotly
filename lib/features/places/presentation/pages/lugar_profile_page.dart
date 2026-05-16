@@ -112,7 +112,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-     print("BUILD 👉 isFavorite: $_isFavorite");
     final dark = ThemeUtils.isDark(context);
   
     return Scaffold(

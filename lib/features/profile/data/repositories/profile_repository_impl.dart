@@ -2,6 +2,7 @@ import 'package:spotly/features/profile/domain/entities/profile_entity.dart';
 import 'package:spotly/features/profile/domain/repositories/profile_repository.dart';
 import 'package:spotly/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:spotly/features/profile/data/models/profile_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource remoteDataSource;
@@ -27,6 +28,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
       pais: model.paisOrigen,
       ciudad: model.ciudadOrigen,
     );
+  }
+
+  @override
+  Future<String> uploadAvatar(String userId, XFile file) async {
+    return await remoteDataSource.uploadAvatar(userId, file);
   }
 
   @override

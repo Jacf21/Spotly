@@ -7,6 +7,12 @@ class OnFetchProfile extends ProfileEvent {
   OnFetchProfile(this.userId);
 }
 
+class OnUpdateAvatar extends ProfileEvent {
+  final String userId;
+  final XFile file;
+  OnUpdateAvatar({required this.userId, required this.file});
+}
+
 class OnUpdateProfile extends ProfileEvent {
   final String nombres;
   final String apellidos;
