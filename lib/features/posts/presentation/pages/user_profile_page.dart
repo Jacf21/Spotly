@@ -11,6 +11,7 @@ import '../../data/models/feed_item_model.dart';
 import '../../data/datasources/post_interaction_remote_datasource.dart';
 import '../../data/repositories/post_interaction_repository.dart';
 import '../../../comments/presentation/pages/comments_page.dart';
+import 'package:spotly/features/profile/data/datasources/followers_remote_datasource.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -32,12 +33,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String _userName = '';
   String _userAvatar = '';
   String _errorMessage = '';
+  bool _isFollowing = false;
+
+  int _followersCount = 0;
+  int _followingCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
     _loadUserPosts();
+    _loadFollowData();
   }
 
   Future<void> _loadUserInfo() async {
@@ -58,6 +64,83 @@ class _UserProfilePageState extends State<UserProfilePage> {
       debugPrint('Error cargando perfil: $e');
     }
   }
+
+  Future<void> _loadFollowData() async {
+  final currentUser =
+      Supabase.instance.client.auth.currentUser;
+
+  if (currentUser == null) return;
+
+  final repo = FollowersRemoteDatasource(
+    Supabase.instance.client,
+  );
+
+  final following = await repo.isFollowing(
+    seguidorId: currentUser.id,
+    seguidoId: widget.userId,
+  );
+
+  final followers =
+      await repo.getFollowersCount(widget.userId);
+
+  final followingCount =
+      await repo.getFollowingCount(widget.userId);
+
+  if (mounted) {
+    setState(() {
+      _isFollowing = following;
+      _followersCount = followers;
+      _followingCount = followingCount;
+    });
+  }
+}
+
+Future<void> _toggleFollow() async {
+  final currentUser =
+      Supabase.instance.client.auth.currentUser;
+
+  if (currentUser == null) {
+    context.push('/login');
+    return;
+  }
+
+  final repo = FollowersRemoteDatasource(
+    Supabase.instance.client,
+  );
+
+  try {
+    if (_isFollowing) {
+      await repo.unfollowUser(
+        seguidorId: currentUser.id,
+        seguidoId: widget.userId,
+      );
+
+      setState(() {
+        _isFollowing = false;
+        _followersCount--;
+      });
+    } else {
+      await repo.followUser(
+        seguidorId: currentUser.id,
+        seguidoId: widget.userId,
+
+      );
+      await Supabase.instance.client
+    .from('notificaciones_follow')
+    ..insert({
+  'id_usuario': widget.userId,
+  'id_usuario_actor': currentUser.id,
+});
+
+      setState(() {
+        _isFollowing = true;
+        _followersCount++;
+      });
+    }
+  } catch (e) {
+    debugPrint('Error follow: $e');
+  }
+}
 
   Future<void> _loadUserPosts() async {
     setState(() => _loading = true);
@@ -181,9 +264,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void _share(FeedItemModel item) {}
 
   void _navigateToUserProfile(String userId) {
-    if (userId == widget.userId) return;
-    if (mounted) context.push('/user/$userId');
+  if (userId == widget.userId) return;
+
+  if (mounted) {
+    context.go('/user/$userId');
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -249,43 +335,164 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(bool dark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundImage:
-                _userAvatar.isNotEmpty ? NetworkImage(_userAvatar) : null,
-            child: _userAvatar.isEmpty
-                ? Icon(Icons.person,
-                    size: 40, color: SpotlyColors.subText(dark))
-                : null,
+ Widget _buildProfileHeader(bool dark) {
+  final currentUserId =
+      Supabase.instance.client.auth.currentUser?.id;
+
+  final isOwnProfile = currentUserId == widget.userId;
+
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 42,
+              backgroundImage:
+                  _userAvatar.isNotEmpty
+                      ? NetworkImage(_userAvatar)
+                      : null,
+              backgroundColor:
+                  dark ? Colors.white12 : Colors.grey.shade200,
+              child: _userAvatar.isEmpty
+                  ? Icon(
+                      LucideIcons.user,
+                      size: 40,
+                      color: SpotlyColors.subText(dark),
+                    )
+                  : null,
+            ),
+
+            const SizedBox(width: 24),
+
+            Expanded(
+  child: Row(
+    mainAxisAlignment:
+        MainAxisAlignment.spaceEvenly,
+    children: [
+
+      _buildStat(
+        '${_posts.length}',
+        'Publicaciones',
+        dark,
+      ),
+
+      // =========================
+      // SEGUIDORES
+      // =========================
+      GestureDetector(
+        onTap: () {
+          context.push(
+            '/followers/${widget.userId}/followers',
+          );
+        },
+
+        child: _buildStat(
+          '$_followersCount',
+          'Seguidores',
+          dark,
+        ),
+      ),
+
+      // =========================
+      // SEGUIDOS
+      // =========================
+      GestureDetector(
+        onTap: () {
+          context.push(
+            '/followers/${widget.userId}/following',
+          );
+        },
+
+        child: _buildStat(
+          '$_followingCount',
+          'Seguidos',
+          dark,
+        ),
+      ),
+    ],
+  ),
+),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _userName,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: SpotlyColors.text(dark),
+            ),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _userName,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: SpotlyColors.text(dark),
+        ),
+
+        const SizedBox(height: 16),
+
+        if (!isOwnProfile)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: _isFollowing
+                    ? Colors.grey.shade700
+                    : SpotlyColors.accent(dark),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${_posts.length} publicaciones',
-                style: TextStyle(color: SpotlyColors.subText(dark)),
+              onPressed: _toggleFollow,
+              child: Text(
+                _isFollowing
+                    ? 'Siguiendo'
+                    : 'Seguir',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ],
+            ),
           ),
-        ],
+      ],
+    ),
+  );
+}
+
+Widget _buildStat(
+  String value,
+  String label,
+  bool dark,
+) {
+  return Column(
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: SpotlyColors.text(dark),
+        ),
       ),
-    );
-  }
+      const SizedBox(height: 4),
+      Text(
+        label,
+        style: TextStyle(
+          color: SpotlyColors.subText(dark),
+          fontSize: 13,
+        ),
+      ),
+    ],
+  );
+}
 
   Widget _buildPostItem(FeedItemModel item, bool dark) {
     final textColor = SpotlyColors.text(dark);

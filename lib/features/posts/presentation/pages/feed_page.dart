@@ -174,6 +174,17 @@ class _FeedPageState extends State<FeedPage> {
         userId: user.id,
         wasLiked: wasLiked,
       );
+      if (!wasLiked ) {
+  await Supabase.instance.client
+      .from('notificaciones')
+      .insert({
+    'id_usuario_destino': item.userId,
+    'id_usuario_actor': user.id,
+    'tipo': 'like',
+    'id_publicacion': item.id,
+    'contenido': 'le dio like a tu publicación ❤️',
+  });
+}
     } catch (e) {
       setState(() {
         item.isLiked = wasLiked;
@@ -203,7 +214,9 @@ class _FeedPageState extends State<FeedPage> {
         post: item,
         userId: user.id,
         wasSaved: wasSaved,
+          
       );
+      
     } catch (e) {
       setState(() {
         item.isSaved = wasSaved;

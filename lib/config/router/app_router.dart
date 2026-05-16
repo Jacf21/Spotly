@@ -12,6 +12,10 @@ import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart'
 import 'package:spotly/features/notifications/alerts_page.dart';
 import 'package:spotly/features/map/presentation/pages/map_page.dart';
 import 'package:spotly/core/widgets/main_navigation.dart';
+import 'package:spotly/features/places/presentation/pages/favorites_places_page.dart';
+import 'package:spotly/features/profile/presentation/pages/followers_page.dart';
+
+
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -54,6 +58,10 @@ final appRouter = GoRouter(
           },
         ),
         GoRoute(
+  path: '/favoritos',
+  builder: (context, state) => const FavoritesPlacesPage(),
+),
+        GoRoute(
           path: '/map',
           builder: (context, state) {
             // El extra puede ser un LatLng (navegando desde un perfil de lugar)
@@ -95,5 +103,28 @@ final appRouter = GoRouter(
       path: '/admin',
       builder: (context, state) => const AdminDashboardPage(),
     ),
+   GoRoute(
+  path: '/followers/:userId/:type',
+  builder: (context, state) {
+
+    final userId =
+        state.pathParameters['userId']!;
+
+    final type =
+        state.pathParameters['type']!;
+
+    return FollowersPage(
+      userId: userId,
+      showFollowers:
+          type == 'followers',
+    );
+  },
+),
+
+GoRoute(
+  path: '/edit-profile',
+  builder: (context, state) => const EditProfilePage(),
+),
+
   ],
 );

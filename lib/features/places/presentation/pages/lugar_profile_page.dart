@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
@@ -89,8 +88,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
         lugarId: widget.lugarId,
       );
 
-  // ── Navegar al mapa en la ubicación de este lugar ─────────────────────────
-
   void _irAlMapaEnEsteLugar() {
     final coords = _lugar?.coordenadas;
     if (coords == null) {
@@ -102,8 +99,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       );
       return;
     }
-    // Navega al mapa pasando las coordenadas como extra.
-    // GoRouter las recibe en: final lugarInicial = state.extra as LatLng?;
     context.push('/map', extra: coords);
   }
 
@@ -178,7 +173,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nombre + botones (favorito + ver en mapa) + badge
+                  // Nombre + botones (favorito + ver en mapa + sugerir) + badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -219,6 +214,11 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                       // ── Botón favorito ─────────────────────────
                       _buildFavoriteButton(dark),
 
+                      // ── Botón sugerir lugar ────────────────────
+                      const SizedBox(width: 8),
+                      _buildSuggestButton(dark),
+
+                      // ── Badge verificado ───────────────────────
                       if (l.esVerificado)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
@@ -545,4 +545,109 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
           ),
         ),
       );
+
+  // ── Botón para sugerir lugar ──────────────────────────────────────────────
+  // CONFLICT FIX: movido dentro de la clase para acceder a _lugar, widget y context
+  Widget _buildSuggestButton(bool dark) {
+    return Tooltip(
+      message: "Sugerir lugar",
+      child: InkWell(
+        borderRadius: BorderRadius.circular(30),
+        onTap: () async {
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Debes iniciar sesión")),
+            );
+            return;
+          }
+
+          try {
+            // 🔹 Obtener seguidores
+            final seguidores = await Supabase.instance.client
+                .from('seguidores')
+                .select('id_usuario_seguidor')
+                .eq('id_usuario_seguido', user.id);
+
+            if (seguidores.isEmpty) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("No tienes seguidores")),
+              );
+              return;
+            }
+
+            // 🔹 Obtener nombre del usuario actor
+            final perfil = await Supabase.instance.client
+                .from('perfiles')
+                .select('nombre_usuario')
+                .eq('id_usuario', user.id)
+                .single();
+
+            final nombreUsuario = perfil['nombre_usuario'] ?? 'Alguien';
+
+            // 🔹 Crear lista de notificaciones
+            final notifications = seguidores.map((seguidor) {
+              return {
+                'id_usuario_destino': seguidor['id_usuario_seguidor'],
+                'id_usuario_actor': user.id,
+                'tipo': 'sugerencia_lugar',
+                'contenido':
+                    '$nombreUsuario te sugirió visitar ${_lugar?.nombre} 📍',
+                'id_lugar': widget.lugarId,
+              };
+            }).toList();
+
+            // 🔹 Insertar todas las notificaciones
+            await Supabase.instance.client
+                .from('notificaciones')
+                .insert(notifications);
+
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    '📍 Lugar sugerido a ${seguidores.length} seguidores'),
+              ),
+            );
+          } catch (e) {
+            debugPrint(e.toString());
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error al sugerir lugar')),
+            );
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: SpotlyColors.accent(dark),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: SpotlyColors.accent(dark).withOpacity(0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(LucideIcons.send, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Text(
+                'Sugerir lugar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

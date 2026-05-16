@@ -44,12 +44,73 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(LucideIcons.pencil, color: SpotlyColors.accent(dark)),
-            onPressed: () => _openEditProfile(context),
-            tooltip: 'Editar perfil',
+  PopupMenuButton<String>(
+  icon: Icon(
+    LucideIcons.menu,
+    color: SpotlyColors.accent(dark),
+    size: 40,
+  ),
+
+  color: SpotlyColors.card(dark),
+
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(14),
+  ),
+
+  onSelected: (value) {
+  Future.microtask(() {
+    if (value == 'favoritos') {
+      context.push('/favoritos');
+    }
+
+    if (value == 'edit_profile') {
+      context.push('/edit-profile');
+    }
+  });
+},
+
+  itemBuilder: (context) => [
+     PopupMenuItem(
+    value: 'favoritos',
+    child: Row(
+      children: [
+        Icon(
+          LucideIcons.heart,
+          size: 18,
+          color: SpotlyColors.text(dark),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'Favoritos',
+          style: TextStyle(
+            color: SpotlyColors.text(dark),
+          ),
+        ),
+      ],
+    ),
+  ),
+    PopupMenuItem(
+      value: 'edit_profile',
+      child: Row(
+        children: [
+          Icon(
+            LucideIcons.pencil,
+            size: 18,
+            color: SpotlyColors.text(dark),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Editar perfil',
+            style: TextStyle(
+              color: SpotlyColors.text(dark),
+            ),
           ),
         ],
+      ),
+    ),
+  ],
+)
+],
         backgroundColor: SpotlyColors.bg(dark),
         elevation: 0,
         automaticallyImplyLeading: false, // ← sin botón de atrás
@@ -62,13 +123,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _openEditProfile(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const EditProfilePage(),
-        fullscreenDialog: true,
-      ),
-    );
+    context.push('/edit-profile');
   }
 }
 
