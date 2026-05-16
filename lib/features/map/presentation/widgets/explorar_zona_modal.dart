@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import '../../data/models/map_lugar_model.dart';
 
 class ExplorarZonaModal extends StatelessWidget {
   final List<MapLugarModel> lugares;
   final bool dark;
+  final void Function(MapLugarModel lugar) onLugarTap;
 
   const ExplorarZonaModal({
     super.key,
     required this.lugares,
     required this.dark,
+    required this.onLugarTap,
   });
 
   static void show(
     BuildContext context, {
     required List<MapLugarModel> lugares,
     required bool dark,
+    required void Function(MapLugarModel lugar) onLugarTap,
   }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => ExplorarZonaModal(lugares: lugares, dark: dark),
+      builder: (_) => ExplorarZonaModal(
+        lugares: lugares,
+        dark: dark,
+        onLugarTap: onLugarTap,
+      ),
     );
   }
 
@@ -55,7 +60,6 @@ class ExplorarZonaModal extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // ── Handle ────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Container(
@@ -67,11 +71,8 @@ class ExplorarZonaModal extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // ── Header ────────────────────────────────────────
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Row(
                   children: [
                     Container(
@@ -80,25 +81,20 @@ class ExplorarZonaModal extends StatelessWidget {
                         color: accent.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(LucideIcons.mapPin,
-                          size: 18, color: accent),
+                      child: Icon(LucideIcons.mapPin, size: 18, color: accent),
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Lugares en esta zona',
-                          style: TextStyle(
-                            color: text,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('Lugares en esta zona',
+                            style: TextStyle(
+                                color: text,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold)),
                         Text(
                           '${lugares.length} lugar${lugares.length != 1 ? 'es' : ''} encontrado${lugares.length != 1 ? 's' : ''}',
-                          style:
-                              TextStyle(color: sub, fontSize: 12),
+                          style: TextStyle(color: sub, fontSize: 12),
                         ),
                       ],
                     ),
@@ -110,13 +106,26 @@ class ExplorarZonaModal extends StatelessWidget {
                   ],
                 ),
               ),
-
               Divider(color: sub.withOpacity(0.15), height: 1),
-
-              // ── Lista ─────────────────────────────────────────
               Expanded(
                 child: lugares.isEmpty
-                    ? _buildEmpty(sub, text)
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(LucideIcons.searchX, size: 48, color: sub),
+                            const SizedBox(height: 16),
+                            Text('Sin lugares en esta zona',
+                                style: TextStyle(
+                                    color: text,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 6),
+                            Text('Mueve el mapa para explorar otras áreas',
+                                style: TextStyle(color: sub, fontSize: 13)),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -130,7 +139,7 @@ class ExplorarZonaModal extends StatelessWidget {
                           sub: sub,
                           onTap: () {
                             Navigator.of(context).pop();
-                            context.push('/lugar/${lugares[i].id}');
+                            onLugarTap(lugares[i]);
                           },
                         ),
                       ),
@@ -141,31 +150,8 @@ class ExplorarZonaModal extends StatelessWidget {
       },
     );
   }
-
-  Widget _buildEmpty(Color sub, Color text) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(LucideIcons.searchX, size: 48, color: sub),
-            const SizedBox(height: 16),
-            Text(
-              'Sin lugares en esta zona',
-              style: TextStyle(
-                  color: text,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Mueve el mapa para explorar otras áreas',
-              style: TextStyle(color: sub, fontSize: 13),
-            ),
-          ],
-        ),
-      );
 }
 
-// ── Tarjeta individual ────────────────────────────────────────────────────────
 class _LugarCard extends StatelessWidget {
   final MapLugarModel lugar;
   final bool dark;
@@ -195,7 +181,6 @@ class _LugarCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Foto
             ClipRRect(
               borderRadius:
                   const BorderRadius.horizontal(left: Radius.circular(16)),
@@ -203,29 +188,20 @@ class _LugarCard extends StatelessWidget {
                 width: 90,
                 height: 90,
                 child: lugar.fotoPortadaUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: lugar.fotoPortadaUrl!,
+                    ? Image.network(
+                        lugar.fotoPortadaUrl!,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
+                        errorBuilder: (_, __, ___) => Container(
                           color: accent.withOpacity(0.1),
-                          child: Icon(LucideIcons.image,
-                              color: sub, size: 24),
-                        ),
-                        errorWidget: (_, __, ___) => Container(
-                          color: accent.withOpacity(0.1),
-                          child: Icon(LucideIcons.mapPin,
-                              color: accent, size: 24),
+                          child: Icon(LucideIcons.mapPin, color: accent, size: 24),
                         ),
                       )
                     : Container(
                         color: accent.withOpacity(0.1),
-                        child: Icon(LucideIcons.mapPin,
-                            color: accent, size: 28),
+                        child: Icon(LucideIcons.mapPin, color: accent, size: 28),
                       ),
               ),
             ),
-
-            // Info
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -235,39 +211,31 @@ class _LugarCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            lugar.nombre,
-                            style: TextStyle(
-                              color: text,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(lugar.nombre,
+                              style: TextStyle(
+                                  color: text,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                         if (lugar.esVerificado)
-                          Icon(Icons.verified,
-                              size: 14, color: accent),
+                          Icon(Icons.verified, size: 14, color: accent),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(children: [
                       Icon(LucideIcons.tag, size: 11, color: sub),
                       const SizedBox(width: 3),
-                      Text(
-                        lugar.categoria,
-                        style: TextStyle(color: sub, fontSize: 11),
-                      ),
+                      Text(lugar.categoria,
+                          style: TextStyle(color: sub, fontSize: 11)),
                       const SizedBox(width: 8),
                       Icon(LucideIcons.mapPin, size: 11, color: sub),
                       const SizedBox(width: 3),
                       Expanded(
-                        child: Text(
-                          lugar.departamento,
-                          style: TextStyle(color: sub, fontSize: 11),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(lugar.departamento,
+                            style: TextStyle(color: sub, fontSize: 11),
+                            overflow: TextOverflow.ellipsis),
                       ),
                     ]),
                     if (lugar.resumen != null || lugar.descripcion != null) ...[
@@ -283,8 +251,6 @@ class _LugarCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Arrow
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Icon(LucideIcons.chevronRight, size: 16, color: sub),

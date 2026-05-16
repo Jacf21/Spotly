@@ -9,19 +9,33 @@ import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/core/utils/theme_utils.dart';
 
 import '../../data/datasources/map_remote_datasource.dart';
+import '../../data/models/map_lugar_model.dart';
 import '../../data/repositories/map_repository.dart';
 import '../../bloc/map_cubit.dart';
 import '../../bloc/map_state.dart';
 import '../widgets/explorar_zona_modal.dart';
+import '../widgets/lugar_bottom_sheet.dart'; // NUEVO
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  MapPage
+//
+//  Parámetros opcionales (pasados via GoRouter):
+//    • lugarInicial: LatLng  → centra el mapa en ese lugar al abrir
+//    • lugarModel: MapLugarModel → muestra el bottom sheet del lugar al abrir
+// ─────────────────────────────────────────────────────────────────────────────
 
 class MapPage extends StatefulWidget {
-  const MapPage({super.key});
+  /// Si se navega desde el perfil de un lugar, pasa sus coordenadas aquí.
+  final LatLng? lugarInicial;
+
+  const MapPage({super.key, this.lugarInicial});
 
   @override
   State<MapPage> createState() => _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
+  // ── Controladores ──────────────────────────────────────────────────────────
   late final MapController _mapController;
   late final MapCubit _cubit;
   late final AnimationController _pulseController;
@@ -31,21 +45,18 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   final _searchFocus = FocusNode();
   Timer? _debounce;
 
-  LatLng _center = const LatLng(-17.3895, -66.1568);
-
-  // ── CLAVE DEL FIX ──────────────────────────────────────────────────────────
-  // Los resultados se guardan aquí en el State, NO se leen del cubit state.
-  // Así el widget de resultados NO se destruye cuando el cubit emite un nuevo
-  // estado, y el onTap puede completarse sin interrupciones.
+  // ── Estado LOCAL de búsqueda ──────────────────────────────────────────────
+  // Guardamos los resultados aquí para que el dropdown no se destruya cuando
+  // el cubit emite un nuevo estado (eso era el bug original).
   List<SearchResult> _resultadosLocales = [];
-  bool _showSearchResults = false;
+  bool _showResults = false;
   bool _buscando = false;
-  // ──────────────────────────────────────────────────────────────────────────
 
-  // Zona actual para el FAB (se actualiza desde el cubit)
-  List<dynamic> _lugaresEnZona = [];
+  // Flag para evitar abrir el bottom sheet múltiples veces
+  bool _sheetAbierto = false;
 
-  static const double _radioMetros = 5000.0;
+  // ── Zoom de animación para "volver a mi ubicación" ────────────────────────
+  late final AnimationController _recenterAnim;
 
   @override
   void initState() {
@@ -59,23 +70,34 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       ),
     );
 
+    // Animación de pulso del círculo
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    _pulseAnim = Tween<double>(begin: 0.08, end: 0.18).animate(
+    _pulseAnim = Tween<double>(begin: 0.06, end: 0.16).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _cubit.init();
+    // Animación del botón de re-centrar
+    _recenterAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
 
+    // Inicia el cubit con el lugar inicial (puede ser null)
+    _cubit.init(lugarInicial: widget.lugarInicial);
+
+    // Oculta dropdown cuando pierde foco, pero con delay para que
+    // onTap del resultado se complete primero (sin delay se cancela el tap)
     _searchFocus.addListener(() {
       if (!mounted) return;
-      setState(() {
-        _showSearchResults =
-            _searchFocus.hasFocus && _resultadosLocales.isNotEmpty;
-      });
+      if (!_searchFocus.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _showResults = false);
+        });
+      }
     });
   }
 
@@ -84,69 +106,96 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _mapController.dispose();
     _cubit.close();
     _pulseController.dispose();
+    _recenterAnim.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     _debounce?.cancel();
     super.dispose();
   }
 
-  // ── Búsqueda ───────────────────────────────────────────────────────────────
+  // ── Búsqueda con debounce ─────────────────────────────────────────────────
 
-  void _onSearch(String query) {
+  void _onSearchChanged(String query) {
     _debounce?.cancel();
+
     if (query.trim().isEmpty) {
       _cubit.limpiarBusqueda();
-      if (mounted) setState(() {
-        _resultadosLocales = [];
-        _showSearchResults = false;
-        _buscando = false;
-      });
+      if (mounted) {
+        setState(() {
+          _resultadosLocales = [];
+          _showResults = false;
+          _buscando = false;
+        });
+      }
       return;
     }
 
-    if (mounted) setState(() {
-      _buscando = true;
-      _showSearchResults = true;
-    });
+    if (mounted) setState(() => _buscando = true);
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       await _cubit.buscarLugar(query);
-      // Copia los resultados al State local inmediatamente después de la búsqueda
-      final state = _cubit.state;
-      if (state is MapLoaded && mounted) {
+
+      if (!mounted) return;
+      final s = _cubit.state;
+      if (s is MapLoaded) {
         setState(() {
-          _resultadosLocales = List.from(state.resultadosBusqueda);
+          _resultadosLocales = List.from(s.resultadosBusqueda);
           _buscando = false;
-          _showSearchResults = _resultadosLocales.isNotEmpty;
+          _showResults = _resultadosLocales.isNotEmpty || _searchFocus.hasFocus;
         });
       }
     });
   }
 
-  // ── Selección — aquí está el fix principal ─────────────────────────────────
+  // ── Selección de resultado ────────────────────────────────────────────────
+  // FIX PRINCIPAL: primero actualizamos estado local y movemos el mapa,
+  // DESPUÉS actualizamos el cubit. Así el dropdown ya desapareció cuando
+  // el BlocBuilder reconstruye, evitando el tap interrumpido.
 
   void _seleccionarResultado(SearchResult resultado) {
-    // 1. Cierra el teclado y oculta resultados ANTES de tocar el cubit
-    _searchFocus.unfocus();
-    _searchController.text = resultado.titulo;
+    // Con onTapDown esto se ejecuta ANTES del cambio de foco,
+    // así que el mapa se mueve siempre sin importar el estado del teclado.
 
-    // 2. Limpia los resultados locales (oculta el dropdown)
+    // 1. Actualiza el texto y oculta el dropdown
+    _searchController.text = resultado.titulo;
     setState(() {
       _resultadosLocales = [];
-      _showSearchResults = false;
+      _showResults = false;
       _buscando = false;
     });
 
     final zoom = resultado.esLugarRegistrado ? 15.0 : 13.0;
-    final coords = resultado.coordenadas;
 
-    // 3. Mueve el mapa PRIMERO — el controller es independiente del BlocBuilder
-    _mapController.move(coords, zoom);
-    if (mounted) setState(() => _center = coords);
+    // 2. Mueve el mapa — igual que _irAMiUbicacion
+    _mapController.move(resultado.coordenadas, zoom);
 
-    // 4. Actualiza el cubit (círculo + zona) — esto puede emitir estado nuevo
-    //    pero ya no hay ningún widget de resultados que se pueda destruir
-    _cubit.seleccionarResultado(resultado);
+    // 3. Actualiza zona en el cubit sin interferir con el move()
+    Future.microtask(() {
+      if (mounted) _cubit.actualizarZonaBusqueda(resultado.coordenadas);
+    });
+  }
+
+  // ── Volver a mi ubicación ─────────────────────────────────────────────────
+
+  void _irAMiUbicacion() {
+    final ubicacion = _cubit.getMiUbicacion();
+    if (ubicacion == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ubicación no disponible. Activa el GPS.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    _mapController.move(ubicacion, 15.0);
+  }
+
+  // ── Toque en marcador ─────────────────────────────────────────────────────
+
+  void _onMarkerTap(MapLugarModel lugar) {
+    _searchFocus.unfocus();
+    _cubit.seleccionarLugar(lugar);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -155,110 +204,198 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
 
-    return BlocListener<MapCubit, MapState>(
+    return BlocConsumer<MapCubit, MapState>(
       bloc: _cubit,
       listener: (context, state) {
-        if (state is MapLoaded && mounted) {
-          // Sincroniza centro inicial cuando el GPS responde
-          if (_center == const LatLng(-17.3895, -66.1568) &&
-              state.locationObtained) {
-            final newCenter = state.currentCenter;
-            _mapController.move(newCenter, 13.0);
-            setState(() => _center = newCenter);
+        if (state is MapLoaded) {
+          // Abre el sheet solo si hay lugar seleccionado Y el sheet no está ya abierto
+          if (state.lugarSeleccionado != null && !_sheetAbierto) {
+            _sheetAbierto = true;
+            _mostrarLugarBottomSheet(context, state.lugarSeleccionado!, dark, state);
           }
-          // Sincroniza la zona para el FAB
-          setState(() => _lugaresEnZona = state.lugaresEnZona);
         }
       },
-      child: Scaffold(
-        backgroundColor: SpotlyColors.bg(dark),
-        body: Stack(
-          children: [
-            // Mapa — construido UNA SOLA VEZ
-            _buildMap(dark),
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: SpotlyColors.bg(dark),
+          body: Stack(
+            children: [
+              // ── Mapa base ──────────────────────────────────────────────────
+              _buildMap(state, dark),
 
-            // Overlays que sí pueden reconstruirse
-            BlocBuilder<MapCubit, MapState>(
-              bloc: _cubit,
-              builder: (context, state) {
-                if (state is MapLoading) return _buildLoadingOverlay(dark);
-                if (state is MapError) return _buildError(state.message, dark);
-                if (state is MapLoaded) {
-                  return Stack(
-                    children: [
-                      _buildCircleOverlay(dark),
-                      _buildSearchBar(dark),
-                      _buildExploreFab(state, dark),
-                    ],
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
+              // ── Overlays de estado (loading / error / loaded) ──────────────
+              if (state is MapLoading) _buildLoadingOverlay(dark),
+              if (state is MapError) _buildError(state.message, dark),
+              if (state is MapLoaded) ...[
+                // Círculo de zona animado
+                _buildCircleOverlay(dark),
+                // Ruta info banner
+                if (state.rutaActiva != null) _buildRutaBanner(state.rutaActiva!, dark),
+                // Barra de búsqueda
+                _buildSearchBar(dark),
+                // FAB explorar zona
+                _buildExploreFab(state, dark),
+                // FAB volver a mi ubicación
+                _buildRecenterFab(dark),
+              ],
 
-            // Resultados de búsqueda — FUERA del BlocBuilder, controlados por
-            // el State local para que onTap nunca sea interrumpido
-            if (_showSearchResults) _buildSearchResults(dark),
-          ],
-        ),
-      ),
+              // ── Dropdown de resultados (FUERA del BlocBuilder) ────────────
+              // Controlado por estado local para que onTap nunca sea
+              // interrumpido por un rebuild del árbol.
+              if (_showResults) _buildSearchResults(dark),
+            ],
+          ),
+        );
+      },
     );
   }
 
   // ── Mapa ───────────────────────────────────────────────────────────────────
 
-  Widget _buildMap(bool dark) {
+  Widget _buildMap(MapState state, bool dark) {
+    final loaded = state is MapLoaded ? state : null;
+
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
-        initialCenter: _center,
+        initialCenter: widget.lugarInicial ?? const LatLng(-17.3895, -66.1568),
         initialZoom: 13.0,
         minZoom: 4.0,
         maxZoom: 19.0,
-        onPositionChanged: (camera, hasGesture) {
-          if (hasGesture && camera.center != null) {
-            _cubit.updateCenter(camera.center!);
-            if (mounted) setState(() => _center = camera.center!);
+        onTap: (_, __) {
+          // Cierra bottom sheet si está abierto
+          if (loaded?.lugarSeleccionado != null) {
+            _cubit.cerrarLugarSeleccionado();
+            Navigator.of(context).popUntil((r) => r.isFirst);
+          }
+        },
+        onPositionChanged: (position, hasGesture) {
+          if (hasGesture) {
+            final center = position.center;
+            if (center != null) {
+              _cubit.updateCenter(center);
+            }
           }
         },
       ),
       children: [
+        // Tiles del mapa
         TileLayer(
           urlTemplate: dark
               ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
               : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.example.spotly',
         ),
-        BlocBuilder<MapCubit, MapState>(
-          bloc: _cubit,
-          buildWhen: (prev, curr) {
-            if (prev is MapLoaded && curr is MapLoaded) {
-              return prev.todosLugares != curr.todosLugares ||
-                  prev.lugaresEnZona != curr.lugaresEnZona;
-            }
-            return true;
-          },
-          builder: (_, state) {
-            if (state is! MapLoaded) return const SizedBox.shrink();
-            final accent = SpotlyColors.accent(dark);
-            return MarkerLayer(
-              markers: state.todosLugares.map((l) {
-                final inZone = state.lugaresEnZona.any((z) => z.id == l.id);
-                return Marker(
-                  point: l.coordenadas,
-                  width: 36,
-                  height: 36,
-                  child: _MapMarker(dark: dark, inZone: inZone, accent: accent),
-                );
-              }).toList(),
-            );
-          },
-        ),
+
+        // Ruta trazada
+        if (loaded?.rutaActiva != null)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: loaded!.rutaActiva!.puntos,
+                color: SpotlyColors.accent(dark),
+                strokeWidth: 5.0,
+                borderColor: SpotlyColors.accent(dark).withOpacity(0.3),
+                borderStrokeWidth: 10.0,
+              ),
+            ],
+          ),
+
+        // Marcadores de lugares
+        if (loaded != null)
+          MarkerLayer(
+            markers: loaded.todosLugares.map((l) {
+              final inZone = loaded.lugaresEnZona.any((z) => z.id == l.id);
+              final isSelected = loaded.lugarSeleccionado?.id == l.id;
+              return Marker(
+                point: l.coordenadas,
+                width: isSelected ? 44 : 36,
+                height: isSelected ? 44 : 36,
+                child: GestureDetector(
+                  onTap: () => _onMarkerTap(l),
+                  child: _LugarMarker(
+                    dark: dark,
+                    inZone: inZone,
+                    isSelected: isSelected,
+                    accent: SpotlyColors.accent(dark),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+        // Marcador de MI UBICACIÓN (punto azul pulsante)
+        if (loaded?.miUbicacion != null)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: loaded!.miUbicacion!,
+                width: 24,
+                height: 24,
+                child: _MiUbicacionMarker(pulseAnim: _pulseAnim),
+              ),
+            ],
+          ),
       ],
     );
   }
 
-  // ── Círculo overlay ────────────────────────────────────────────────────────
+  // ── Bottom sheet del lugar seleccionado ───────────────────────────────────
+
+  void _mostrarLugarBottomSheet(
+    BuildContext context,
+    MapLugarModel lugar,
+    bool dark,
+    MapLoaded state,
+  ) {
+    _mapController.move(lugar.coordenadas, 15.5);
+
+    bool eligioRuta = false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (_) => LugarBottomSheet(
+        lugar: lugar,
+        dark: dark,
+        tieneUbicacion: state.miUbicacion != null,
+        onComoLlegar: () {
+          eligioRuta = true;
+          Navigator.of(context).pop();
+        },
+      ),
+    ).whenComplete(() {
+      _sheetAbierto = false;
+
+      if (eligioRuta) {
+        // Limpia solo el marcador, NO la ruta — luego traza
+        _cubit.soloLimpiarSeleccion();
+        _cubit.trazarRuta(lugar.coordenadas);
+        if (state.miUbicacion != null) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              _mapController.fitCamera(
+                CameraFit.bounds(
+                  bounds: LatLngBounds.fromPoints([
+                    state.miUbicacion!,
+                    lugar.coordenadas,
+                  ]),
+                  padding: const EdgeInsets.all(60),
+                ),
+              );
+            }
+          });
+        }
+      } else {
+        // Cerró sin elegir ruta: limpia todo
+        _cubit.cerrarLugarSeleccionado();
+      }
+    });
+  }
+
+  // ── Círculo de zona ────────────────────────────────────────────────────────
 
   Widget _buildCircleOverlay(bool dark) {
     final accent = SpotlyColors.accent(dark);
@@ -269,7 +406,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           builder: (_, __) => CustomPaint(
             painter: _CirclePainter(
               color: accent.withOpacity(_pulseAnim.value),
-              borderColor: accent.withOpacity(0.5),
+              borderColor: accent.withOpacity(0.4),
             ),
           ),
         ),
@@ -277,7 +414,70 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Buscador ───────────────────────────────────────────────────────────────
+  // ── Banner de ruta activa ─────────────────────────────────────────────────
+
+  Widget _buildRutaBanner(RouteInfo ruta, bool dark) {
+    final accent = SpotlyColors.accent(dark);
+    return Positioned(
+      // Sube el banner para que no tape el FAB de re-centrar (bottom: 100)
+      // El FAB de explorar zona está en bottom: 28, este queda encima de ambos
+      bottom: 100,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: SpotlyColors.card(dark),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: SpotlyColors.shadow(dark),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(LucideIcons.navigation, size: 14, color: accent),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${ruta.distanciaKm.toStringAsFixed(1)} km · ${ruta.duracionMinutos} min',
+                    style: TextStyle(
+                      color: SpotlyColors.text(dark),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    'En coche',
+                    style: TextStyle(color: SpotlyColors.subText(dark), fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            // Botón X con área de toque grande para no confundirlo con el FAB
+            GestureDetector(
+              onTap: _cubit.limpiarRuta,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(LucideIcons.x, size: 16, color: SpotlyColors.subText(dark)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Barra de búsqueda ─────────────────────────────────────────────────────
 
   Widget _buildSearchBar(bool dark) {
     final card = SpotlyColors.card(dark);
@@ -304,21 +504,25 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 duration: const Duration(milliseconds: 200),
                 child: _buscando
                     ? SizedBox(
-                        key: const ValueKey('loading'),
+                        key: const ValueKey('spin'),
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: accent),
                       )
-                    : Icon(key: const ValueKey('icon'),
-                        LucideIcons.search, size: 18, color: sub),
+                    : Icon(
+                        key: const ValueKey('icon'),
+                        LucideIcons.search,
+                        size: 18,
+                        color: sub,
+                      ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocus,
-                  onChanged: _onSearch,
+                  onChanged: _onSearchChanged,
                   textCapitalization: TextCapitalization.none,
                   style: TextStyle(color: text, fontSize: 14),
                   decoration: InputDecoration(
@@ -337,7 +541,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     _cubit.limpiarBusqueda();
                     setState(() {
                       _resultadosLocales = [];
-                      _showSearchResults = false;
+                      _showResults = false;
                       _buscando = false;
                     });
                     _searchFocus.unfocus();
@@ -352,7 +556,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Resultados — completamente fuera del BlocBuilder ──────────────────────
+  // ── Dropdown de resultados (controlado por estado LOCAL) ──────────────────
 
   Widget _buildSearchResults(bool dark) {
     final card = SpotlyColors.card(dark);
@@ -390,11 +594,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     shrinkWrap: true,
                     itemCount: _resultadosLocales.length,
                     itemBuilder: (_, i) {
-                      // Snapshot del resultado en el momento del build
                       final r = _resultadosLocales[i];
-                      return InkWell(
-                        onTap: () => _seleccionarResultado(r),
-                        borderRadius: BorderRadius.circular(8),
+                      return GestureDetector(
+                        // onTapDown se dispara ANTES de que el TextField
+                        // pierda el foco, garantizando que la selección
+                        // siempre se procesa sin importar si hubo Enter previo
+                        onTapDown: (_) => _seleccionarResultado(r),
+                        behavior: HitTestBehavior.opaque,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
@@ -413,15 +619,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                       ? LucideIcons.mapPin
                                       : LucideIcons.navigation,
                                   size: 14,
-                                  color:
-                                      r.esLugarRegistrado ? accent : sub,
+                                  color: r.esLugarRegistrado ? accent : sub,
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       r.titulo,
@@ -446,8 +650,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               ),
                               if (r.esLugarRegistrado &&
                                   r.lugar?.esVerificado == true)
-                                Icon(Icons.verified,
-                                    size: 14, color: accent),
+                                Icon(Icons.verified, size: 14, color: accent),
                             ],
                           ),
                         ),
@@ -460,7 +663,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── FAB ───────────────────────────────────────────────────────────────────
+  // ── FAB Explorar zona ─────────────────────────────────────────────────────
 
   Widget _buildExploreFab(MapLoaded state, bool dark) {
     final accent = SpotlyColors.accent(dark);
@@ -478,12 +681,15 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               context,
               lugares: state.lugaresEnZona,
               dark: dark,
+              onLugarTap: (lugar) {
+                // Mueve el mapa al lugar y abre su LugarBottomSheet
+                _mapController.move(lugar.coordenadas, 15.5);
+                _cubit.seleccionarLugar(lugar);
+              },
             );
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
               color: accent,
               borderRadius: BorderRadius.circular(30),
@@ -503,9 +709,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     color: Colors.white, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  count > 0
-                      ? 'Explorar zona  ($count)'
-                      : 'Explorar zona',
+                  count > 0 ? 'Explorar zona  ($count)' : 'Explorar zona',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -521,7 +725,26 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // ── FAB Re-centrar (volver a mi ubicación) ─────────────────────────────────
+
+  Widget _buildRecenterFab(bool dark) {
+    final card = SpotlyColors.card(dark);
+    final accent = SpotlyColors.accent(dark);
+
+    return Positioned(
+      bottom: 160,
+      right: 16,
+      child: FloatingActionButton.small(
+        heroTag: 'recenter',
+        backgroundColor: card,
+        elevation: 4,
+        onPressed: _irAMiUbicacion,
+        child: Icon(LucideIcons.locateFixed, size: 18, color: accent),
+      ),
+    );
+  }
+
+  // ── Loading / Error ────────────────────────────────────────────────────────
 
   Widget _buildLoadingOverlay(bool dark) {
     return Container(
@@ -541,8 +764,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
-
   Widget _buildError(String message, bool dark) {
     return Center(
       child: Padding(
@@ -559,7 +780,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     color: SpotlyColors.text(dark), fontSize: 15)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: _cubit.init,
+              onPressed: () => _cubit.init(lugarInicial: widget.lugarInicial),
               icon: const Icon(LucideIcons.refreshCw, size: 16),
               label: const Text('Reintentar'),
             ),
@@ -570,49 +791,107 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 }
 
-// ── Marcador ──────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Marcadores
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _MapMarker extends StatelessWidget {
+class _LugarMarker extends StatelessWidget {
   final bool dark;
   final bool inZone;
+  final bool isSelected;
   final Color accent;
 
-  const _MapMarker({
+  const _LugarMarker({
     required this.dark,
     required this.inZone,
+    required this.isSelected,
     required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final color = isSelected
+        ? Colors.orange
+        : inZone
+            ? accent
+            : (dark ? Colors.white24 : Colors.black26);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: inZone ? accent : (dark ? Colors.white24 : Colors.black26),
+        color: color,
         shape: BoxShape.circle,
         border: Border.all(
-          color: inZone ? Colors.white : Colors.transparent,
-          width: 2,
+          color: (inZone || isSelected) ? Colors.white : Colors.transparent,
+          width: isSelected ? 3 : 2,
         ),
-        boxShadow: inZone
+        boxShadow: (inZone || isSelected)
             ? [
                 BoxShadow(
-                  color: accent.withOpacity(0.4),
-                  blurRadius: 6,
-                  spreadRadius: 1,
+                  color: color.withOpacity(0.5),
+                  blurRadius: isSelected ? 12 : 6,
+                  spreadRadius: isSelected ? 3 : 1,
                 ),
               ]
             : null,
       ),
       child: Icon(
-        LucideIcons.mapPin,
-        size: 16,
-        color: inZone ? Colors.white : SpotlyColors.subText(dark),
+        isSelected ? LucideIcons.mapPin : LucideIcons.mapPin,
+        size: isSelected ? 20 : 16,
+        color: (inZone || isSelected) ? Colors.white : SpotlyColors.subText(dark),
       ),
     );
   }
 }
 
-// ── Painter del círculo ────────────────────────────────────────────────────────
+/// Marcador azul pulsante que representa la posición real del usuario
+class _MiUbicacionMarker extends StatelessWidget {
+  final Animation<double> pulseAnim;
+
+  const _MiUbicacionMarker({required this.pulseAnim});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: pulseAnim,
+      builder: (_, __) => Stack(
+        alignment: Alignment.center,
+        children: [
+          // Halo exterior pulsante
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue.withOpacity(pulseAnim.value * 0.8),
+            ),
+          ),
+          // Punto interior fijo
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.4),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Painter del círculo de zona
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _CirclePainter extends CustomPainter {
   final Color color;
@@ -624,7 +903,6 @@ class _CirclePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width * 0.40;
-
     canvas.drawCircle(center, radius, Paint()..color = color);
     canvas.drawCircle(
       center,

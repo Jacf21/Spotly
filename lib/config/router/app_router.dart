@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart'; 
 import 'package:spotly/features/auth/presentation/pages/login_page.dart';
 import 'package:spotly/features/auth/presentation/pages/register_page.dart';
 import 'package:spotly/features/auth/presentation/pages/admin_dashboard_page.dart';
@@ -54,8 +55,11 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/map',
-          builder: (context, state) => 
-              const MapPage(),
+          builder: (context, state) {
+            // El extra puede ser un LatLng (navegando desde un perfil de lugar)
+            final lugarInicial = state.extra as LatLng?;
+            return MapPage(lugarInicial: lugarInicial);
+          },
         ),
         GoRoute(
           path: '/post',
