@@ -188,35 +188,46 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                         ),
                       ),
 
-                      // ── Botón "Ver en mapa" ────────────────────
-                      if (l.coordenadas != null)
-                        Tooltip(
-                          message: 'Ver en mapa',
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(30),
-                            onTap: _irAlMapaEnEsteLugar,
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: SpotlyColors.accent(dark).withOpacity(0.12),
-                              ),
-                              child: Icon(
-                                LucideIcons.mapPin,
-                                size: 20,
-                                color: SpotlyColors.accent(dark),
-                              ),
-                            ),
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // ── Botón "Ver en mapa" ────────────────────
+                              if (l.coordenadas != null)
+                                Tooltip(
+                                  message: 'Ver en mapa',
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(30),
+                                    onTap: _irAlMapaEnEsteLugar,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(left: 8),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: SpotlyColors.accent(dark).withOpacity(0.12),
+                                      ),
+                                      child: Icon(
+                                        LucideIcons.mapPin,
+                                        size: 20,
+                                        color: SpotlyColors.accent(dark),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // ── Botón favorito ─────────────────────────
+                              _buildFavoriteButton(dark),
+                            ],
                           ),
-                        ),
 
-                      // ── Botón favorito ─────────────────────────
-                      _buildFavoriteButton(dark),
+                          const SizedBox(height: 10),
 
-                      // ── Botón sugerir lugar ────────────────────
-                      const SizedBox(width: 8),
-                      _buildSuggestButton(dark),
+                          // ── Botón sugerir lugar ────────────────────
+                          _buildSuggestButton(dark),
+
+                        ],
+                      ),
 
                       // ── Badge verificado ───────────────────────
                       if (l.esVerificado)
@@ -631,9 +642,9 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               ),
             ],
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(LucideIcons.send, color: Colors.white, size: 16),
               SizedBox(width: 8),
               Text(

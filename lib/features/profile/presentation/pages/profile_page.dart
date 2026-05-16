@@ -44,86 +44,77 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         actions: [
-  PopupMenuButton<String>(
-  icon: Icon(
-    LucideIcons.menu,
-    color: SpotlyColors.accent(dark),
-    size: 40,
-  ),
-
-  color: SpotlyColors.card(dark),
-
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(14),
-  ),
-
-  onSelected: (value) {
-  Future.microtask(() {
-    if (value == 'favoritos') {
-      context.push('/favoritos');
-    }
-
-    if (value == 'edit_profile') {
-      context.push('/edit-profile');
-    }
-  });
-},
-
-  itemBuilder: (context) => [
-     PopupMenuItem(
-    value: 'favoritos',
-    child: Row(
-      children: [
-        Icon(
-          LucideIcons.heart,
-          size: 18,
-          color: SpotlyColors.text(dark),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Favoritos',
-          style: TextStyle(
-            color: SpotlyColors.text(dark),
-          ),
-        ),
-      ],
-    ),
-  ),
-    PopupMenuItem(
-      value: 'edit_profile',
-      child: Row(
-        children: [
-          Icon(
-            LucideIcons.pencil,
-            size: 18,
-            color: SpotlyColors.text(dark),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            'Editar perfil',
-            style: TextStyle(
-              color: SpotlyColors.text(dark),
+          PopupMenuButton<String>(
+            icon: Icon(
+              LucideIcons.menu,
+              color: SpotlyColors.accent(dark),
+              size: 40,
             ),
-          ),
+            color: SpotlyColors.card(dark),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            onSelected: (value) {
+              Future.microtask(() {
+                if (value == 'favoritos') {
+                  context.push('/favoritos');
+                }
+                if (value == 'edit_profile') {
+                  context.push('/edit-profile');
+                }
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'favoritos',
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.heart,
+                      size: 18,
+                      color: SpotlyColors.text(dark),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Favoritos',
+                      style: TextStyle(
+                        color: SpotlyColors.text(dark),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'edit_profile',
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.pencil,
+                      size: 18,
+                      color: SpotlyColors.text(dark),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Editar perfil',
+                      style: TextStyle(
+                        color: SpotlyColors.text(dark),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
         ],
-      ),
-    ),
-  ],
-)
-],
         backgroundColor: SpotlyColors.bg(dark),
         elevation: 0,
-        automaticallyImplyLeading: false, // ← sin botón de atrás
+        automaticallyImplyLeading: false,
       ),
       body: UserProfilePage(
         userId: currentUserId,
-        showBackButton: false, // ← importante: oculta el botón de atrás interno
+        showBackButton: false,
       ),
     );
-  }
-
-  void _openEditProfile(BuildContext context) {
-    context.push('/edit-profile');
   }
 }
 
@@ -235,6 +226,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  /// Agrega (o reemplaza) un query param ?t=<timestamp> a la URL
+  /// para forzar a Flutter a no usar la imagen cacheada.
+  String _bustCache(String url) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final uri = Uri.parse(url);
+    final newUri = uri.replace(
+      queryParameters: {
+        ...uri.queryParameters,
+        't': '$ts',
+      },
+    );
+    return newUri.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -245,9 +250,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
           SpotlyUI.toast(context, "✨ Perfil actualizado");
           if (mounted) Navigator.pop(context);
         }
+        if (state is ProfileAvatarUpdated) {
+          // FIX: cache-buster para que NetworkImage descargue la imagen nueva
+          // en lugar de mostrar la versión anterior que tiene en caché.
+          setState(() {
+            _currentAvatarUrl = _bustCache(state.newUrl);
+            _pendingAvatar = null;
+          });
+          SpotlyUI.toast(context, '✨ Foto de perfil actualizada');
+        }
         if (state is ProfileError) SpotlyUI.toast(context, state.message);
         if (state is ProfileLoaded) {
-          _currentAvatarUrl = state.profile.photoUrl;
+          // FIX: también al cargar el perfil, rompemos caché por si el usuario
+          // ya había actualizado antes y Flutter tiene la URL vieja cacheada.
+          _currentAvatarUrl = state.profile.photoUrl != null
+              ? _bustCache(state.profile.photoUrl!)
+              : null;
           final p = state.profile;
           _nameController.text = p.nombres;
           _lastNameController.text = p.apellidos;
@@ -406,7 +424,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             backgroundColor: SpotlyColors.accent(dark).withOpacity(0.1),
             backgroundImage: _buildAvatarImage(),
             child: _buildAvatarImage() == null
-                ? Icon(LucideIcons.user, size: 40, color: SpotlyColors.accent(dark))
+                ? Icon(LucideIcons.user,
+                    size: 40, color: SpotlyColors.accent(dark))
                 : null,
           ),
           Container(
@@ -416,7 +435,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               shape: BoxShape.circle,
               border: Border.all(color: SpotlyColors.bg(dark), width: 2),
             ),
-            child: const Icon(LucideIcons.camera, size: 14, color: Colors.white),
+            child:
+                const Icon(LucideIcons.camera, size: 14, color: Colors.white),
           ),
         ],
       ),
@@ -430,6 +450,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           : FileImage(File(_pendingAvatar!.path)) as ImageProvider;
     }
     if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
+      // La URL ya viene con cache-buster aplicado desde el listener
       return NetworkImage(_currentAvatarUrl!);
     }
     return null;
@@ -447,21 +468,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(LucideIcons.camera, color: SpotlyColors.accent(dark)),
-              title: Text('Tomar foto', style: TextStyle(color: SpotlyColors.text(dark))),
+              leading:
+                  Icon(LucideIcons.camera, color: SpotlyColors.accent(dark)),
+              title: Text('Tomar foto',
+                  style: TextStyle(color: SpotlyColors.text(dark))),
               onTap: () async {
                 Navigator.pop(context);
-                final file = await ImageHelper.pickImage(ImageSource.camera);
-                if (file != null && mounted) setState(() => _pendingAvatar = file);
+                final file =
+                    await ImageHelper.pickImage(ImageSource.camera);
+                if (file != null && mounted)
+                  setState(() => _pendingAvatar = file);
               },
             ),
             ListTile(
-              leading: Icon(LucideIcons.image, color: SpotlyColors.accent(dark)),
-              title: Text('Elegir de galería', style: TextStyle(color: SpotlyColors.text(dark))),
+              leading:
+                  Icon(LucideIcons.image, color: SpotlyColors.accent(dark)),
+              title: Text('Elegir de galería',
+                  style: TextStyle(color: SpotlyColors.text(dark))),
               onTap: () async {
                 Navigator.pop(context);
-                final file = await ImageHelper.pickImage(ImageSource.gallery);
-                if (file != null && mounted) setState(() => _pendingAvatar = file);
+                final file =
+                    await ImageHelper.pickImage(ImageSource.gallery);
+                if (file != null && mounted)
+                  setState(() => _pendingAvatar = file);
               },
             ),
           ],
@@ -508,8 +537,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         if (userId == null) return;
         if (_pendingAvatar != null) {
           context.read<ProfileBloc>().add(
-            OnUpdateAvatar(userId: userId, file: _pendingAvatar!),
-          );
+                OnUpdateAvatar(userId: userId, file: _pendingAvatar!),
+              );
         }
         context.read<ProfileBloc>().add(OnUpdateProfile(
               nombres: _nameController.text.trim(),
