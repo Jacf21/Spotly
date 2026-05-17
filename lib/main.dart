@@ -14,6 +14,7 @@ import 'features/profile/data/repositories/profile_repository_impl.dart';
 import 'features/profile/domain/usecases/get_profile_usecase.dart';
 import 'features/profile/domain/usecases/update_profile_usecase.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
+import 'features/profile/domain/usecases/upload_avatar_usecase.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,7 @@ void main() async {
             return ProfileBloc(
               getProfileUseCase: GetProfileUseCase(repository),
               updateProfileUseCase: UpdateProfileUseCase(repository),
+              uploadAvatarUseCase: UploadAvatarUseCase(repository),
             );
           },
         ),

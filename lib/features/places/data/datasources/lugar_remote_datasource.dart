@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:spotly/features/destinations/data/models/favorite_place_model.dart';
 
 class LugarRemoteDatasource {
   final SupabaseClient client;
   LugarRemoteDatasource(this.client);
 
   Future<Map<String, dynamic>?> getLugarDetalle(int lugarId) async {
-    // NO agregues parámetros extras que la función RPC no espera
     final res = await client.rpc('get_lugar_detalle', params: {
       'p_lugar_id': lugarId,
     });
@@ -26,64 +26,59 @@ class LugarRemoteDatasource {
     });
   }
 
-  // MÉTODO PARA ACTUALIZAR LUGAR
   Future<void> updateLugar(int id, Map<String, dynamic> data) async {
-    try {
-      final Map<String, dynamic> cleanData = {};
+    await client.from('lugares').update(data).eq('id', id);
+  }
 
-      final allowedFields = {
-        'nombre_lugar',
-        'descripcion',
-        'resumen',
-        'direccion',
-        'altura_msnm',
-        'clima_recomendado',
-        'mejor_epoca_visitar',
-        'informacion_util',
-        'foto_portada_url',
-      };
+  Future<List<FavoritePlaceModel>> getFavoritePlaces(String userId) async {
+    final response = await client.from('favorite_places').select('''
+          lugar_id,
+          lugares!inner (
+            id_lugar,
+            nombre_lugar,
+            foto_portada_url,
+            id_categoria,
+            id_departamento,
+            es_verificado,
+            categorias!inner (nombre_categoria),
+            departamentos!inner (nombre_departamento)
+          )
+        ''').eq('user_id', userId);
 
-      data.forEach((key, value) {
-        if (allowedFields.contains(key) && value != null) {
-          cleanData[key] = value;
-        }
+    return response.map((fav) {
+      final lugar = fav['lugares'] as Map<String, dynamic>;
+      return FavoritePlaceModel.fromMap({
+        'id_lugar': lugar['id_lugar'],
+        'nombre_lugar': lugar['nombre_lugar'],
+        'foto_portada_url': lugar['foto_portada_url'],
+        'id_categoria': lugar['id_categoria'],
+        'id_departamento': lugar['id_departamento'],
+        'es_verificado': lugar['es_verificado'],
+        'categoria_nombre': lugar['categorias']['nombre_categoria'],
+        'departamento_nombre': lugar['departamentos']['nombre_departamento'],
       });
-
-      if (cleanData.isEmpty) {
-        print("No hay campos válidos para actualizar");
-        return;
-      }
-
-      print("Actualizando lugar $id con: $cleanData");
-
-      await client.from('lugares').update(cleanData).eq('id_lugar', id);
-    } catch (e) {
-      print("Error detallado en updateLugar: $e");
-      throw Exception('Error al actualizar lugar: $e');
-    }
+    }).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getCategorias() async {
-    try {
-      final response = await client
-          .from('categorias')
-          .select('id_categoria, nombre_categoria');
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      print("Error obteniendo categorías: $e");
-      return [];
-    }
-  }
+  Future<void> toggleFavorite(
+      {required String userId, required int lugarId}) async {
+    final existing = await client
+        .from('favorite_places')
+        .select()
+        .eq('user_id', userId)
+        .eq('lugar_id', lugarId);
 
-  Future<List<Map<String, dynamic>>> getDepartamentos() async {
-    try {
-      final response = await client
-          .from('departamentos')
-          .select('id_departamento, nombre_departamento');
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      print("Error obteniendo departamentos: $e");
-      return [];
+    if (existing.isEmpty) {
+      await client.from('favorite_places').insert({
+        'user_id': userId,
+        'lugar_id': lugarId,
+      });
+    } else {
+      await client
+          .from('favorite_places')
+          .delete()
+          .eq('user_id', userId)
+          .eq('lugar_id', lugarId);
     }
   }
 }

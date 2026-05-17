@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:spotly/features/search/presentation/spotly_search_delegation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../context/auth_context.dart';
@@ -50,7 +51,12 @@ class MainNavigation extends StatelessWidget {
           dark: dark,
           isAdmin: auth.role == 'admin',
           onTheme: () => ThemeUtils.toggle(context),
-          onSearch: () {},
+          onSearch: () {
+            showSearch(
+              context: context,
+              delegate: SpotlySearchDelegate(dark: dark), // Pasamos el modo actual
+            );
+          },
         ),
       ),
 

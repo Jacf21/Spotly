@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/themes/spotly_colors.dart';
 import '../../../../core/utils/theme_utils.dart';
-import '../../../../core/utils/notifications_helper.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
@@ -30,128 +29,91 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   Future<void> clearBadge() async {
-  final user = Supabase.instance.client.auth.currentUser;
-  if (user == null) return;
+    final user = Supabase.instance.client.auth.currentUser;
 
-  await markNotificationsAsSeen(user.id);
+    if (user == null) return;
 
-  if (mounted) {
-    setState(() {});
+    await Supabase.instance.client
+        .from('notificaciones')
+        .update({'leido': true})
+        .eq('id_usuario_destino', user.id)
+        .eq('leido', false);
+
+    if (mounted) {
+      setState(() {});
+    }
   }
-}
 
   Future<void> load() async {
     final user = Supabase.instance.client.auth.currentUser;
+
     if (user == null) return;
 
-    final myId = user.id;
-
-    final posts = await Supabase.instance.client
-        .from('publicaciones')
-        .select('id_publicacion, titulo')
-        .eq('id_usuario', myId);
-
-    if (posts.isEmpty) {
-      setState(() {
-        loading = false;
-      });
-      return;
-    }
-
-    final ids = posts.map((e) => e['id_publicacion']).toList();
-
-    final titles = {
-      for (var p in posts) p['id_publicacion']: p['titulo']
-    };
-
-    final likes = await Supabase.instance.client
-        .from('likes')
-        .select()
-        .inFilter('id_publicacion', ids);
-
-    final comments = await Supabase.instance.client
-        .from('comentarios')
-        .select()
-        .inFilter('id_publicacion', ids)
-        .neq('id_usuario', myId);
-
-    List data = [];
-
-    Map<dynamic, List<dynamic>> groupedLikes = {};
-
-for (final like in likes) {
-  final postId = like['id_publicacion'];
-
-  groupedLikes.putIfAbsent(postId, () => []);
-  groupedLikes[postId]!.add(like);
-}
-
-for (final entry in groupedLikes.entries) {
-  final postId = entry.key;
-  final group = entry.value;
-
-  List<String> nombres = [];
-
-  for (final like in group) {
-    final perfil = await Supabase.instance.client
-        .from('perfiles')
-        .select('nombres')
-        .eq('id_usuario', like['id_usuario'])
-        .single();
-
-    nombres.add(perfil['nombres']);
-  }
-
-  final firstName = nombres.first;
-  final others = nombres.length - 1;
-
-  String text;
-
-  if (others <= 0) {
-    text = "$firstName indicó que le gusta tu publicación ❤️";
-  } else {
-    text =
-        "$firstName y $others personas más indicaron que les gusta tu publicación ❤️";
-  }
-
-  data.add({
-  "text": text,
-  "post": titles[postId] ?? '',
-  "date": group.last["created_at"],
-  "readKey": "like_$postId",
-  "postId": postId,
-  "type": "like",
-});
-}
-
-    for (final c in comments) {
-      final actorId = c['id_usuario'];
-
-      final perfil = await Supabase.instance.client
-          .from('perfiles')
-          .select('nombres, apellidos')
-          .eq('id_usuario', actorId)
-          .single();
-
-      final nombre = '${perfil['nombres']} ${perfil['apellidos']}';
-
-        data.add({
-         "text": "$nombre comentó: ${c['texto_comentario']}",
-         "post": titles[c['id_publicacion']] ?? '',
-         "date": c["created_at"],
-         "readKey": "comment_${c['id_comentario']}",
-         "postId": c["id_publicacion"],
-         "commentId": c["id_comentario"],
-         "type": "comment",
-         });
-    }
-
-    data.sort((a, b) => b["date"].compareTo(a["date"]));
+    final data = await Supabase.instance.client
+        .from('notificaciones')
+        .select('''
+          *,
+          actor:perfiles!notificaciones_id_usuario_actor_fkey(
+            nombres,
+            apellidos,
+            foto_perfil_url
+          ),
+          publicaciones (
+            titulo
+          ),
+          lugares (
+            nombre_lugar
+          )
+        ''')
+        .eq('id_usuario_destino', user.id)
+        .order('created_at', ascending: false);
 
     setState(() {
       notifications = data;
       loading = false;
     });
+  }
+
+  String buildNotificationText(Map n) {
+  final actor = n['actor'];
+
+  final nombre =
+      '${actor?['nombres'] ?? ''} ${actor?['apellidos'] ?? ''}'.trim();
+
+  switch (n['tipo']) {
+    case 'like':
+      return '$nombre indicó que le gusta tu publicación ❤️';
+
+    case 'comentario':
+      return '$nombre comentó tu publicación 💬';
+
+    case 'follow':
+      return '$nombre comenzó a seguirte 👤';
+
+    case 'sugerencia_lugar':
+  final lugar =
+      n['lugares']?['nombre_lugar'] ?? 'un lugar';
+
+  return '$nombre te sugirió visitar $lugar 📍';
+
+    default:
+      return 'Nueva notificación';
+  }
+}
+
+  String buildSubtitle(Map n) {
+  if (n['tipo'] == 'sugerencia_lugar') {
+    return n['lugares']?['nombre_lugar'] ?? '';
+  }
+
+  return n['publicaciones']?['titulo'] ?? '';
+}
+
+  Future<void> markAsRead(int id) async {
+    await Supabase.instance.client
+        .from('notificaciones')
+        .update({'leido': true})
+        .eq('id_notificacion', id);
   }
 
   @override
@@ -189,93 +151,121 @@ for (final entry in groupedLikes.entries) {
                   padding: const EdgeInsets.all(14),
                   itemCount: notifications.length,
                   itemBuilder: (context, i) {
-  final n = notifications[i];
+                    final n = notifications[i];
 
-  return FutureBuilder<bool>(
-    future: isNotificationRead(n["readKey"]),
-    builder: (context, snapshot) {
-      final isRead = snapshot.data ?? false;
+                    final isRead = n['leido'] ?? false;
 
-      return GestureDetector(
-        onTap: () async {
-  await markNotificationRead(n["readKey"]);
+                    return GestureDetector(
+                      onTap: () async {
+                        await markAsRead(n['id_notificacion']);
 
-  if (mounted) setState(() {});
+                        if (mounted) {
+                          setState(() {
+                            n['leido'] = true;
+                          });
+                        }
 
-  final postId = n["postId"];
-  final commentId = n["commentId"];
+                        final tipo = n['tipo'];
 
-  if (n["type"] == "comment" && commentId != null) {
-    context.push('/feed?postId=$postId&commentId=$commentId');
-  } else {
-    context.push('/feed?postId=$postId');
-  }
-},
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isRead
-                ? (dark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.03))
-                : SpotlyColors.accent(dark).withOpacity(0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: dark ? Colors.white10 : Colors.black12,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.notifications,
-                color: SpotlyColors.accent(dark),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      n["text"],
-                      style: TextStyle(
-                        color: SpotlyColors.text(dark),
-                        fontWeight: isRead
-                            ? FontWeight.normal
-                            : FontWeight.bold,
+                        if (tipo == 'sugerencia_lugar') {
+                          final lugarId = n['id_lugar'];
+
+                          if (lugarId != null) {
+                            context.push('/lugar/$lugarId');
+                          }
+
+                          return;
+                        }
+
+                        final postId = n['id_publicacion'];
+                        final commentId = n['id_comentario'];
+
+                        if (postId == null) return;
+
+                        if (tipo == 'comentario' &&
+                            commentId != null) {
+                          context.push(
+                            '/feed?postId=$postId&commentId=$commentId',
+                          );
+                        } else {
+                          context.push('/feed?postId=$postId');
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isRead
+                              ? (dark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03))
+                              : SpotlyColors.accent(dark)
+                                  .withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color:
+                                dark ? Colors.white10 : Colors.black12,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.notifications,
+                              color: SpotlyColors.accent(dark),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    buildNotificationText(n),
+                                    style: TextStyle(
+                                      color:
+                                          SpotlyColors.text(dark),
+                                      fontWeight: isRead
+                                          ? FontWeight.normal
+                                          : FontWeight.bold,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 4),
+
+                                  if (buildSubtitle(n).isNotEmpty)
+                                    Text(
+                                      "En: ${buildSubtitle(n)}",
+                                      style: TextStyle(
+                                        color: SpotlyColors.subText(dark),
+                                      ),
+                                    ),
+
+                                  const SizedBox(height: 4),
+
+                                  Text(
+                                    timeago.format(
+                                      DateTime.parse(
+                                        n["created_at"],
+                                      ).toLocal(),
+                                      locale: 'es',
+                                    ),
+                                    style: TextStyle(
+                                      color:
+                                          SpotlyColors.subText(dark),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "En: ${n["post"]}",
-                      style: TextStyle(
-                        color: SpotlyColors.subText(dark),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      timeago.format(
-                        DateTime.parse(n["date"]).toLocal(),
-                        locale: 'es',
-                      ),
-                      style: TextStyle(
-                        color: SpotlyColors.subText(dark),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      )
-          .animate()
-          .fadeIn(duration: 300.ms)
-          .slideY(begin: 0.15);
-    },
-  );
-},
+                    )
+                        .animate()
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: 0.15);
+                  },
                 ),
     );
   }

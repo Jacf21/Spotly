@@ -12,6 +12,12 @@ class ProfileLoaded extends ProfileState {
   ProfileLoaded(this.profile);
 }
 
+class ProfileAvatarUpdating extends ProfileState {}
+class ProfileAvatarUpdated extends ProfileState {
+  final String newUrl;
+  ProfileAvatarUpdated(this.newUrl);
+}
+
 class ProfileUpdateSuccess extends ProfileState {}
 
 class ProfileError extends ProfileState {

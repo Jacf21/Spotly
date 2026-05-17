@@ -144,6 +144,27 @@ class _CommentsPageState extends State<CommentsPage> {
         parentId: replyToId,
         replyToUserName: replyToUserName,
       );
+      final post = await Supabase.instance.client
+    .from('publicaciones')
+    .select('id_usuario')
+    .eq('id_publicacion', widget.postId)
+    .single();
+
+final ownerPostId = post['id_usuario'];
+
+// CREAR NOTIFICACIÓN
+if (ownerPostId != user.id) {
+  await Supabase.instance.client
+      .from('notificaciones')
+      .insert({
+    'id_usuario_destino': ownerPostId,
+    'id_usuario_actor': user.id,
+    'tipo': 'comentario',
+    'id_publicacion': widget.postId,
+    'id_comentario': newComment.id,
+    'contenido': finalTexto,
+  });
+}
 
       setState(() {
         _comments.add(newComment);

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart'; 
 import 'package:spotly/features/auth/presentation/pages/login_page.dart';
 import 'package:spotly/features/auth/presentation/pages/register_page.dart';
 import 'package:spotly/features/auth/presentation/pages/admin_dashboard_page.dart';
@@ -10,7 +10,12 @@ import 'package:spotly/features/profile/presentation/pages/profile_page.dart';
 import 'package:spotly/features/places/presentation/pages/lugar_profile_page.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 import 'package:spotly/features/notifications/alerts_page.dart';
+import 'package:spotly/features/map/presentation/pages/map_page.dart';
 import 'package:spotly/core/widgets/main_navigation.dart';
+import 'package:spotly/features/places/presentation/pages/favorites_places_page.dart';
+import 'package:spotly/features/profile/presentation/pages/followers_page.dart';
+
+
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -53,8 +58,21 @@ final appRouter = GoRouter(
           },
         ),
         GoRoute(
+  path: '/favoritos',
+  builder: (context, state) => const FavoritesPlacesPage(),
+),
+        GoRoute(
           path: '/map',
-          builder: (context, state) => const Center(child: Text("Mapa")),
+          builder: (context, state) {
+            // El extra puede ser un LatLng (navegando desde un perfil de lugar)
+            final lugarInicial = state.extra as LatLng?;
+            return MapPage(lugarInicial: lugarInicial);
+          },
+        ),
+        GoRoute(
+          path: '/post',
+          builder: (context, state) =>
+              const CreatePostPage(),
         ),
         GoRoute(
           path: '/alerts',
@@ -85,5 +103,28 @@ final appRouter = GoRouter(
       path: '/admin',
       builder: (context, state) => const AdminDashboardPage(),
     ),
+   GoRoute(
+  path: '/followers/:userId/:type',
+  builder: (context, state) {
+
+    final userId =
+        state.pathParameters['userId']!;
+
+    final type =
+        state.pathParameters['type']!;
+
+    return FollowersPage(
+      userId: userId,
+      showFollowers:
+          type == 'followers',
+    );
+  },
+),
+
+GoRoute(
+  path: '/edit-profile',
+  builder: (context, state) => const EditProfilePage(),
+),
+
   ],
 );
