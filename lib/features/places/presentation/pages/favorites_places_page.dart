@@ -273,7 +273,7 @@ class _FavoritesPlacesPageState
 
                         Row(
                           children: [
-                            Icon(
+                            const Icon(
                               LucideIcons.mapPin,
                               size: 13,
                               color: Colors.white70,

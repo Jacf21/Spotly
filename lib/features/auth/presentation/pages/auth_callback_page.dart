@@ -20,19 +20,18 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 
   Future<void> _handleCallback() async {
     try {
-      // Supabase con PKCE intercepta el ?code= automáticamente
-      // Solo esperamos a que la sesión esté lista
+      // Supabase con PKCE intercepta el ?code= automáticamente.
+      // Esperamos brevemente a que la sesión esté lista.
       await Future.delayed(const Duration(milliseconds: 500));
 
       final session = Supabase.instance.client.auth.currentSession;
-
       if (!mounted) return;
 
       if (session != null) {
         final auth = Provider.of<AuthProvider>(context, listen: false);
         final user = session.user;
 
-        // Sync perfil
+        // Crear perfil si no existe (primera vez con OAuth)
         final perfil = await Supabase.instance.client
             .from('perfiles')
             .select('rol')
@@ -48,15 +47,17 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
           });
         }
 
-        final rol = perfil?['rol'] ?? 'user';
-        auth.login(rol.toString(), user.id);
+        // loginFromDB lee el rol desde BD (fuente de verdad), no del JWT.
+        // Esto garantiza que admin en móvil funcione igual que en web.
+        await auth.loginFromDB(user.id);
 
         if (!mounted) return;
-        context.go(rol == 'admin' ? '/admin' : '/feed');
+        context.go(auth.role == 'admin' ? '/admin' : '/feed');
       } else {
         context.go('/login');
       }
     } catch (e) {
+      debugPrint('AuthCallback error: $e');
       if (mounted) context.go('/login');
     }
   }
@@ -64,9 +65,7 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
