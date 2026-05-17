@@ -27,7 +27,32 @@ class LugarRemoteDatasource {
   }
 
   Future<void> updateLugar(int id, Map<String, dynamic> data) async {
-    await client.from('lugares').update(data).eq('id', id);
+    try {
+      print("🟢 [updateLugar] Actualizando lugar ID: $id");
+      print("🟢 [updateLugar] Datos a enviar: $data");
+
+      // Limpiar campos null
+      final Map<String, dynamic> cleanData = {};
+      data.forEach((key, value) {
+        if (value != null) {
+          cleanData[key] = value;
+        }
+      });
+
+      print("🟢 [updateLugar] Datos limpios: $cleanData");
+
+      // IMPORTANTE: Usar 'id_lugar' en lugar de 'id'
+      final response = await client
+          .from('lugares')
+          .update(cleanData)
+          .eq('id_lugar', id) // ← CORREGIDO: id_lugar
+          .select();
+
+      print("🟢 [updateLugar] Respuesta exitosa: $response");
+    } catch (e) {
+      print("🔴 [updateLugar] ERROR: $e");
+      rethrow;
+    }
   }
 
   Future<List<FavoritePlaceModel>> getFavoritePlaces(String userId) async {
