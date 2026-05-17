@@ -228,18 +228,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
                         ],
                       ),
-
-                      // ── Badge verificado ───────────────────────
-                      if (l.esVerificado)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: _badge(
-                            "Verificado",
-                            Icons.verified,
-                            SpotlyColors.accent(dark),
-                            dark,
-                          ),
-                        ),
                     ],
                   ),
 
@@ -447,20 +435,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
               size: 20,
               color: active ? SpotlyColors.accent(dark) : SpotlyColors.subText(dark)),
         ),
-      );
-
-  Widget _badge(String label, IconData icon, Color color, bool dark) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-        ]),
       );
 
   Widget _chip(String label, IconData icon, bool dark) => Container(

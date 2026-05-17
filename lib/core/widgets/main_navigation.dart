@@ -17,13 +17,21 @@ class MainNavigation extends StatelessWidget {
 
   const MainNavigation({super.key, required this.child});
 
-  int _getIndex(String location) {
+  int _getUserIndex(String location) {
     if (location.startsWith('/feed')) return 0;
     if (location.startsWith('/map')) return 1;
     if (location.startsWith('/post')) return 2;
     if (location.startsWith('/alerts')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
+  }
+
+  int _getAdminIndex(String location) {
+    if (location.startsWith('/admin/usuarios')) return 1;
+    if (location.startsWith('/admin/publicaciones')) return 2;
+    if (location.startsWith('/admin/lugares')) return 3;
+    if (location.startsWith('/admin/perfil')) return 4;
+    return 0; // /admin o /admin/dashboard
   }
 
   Future<int> _getNotifFuture() {
@@ -34,41 +42,37 @@ class MainNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
-    final currentIndex = _getIndex(location);
-
     final auth = context.watch<AuthProvider>();
+    final isAdmin = auth.role == 'admin';
     final isGuest = !auth.isLoggedIn;
     final dark = ThemeUtils.isDark(context);
+    final location = GoRouterState.of(context).uri.toString();
+    final currentIndex = isAdmin ? _getAdminIndex(location) : _getUserIndex(location);
 
     return Scaffold(
       backgroundColor: SpotlyColors.bg(dark),
 
-      /// 🔝 HEADER
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
         child: SpotlyTopBar(
           dark: dark,
-          isAdmin: auth.role == 'admin',
+          isAdmin: isAdmin,
           onTheme: () => ThemeUtils.toggle(context),
-          onSearch: () {
-            showSearch(
-              context: context,
-              delegate: SpotlySearchDelegate(dark: dark), // Pasamos el modo actual
-            );
-          },
+          onSearch: () => showSearch(
+            context: context,
+            delegate: SpotlySearchDelegate(dark: dark),
+          ),
         ),
       ),
 
-      /// 📦 CONTENIDO
       body: child,
 
-      /// 🔻 NAVBAR
       bottomNavigationBar: _buildBottomNav(
         context,
         currentIndex,
         dark,
         isGuest,
+        isAdmin,
         auth,
       ),
     );
@@ -79,6 +83,7 @@ class MainNavigation extends StatelessWidget {
     int currentIndex,
     bool dark,
     bool isGuest,
+    bool isAdmin,
     AuthProvider auth,
   ) {
     return SafeArea(
@@ -92,52 +97,62 @@ class MainNavigation extends StatelessWidget {
             ),
           ),
         ),
-
         child: FutureBuilder<int>(
           key: ValueKey(GoRouterState.of(context).uri.toString()),
           future: _getNotifFuture(),
           builder: (context, snapshot) {
             final notifCount = snapshot.data ?? 0;
 
+            // ── Admin: fila simple, sin botón flotante ──────────────────────
+            if (isAdmin) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: SpotlyUI.buildNavItems(
+                  currentIndex: currentIndex,
+                  isDark: dark,
+                  isAdmin: true,
+                  notifCount: 0,
+                  onTap: (index) {
+                    switch (index) {
+                      case 0: context.go('/admin'); break;
+                      case 1: context.go('/admin/usuarios'); break;
+                      case 2: context.go('/admin/publicaciones'); break;
+                      case 3: context.go('/admin/lugares'); break;
+                      case 4: context.go('/admin/perfil'); break;
+                    }
+                  },
+                ),
+              );
+            }
+
+            // ── Usuario normal: fila + botón central flotante ───────────────
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                /// 🔹 NAV ITEMS (YA ARMADOS)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: SpotlyUI.buildNavItems(
                     currentIndex: currentIndex,
                     isDark: dark,
-                    isAdmin: auth.role == 'admin',
+                    isAdmin: false,
                     notifCount: notifCount,
                     onTap: (index) {
                       if (isGuest && index > 1) {
                         context.go('/login');
                         return;
                       }
-
                       switch (index) {
-                        case 0:
-                          context.go('/feed');
-                          break;
-                        case 1:
-                          context.go('/map');
-                          break;
-                        case 2:
-                          context.go('/post');
-                          break;
-                        case 3:
-                          context.go('/alerts');
-                          break;
-                        case 4:
-                          context.go('/profile');
-                          break;
+                        case 0: context.go('/feed'); break;
+                        case 1: context.go('/map'); break;
+                        case 2: context.go('/post'); break;
+                        case 3: context.go('/alerts'); break;
+                        case 4: context.go('/profile'); break;
                       }
                     },
                   ),
                 ),
 
-                /// ➕ BOTÓN CENTRADO REAL
+                // Botón "+" centrado flotante
                 Positioned(
                   top: 5,
                   left: 0,
@@ -146,10 +161,7 @@ class MainNavigation extends StatelessWidget {
                     child: SpotlyAddButton(
                       dark: dark,
                       onTap: () {
-                        if (isGuest) {
-                          context.go('/login');
-                          return;
-                        }
+                        if (isGuest) { context.go('/login'); return; }
                         context.go('/post');
                       },
                     ),

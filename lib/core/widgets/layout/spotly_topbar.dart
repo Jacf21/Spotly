@@ -58,7 +58,7 @@ class SpotlyTopBar extends StatelessWidget {
 
                 const SizedBox(width: 12),
 
-                if (isLoggedIn)
+                if (isLoggedIn && isAdmin==false)
                   // Botón de Filtros para la HU de ubicación
                   _TopBarIconButton(
                     icon: LucideIcons.slidersHorizontal, 
@@ -148,7 +148,7 @@ class _AdminBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Text(
-        'ADMIN PRO',
+        'ADMIN',
         style: TextStyle(
           color: Colors.white,
           fontSize: 10,
