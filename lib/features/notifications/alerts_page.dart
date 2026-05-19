@@ -91,10 +91,12 @@ class _AlertsPageState extends State<AlertsPage> {
       return '$nombre comenzó a seguirte 👤';
 
     case 'sugerencia_lugar':
-  final lugar =
-      n['lugares']?['nombre_lugar'] ?? 'un lugar';
+      final lugar =
+          n['lugares']?['nombre_lugar'] ?? 'un lugar';
 
-  return '$nombre te sugirió visitar $lugar 📍';
+      return '$nombre te sugirió visitar $lugar 📍';
+    case 'advertencia_publicacion':
+      return n['contenido'];
 
     default:
       return 'Nueva notificación';
@@ -174,6 +176,10 @@ class _AlertsPageState extends State<AlertsPage> {
                             context.push('/lugar/$lugarId');
                           }
 
+                          return;
+                        }
+
+                        if (tipo == 'advertencia_publicacion') {
                           return;
                         }
 

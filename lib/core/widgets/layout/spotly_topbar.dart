@@ -73,7 +73,7 @@ class SpotlyTopBar extends StatelessWidget {
                     },
                   ),
                   const SizedBox(width: 10),
-                if (isLoggedIn)
+                if (isLoggedIn && isAdmin==false)
                   _TopBarIconButton(
                     icon: LucideIcons.search,
                     dark: dark,

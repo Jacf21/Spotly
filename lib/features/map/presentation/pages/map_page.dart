@@ -255,7 +255,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         },
         onPositionChanged: (position, hasGesture) {
           if (hasGesture) {
-            position.center;
+            final center = position.center;
+            _cubit.updateCenter(center);
           }
         },
       ),
