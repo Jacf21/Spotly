@@ -16,16 +16,7 @@ import '../../bloc/map_state.dart';
 import '../widgets/explorar_zona_modal.dart';
 import '../widgets/lugar_bottom_sheet.dart'; // NUEVO
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  MapPage
-//
-//  Parámetros opcionales (pasados via GoRouter):
-//    • lugarInicial: LatLng  → centra el mapa en ese lugar al abrir
-//    • lugarModel: MapLugarModel → muestra el bottom sheet del lugar al abrir
-// ─────────────────────────────────────────────────────────────────────────────
-
 class MapPage extends StatefulWidget {
-  /// Si se navega desde el perfil de un lugar, pasa sus coordenadas aquí.
   final LatLng? lugarInicial;
 
   const MapPage({super.key, this.lugarInicial});
@@ -35,7 +26,6 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
-  // ── Controladores ──────────────────────────────────────────────────────────
   late final MapController _mapController;
   late final MapCubit _cubit;
   late final AnimationController _pulseController;
@@ -45,9 +35,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   final _searchFocus = FocusNode();
   Timer? _debounce;
 
-  // ── Estado LOCAL de búsqueda ──────────────────────────────────────────────
-  // Guardamos los resultados aquí para que el dropdown no se destruya cuando
-  // el cubit emite un nuevo estado (eso era el bug original).
   List<SearchResult> _resultadosLocales = [];
   bool _showResults = false;
   bool _buscando = false;
@@ -55,7 +42,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   // Flag para evitar abrir el bottom sheet múltiples veces
   bool _sheetAbierto = false;
 
-  // ── Zoom de animación para "volver a mi ubicación" ────────────────────────
   late final AnimationController _recenterAnim;
 
   @override
@@ -89,8 +75,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     // Inicia el cubit con el lugar inicial (puede ser null)
     _cubit.init(lugarInicial: widget.lugarInicial);
 
-    // Oculta dropdown cuando pierde foco, pero con delay para que
-    // onTap del resultado se complete primero (sin delay se cancela el tap)
     _searchFocus.addListener(() {
       if (!mounted) return;
       if (!_searchFocus.hasFocus) {
@@ -113,7 +97,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // ── Búsqueda con debounce ─────────────────────────────────────────────────
+  // ── Búsqueda con debounce ──
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
@@ -271,10 +255,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         },
         onPositionChanged: (position, hasGesture) {
           if (hasGesture) {
-            final center = position.center;
-            if (center != null) {
-              _cubit.updateCenter(center);
-            }
+            position.center;
           }
         },
       ),
@@ -282,8 +263,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         // Tiles del mapa
         TileLayer(
           urlTemplate: dark
-              ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
               : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: dark ? ['a', 'b', 'c', 'd'] : [],
           userAgentPackageName: 'com.example.spotly',
         ),
 
@@ -421,7 +403,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return Positioned(
       // Sube el banner para que no tape el FAB de re-centrar (bottom: 100)
       // El FAB de explorar zona está en bottom: 28, este queda encima de ambos
-      bottom: 100,
+      bottom: 160,
       left: 16,
       right: 16,
       child: Container(
@@ -732,7 +714,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     final accent = SpotlyColors.accent(dark);
 
     return Positioned(
-      bottom: 160,
+      bottom: 100,
       right: 16,
       child: FloatingActionButton.small(
         heroTag: 'recenter',
@@ -791,10 +773,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 //  Marcadores
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _LugarMarker extends StatelessWidget {
   final bool dark;
   final bool inZone;
@@ -889,10 +868,7 @@ class _MiUbicacionMarker extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 //  Painter del círculo de zona
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _CirclePainter extends CustomPainter {
   final Color color;
   final Color borderColor;
