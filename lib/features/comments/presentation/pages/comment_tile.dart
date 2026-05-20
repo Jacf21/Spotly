@@ -56,22 +56,8 @@ class _CommentTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
-                    text: TextSpan(
-                      style: TextStyle(color: textColor, fontSize: 14),
-                      children: [
-                        TextSpan(
-                          text: '${comment.nombreUsuario} ',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        if (comment.replyToUserName != null)
-                          TextSpan(
-                            text: '@${comment.replyToUserName} ',
-                            style: const TextStyle(color: Colors.blueAccent),
-                          ),
-                        TextSpan(text: comment.texto),
-                      ],
-                    ),
-                  ),
+  text: _buildTextWithMention(),
+),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -117,4 +103,40 @@ class _CommentTile extends StatelessWidget {
       ),
     );
   }
+  TextSpan _buildTextWithMention() {
+  final texto = comment.texto;
+  // Si el texto empieza con @, extraer la mención
+  if (texto.startsWith('@')) {
+    final espacioIndex = texto.indexOf(' ');
+    if (espacioIndex != -1) {
+      final mencion = texto.substring(0, espacioIndex);
+      final resto = texto.substring(espacioIndex + 1);
+      return TextSpan(
+        style: TextStyle(color: textColor, fontSize: 14),
+        children: [
+          TextSpan(
+            text: '${comment.nombreUsuario} ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: '$mencion ',
+            style: const TextStyle(color: Colors.blueAccent),
+          ),
+          TextSpan(text: resto),
+        ],
+      );
+    }
+  }
+  // Si no hay mención al inicio, mostrar todo normal
+  return TextSpan(
+    style: TextStyle(color: textColor, fontSize: 14),
+    children: [
+      TextSpan(
+        text: '${comment.nombreUsuario} ',
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      TextSpan(text: texto),
+    ],
+  );
+}
 }
