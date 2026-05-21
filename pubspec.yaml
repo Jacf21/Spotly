@@ -1,5 +1,5 @@
 name: spotly
-description: Aplicación de turismo para Bolivia
+description: Aplicación de turismo disruptiva para Bolivia.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,39 +9,74 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
-  # Supabase
-  supabase_flutter: ^2.10.3
-  
-  # Variables de entorno
+
+  # 🌐 CORE
+  supabase_flutter: ^2.12.0
   flutter_dotenv: ^6.0.0
+
+  # 🏛️ ARCHITECTURE
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.7
+  dartz: ^0.10.1
+  get_it: ^7.7.0
+
+  # 🎨 UI & DESIGN SYSTEM
+  flex_color_scheme: ^7.3.1
+  google_fonts: ^6.2.1
+  lucide_icons: ^0.257.0  # Versión estable para evitar errores de nombres
+  font_awesome_flutter: ^10.7.0
+  flutter_animate: ^4.5.0
+  rive: ^0.13.0
+  glass_kit: 4.0.2
+  flutter_custom_clippers: ^2.1.0
   
-  # Manejo de estado (elige uno)
-  provider: ^6.1.2
-  # O riverpod: ^2.5.1
-  # O flutter_bloc: ^8.1.6
-  
-  # Utilidades
-  equatable: ^2.0.7        # Para comparaciones de objetos
-  dartz: ^0.10.1           # Para Either (manejo de errores funcional)
-  intl: ^0.19.0            # Para internacionalización y fechas
-  image_picker: ^1.1.2     # Para seleccionar imágenes
-  geolocator: ^12.0.0      # Para geolocalización
-  google_maps_flutter: ^2.9.0  # Para mapas interactivos
-  
-  # Navegación
-  go_router: ^14.2.3       # Navegación declarativa
+  # 🖼️ MEDIA
+  cached_network_image: ^3.3.1
+  image_picker: ^1.1.0
+  path: ^1.9.0
+
+  # 🧭 NAVIGATION & MAPS
+  go_router: ^13.2.0
+  google_maps_flutter: ^2.6.1
+  geolocator: ^14.0.1
+  geocoding: ^3.0.0
+  latlong2: ^0.9.1
+  flutter_map: ^8.3.0
+  http: ^1.2.1
+  flutter_map_cancellable_tile_provider: ^3.1.0
+
+  # ⚙️ UTILS
+  intl: ^0.19.0
+  url_launcher: ^6.2.5
+  share_plus: 12.0.2
+  emoji_picker_flutter: ^4.4.0
+  timeago: ^3.7.1
+  provider: ^6.1.5+1
+
+
+dependency_overrides:
+  win32: ^5.15.0
+  timeago: ^3.7.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
-  build_runner: ^2.4.13    # Para generación de código
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.9
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
-  
+
+  # 📁 RECURSOS
   assets:
-    - .env                  # Variables de entorno
-    - assets/images/        # Imágenes
-    - assets/icons/         # Iconos
+    - .env
+    - assets/icons/
+   # - assets/images/
+   # - assets/rive/
+
+  # 🖋️ FUENTES (Usando Google Fonts via paquete, no necesitas declararlas aquí)
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/SpotlyIcon1.png"
