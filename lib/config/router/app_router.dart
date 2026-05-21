@@ -20,6 +20,7 @@ import 'package:spotly/features/admin/presentation/pages/admin_usuarios_page.dar
 import 'package:spotly/features/admin/presentation/pages/admin_publicaciones_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_lugares_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_profile_page.dart';
+import 'package:spotly/features/search/presentation/discover_peopple_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -133,6 +134,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin/perfil',
           builder: (context, state) => const AdminProfilePage(),
+        ),
+        GoRoute(
+          path: '/discover-people',
+          builder: (context, state) => const DiscoverPeoplePage(),
         ),
       ],
     ),

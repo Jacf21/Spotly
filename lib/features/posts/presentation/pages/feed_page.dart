@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:spotly/features/posts/presentation/widgets/horizontal_suggestions.dart';
+import 'package:spotly/features/search/data/repositories/search_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -365,7 +367,7 @@ class _FeedPageState extends State<FeedPage> {
           const SizedBox(height: 16),
           Text("No hay publicaciones aún 📭",
               style: TextStyle(
-                  color: dark ? Colors.white70 : Colors.black54, fontSize: 16)),
+                  color: SpotlyColors.text(dark), fontSize: 16)),
           const SizedBox(height: 8),
           TextButton(onPressed: loadFeed, child: const Text("Reintentar")),
         ],
@@ -374,24 +376,56 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildFeedList(bool dark, bool isGuest) {
+    final totalItemsWithSuggestions = feed.length + 1;
+    final finalCount = totalItemsWithSuggestions + (hasMore ? 1 : 0);
+
     return ListView.builder(
       controller: _scrollController,
-      itemCount: feed.length + (hasMore ? 1 : 0),
+      itemCount: finalCount,
       itemBuilder: (context, index) {
-        if (index == feed.length) {
+        if (hasMore && index == finalCount - 1) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        return _buildFeedItem(feed[index], dark, isGuest);
+
+        // Insertar carrusel horizontal en la posición (índice) del feed
+        if (index == 3) {
+          return FutureBuilder<List<Map<String, dynamic>>>(
+            future: SearchRepository().getPeopleSuggestions(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return HorizontalSuggestions(
+                suggestedUsers: snapshot.data!,
+                dark: dark,
+              );
+            },
+          );
+        }
+
+        int postRealIndex;
+        if (index > 3) {
+          postRealIndex = index - 1;
+        } else {
+          postRealIndex = index; 
+        }
+
+        if (postRealIndex < 0 || postRealIndex >= feed.length) {
+          return const SizedBox.shrink();
+        }
+
+        // Si pasó las validaciones, dibujamos el post real
+        return _buildFeedItem(feed[postRealIndex], dark, isGuest);
       },
     );
   }
 
   Widget _buildFeedItem(FeedItemModel item, bool dark, bool isGuest) {
-    final textColor = dark ? Colors.white : Colors.black;
-    final subColor = dark ? Colors.white70 : Colors.black54;
+    final textColor = SpotlyColors.text(dark);
+    final subColor = SpotlyColors.subText(dark);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,7 +441,7 @@ class _FeedPageState extends State<FeedPage> {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
+                  backgroundColor: SpotlyColors.card(dark),
                   backgroundImage:
                       item.avatar.isNotEmpty ? NetworkImage(item.avatar) : null,
                   child: item.avatar.isEmpty
