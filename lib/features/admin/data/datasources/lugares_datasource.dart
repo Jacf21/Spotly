@@ -16,7 +16,6 @@ class LugaresDatasource {
           foto_portada_url,
           es_verificado,
           es_destacado,
-          like_count,
           created_at,
           categorias!lugares_id_categoria_fkey (
             id_categoria,
@@ -32,21 +31,35 @@ class LugaresDatasource {
     final lugares = List<Map<String, dynamic>>.from(data);
     if (lugares.isEmpty) return [];
 
-    // Cuenta publicaciones por lugar en query separada
     final ids = lugares.map((l) => l['id_lugar']).toList();
+
+    // Conteo de publicaciones por lugar
     final pubCounts = await _client
         .from('publicaciones')
         .select('id_lugar')
         .inFilter('id_lugar', ids);
 
-    final countMap = <dynamic, int>{};
+    final pubCountMap = <dynamic, int>{};
     for (final p in List<Map<String, dynamic>>.from(pubCounts)) {
       final id = p['id_lugar'];
-      countMap[id] = (countMap[id] ?? 0) + 1;
+      pubCountMap[id] = (pubCountMap[id] ?? 0) + 1;
+    }
+
+    // Conteo de likes desde favoritos_lugares — query directa sin inFilter
+    final likes = await _client
+        .from('favoritos_lugares')
+        .select('lugar_id');
+
+    final likeCountMap = <dynamic, int>{};
+    for (final l in List<Map<String, dynamic>>.from(likes)) {
+      final id = l['lugar_id'];
+      likeCountMap[id] = (likeCountMap[id] ?? 0) + 1;
     }
 
     for (final l in lugares) {
-      l['publicaciones_count'] = countMap[l['id_lugar']] ?? 0;
+      final id = l['id_lugar'];
+      l['publicaciones_count'] = pubCountMap[id] ?? 0;
+      l['like_count'] = likeCountMap[id] ?? 0;
     }
 
     return lugares;

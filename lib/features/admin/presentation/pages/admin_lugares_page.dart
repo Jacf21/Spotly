@@ -1,5 +1,3 @@
-// features/admin/presentation/pages/admin_lugares_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -296,6 +294,11 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
       backgroundColor: SpotlyColors.card(dark),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      // isScrollControlled evita el overflow cuando hay muchas opciones
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.6,
+      ),
       builder: (_) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -315,31 +318,39 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold)),
           ),
-          // Opción "Todos"
-          ListTile(
-            title: Text('Todos',
-                style: TextStyle(color: SpotlyColors.text(dark))),
-            trailing: selected == null
-                ? Icon(LucideIcons.check,
-                    size: 16, color: SpotlyColors.accent(dark))
-                : null,
-            onTap: () {
-              Navigator.pop(context);
-              onSelect(null);
-            },
+          const Divider(height: 1),
+          // Flexible + ListView para que haga scroll si hay muchas opciones
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                ListTile(
+                  title: Text('Todos',
+                      style: TextStyle(color: SpotlyColors.text(dark))),
+                  trailing: selected == null
+                      ? Icon(LucideIcons.check,
+                          size: 16, color: SpotlyColors.accent(dark))
+                      : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onSelect(null);
+                  },
+                ),
+                ...options.map((o) => ListTile(
+                      title: Text(o,
+                          style: TextStyle(color: SpotlyColors.text(dark))),
+                      trailing: selected == o
+                          ? Icon(LucideIcons.check,
+                              size: 16, color: SpotlyColors.accent(dark))
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(o);
+                      },
+                    )),
+              ],
+            ),
           ),
-          ...options.map((o) => ListTile(
-                title: Text(o,
-                    style: TextStyle(color: SpotlyColors.text(dark))),
-                trailing: selected == o
-                    ? Icon(LucideIcons.check,
-                        size: 16, color: SpotlyColors.accent(dark))
-                    : null,
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(o);
-                },
-              )),
           const SizedBox(height: 16),
         ],
       ),
@@ -761,7 +772,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
                                 border: Border.all(
                                     color: accent, width: 2),
                               ),
-                              child: Center(
+                              child: const Center(
                                 child: Icon(LucideIcons.check,
                                     color: Colors.white, size: 28),
                               ),

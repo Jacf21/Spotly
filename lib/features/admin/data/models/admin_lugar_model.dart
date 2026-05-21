@@ -1,5 +1,3 @@
-// features/admin/data/models/admin_lugar_model.dart
-
 class AdminLugarModel {
   final int id;
   final String nombre;
