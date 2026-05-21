@@ -275,9 +275,13 @@ class MapCubit extends Cubit<MapState> {
         },
       );
 
-      final response = await http
-          .get(uri, headers: {'Accept-Language': 'es'})
-          .timeout(const Duration(seconds: 5));
+      // Nominatim exige un User-Agent descriptivo en producción (APK).
+      // Sin él devuelve 403 o lista vacía silenciosamente.
+      // Política: https://operations.osmfoundation.org/policies/nominatim/
+      final response = await http.get(uri, headers: {
+        'Accept-Language': 'es',
+        'User-Agent': 'Spotly/1.0 (app móvil Bolivia; contacto@spotly.app)',
+      }).timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) return [];
 

@@ -56,7 +56,7 @@ class SpotlyTopBar extends StatelessWidget {
                   onTap: onTheme,
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
                 if (isLoggedIn && isAdmin==false)
                   // Botón de Filtros para la HU de ubicación
@@ -72,8 +72,8 @@ class SpotlyTopBar extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(width: 12),
-                if (isLoggedIn)
+                  const SizedBox(width: 10),
+                if (isLoggedIn && isAdmin==false)
                   _TopBarIconButton(
                     icon: LucideIcons.search,
                     dark: dark,
@@ -81,7 +81,7 @@ class SpotlyTopBar extends StatelessWidget {
                   ),
 
                 if (isLoggedIn) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
                   PopupMenuButton<String>(
                     color: SpotlyColors.card(dark),

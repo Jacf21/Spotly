@@ -15,12 +15,19 @@ import 'package:spotly/features/places/presentation/pages/favorites_places_page.
 import 'package:spotly/features/profile/presentation/pages/followers_page.dart';
 
 // ── Páginas admin ──────────────────────────────────────────────────────────
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:spotly/features/admin/data/repositories/admin_profile_repository_impl.dart';
+import 'package:spotly/features/admin/presentation/bloc/admin_profile_bloc.dart';
+import 'package:spotly/features/admin/presentation/pages/admin_profile_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_usuarios_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_publicaciones_page.dart';
 import 'package:spotly/features/admin/presentation/pages/admin_lugares_page.dart';
-import 'package:spotly/features/admin/presentation/pages/admin_profile_page.dart';
+
 import 'package:spotly/features/search/presentation/discover_peopple_page.dart';
+
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -133,7 +140,20 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/admin/perfil',
-          builder: (context, state) => const AdminProfilePage(),
+          builder: (context, state) {
+            return BlocProvider(
+              create: (_) => AdminProfileBloc(
+                AdminProfileRepository(
+                  Supabase.instance.client,
+                ),
+              )..add(
+                  OnFetchAdminProfile(
+                    Supabase.instance.client.auth.currentUser!.id,
+                  ),
+                ),
+              child: const AdminProfilePage(),
+            );
+          },
         ),
         GoRoute(
           path: '/discover-people',
