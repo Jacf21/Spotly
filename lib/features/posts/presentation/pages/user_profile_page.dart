@@ -66,91 +66,90 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Future<void> _loadFollowData() async {
-  final currentUser =
-      Supabase.instance.client.auth.currentUser;
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
-  if (currentUser == null) return;
+    if (currentUser == null) return;
 
-  final repo = FollowersRemoteDatasource(
-    Supabase.instance.client,
-  );
+    final repo = FollowersRemoteDatasource(
+      Supabase.instance.client,
+    );
 
-  final following = await repo.isFollowing(
-    seguidorId: currentUser.id,
-    seguidoId: widget.userId,
-  );
+    final following = await repo.isFollowing(
+      seguidorId: currentUser.id,
+      seguidoId: widget.userId,
+    );
 
-  final followers =
-      await repo.getFollowersCount(widget.userId);
+    final followers = await repo.getFollowersCount(widget.userId);
+    final followingCount = await repo.getFollowingCount(widget.userId);
 
-  final followingCount =
-      await repo.getFollowingCount(widget.userId);
-
-  if (mounted) {
-    setState(() {
-      _isFollowing = following;
-      _followersCount = followers;
-      _followingCount = followingCount;
-    });
-  }
-}
-
-Future<void> _toggleFollow() async {
-  final currentUser =
-      Supabase.instance.client.auth.currentUser;
-
-  if (currentUser == null) {
-    context.push('/login');
-    return;
-  }
-
-  final repo = FollowersRemoteDatasource(
-    Supabase.instance.client,
-  );
-
-  try {
-    if (_isFollowing) {
-      await repo.unfollowUser(
-        seguidorId: currentUser.id,
-        seguidoId: widget.userId,
-      );
-
+    if (mounted) {
       setState(() {
-        _isFollowing = false;
-        _followersCount--;
-      });
-    } else {
-      await repo.followUser(
-        seguidorId: currentUser.id,
-        seguidoId: widget.userId,
-
-      );
-      await Supabase.instance.client
-    .from('notificaciones_follow')
-    ..insert({
-  'id_usuario': widget.userId,
-  'id_usuario_actor': currentUser.id,
-});
-
-      setState(() {
-        _isFollowing = true;
-        _followersCount++;
+        _isFollowing = following;
+        _followersCount = followers;
+        _followingCount = followingCount;
       });
     }
-  } catch (e) {
-    debugPrint('Error follow: $e');
   }
-}
 
+  Future<void> _toggleFollow() async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+
+    if (currentUser == null) {
+      context.push('/login');
+      return;
+    }
+
+    final repo = FollowersRemoteDatasource(
+      Supabase.instance.client,
+    );
+
+    try {
+      if (_isFollowing) {
+        await repo.unfollowUser(
+          seguidorId: currentUser.id,
+          seguidoId: widget.userId,
+        );
+
+        setState(() {
+          _isFollowing = false;
+          _followersCount--;
+        });
+      } else {
+        await repo.followUser(
+          seguidorId: currentUser.id,
+          seguidoId: widget.userId,
+        );
+        await Supabase.instance.client
+            .from('notificaciones_follow')
+            .insert({
+          'id_usuario': widget.userId,
+          'id_usuario_actor': currentUser.id,
+        });
+
+        setState(() {
+          _isFollowing = true;
+          _followersCount++;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error follow: $e');
+    }
+  }
+
+  // Cargar posts propios + compartidos (TODO EN UNO - la RPC ya trae ambos)
   Future<void> _loadUserPosts() async {
     setState(() => _loading = true);
     try {
       final currentUserId = Supabase.instance.client.auth.currentUser?.id ??
           '00000000-0000-0000-0000-000000000000';
+      
       final repo = FeedRepository(
         FeedRemoteDatasource(Supabase.instance.client),
       );
+      
+      // getPostsByUser YA trae posts propios Y compartidos
       final posts = await repo.getPostsByUser(widget.userId, currentUserId);
+      
       if (mounted) {
         setState(() {
           _posts = posts;
@@ -261,15 +260,145 @@ Future<void> _toggleFollow() async {
     }
   }
 
-  void _share(FeedItemModel item) {}
+  // Función compartir desde perfil
+  Future<void> _share(FeedItemModel item) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user == null) {
+      context.push('/login');
+      return;
+    }
+    
+    // No se puede compartir tu propia publicación
+    if (user.id == item.userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No puedes compartir tu propia publicación')),
+      );
+      return;
+    }
+    
+    try {
+      final existingShare = await Supabase.instance.client
+          .from('publicaciones')
+          .select('id_publicacion')
+          .eq('id_publicacion_original', item.id)
+          .eq('id_usuario_que_comparte', user.id)
+          .eq('es_compartido', true)
+          .maybeSingle();
+      
+      if (existingShare != null) {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Ya compartiste esta publicación'),
+            content: const Text('¿Quieres dejar de compartirla?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+        
+        if (confirm == true) {
+          final sharedPostId = existingShare['id_publicacion'];
+          
+          // Eliminar la multimedia primero
+          await Supabase.instance.client
+              .from('multimedia')
+              .delete()
+              .eq('id_publicacion', sharedPostId);
+          
+          // Eliminar la publicación compartida
+          await Supabase.instance.client
+              .from('publicaciones')
+              .delete()
+              .eq('id_publicacion', sharedPostId);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Has dejado de compartir esta publicación')),
+            );
+            _loadUserPosts();
+          }
+        }
+        return;
+      }
+      
+      // Obtener la URL de la imagen del post original desde multimedia
+      final multimediaData = await Supabase.instance.client
+          .from('multimedia')
+          .select('url_recurso, tipo_recurso')
+          .eq('id_publicacion', item.id)
+          .maybeSingle();
+      
+      final imageUrl = multimediaData?['url_recurso'] ?? '';
+      final tipoRecurso = multimediaData?['tipo_recurso'] ?? 'foto';
+      
+      // 1. Insertar en publicaciones
+      final newPostResponse = await Supabase.instance.client
+          .from('publicaciones')
+          .insert({
+            'id_usuario': user.id,
+            'id_usuario_que_comparte': user.id,
+            'id_publicacion_original': item.id,
+            'es_compartido': true,
+            'descripcion_experiencia': null,
+            'comentario_activado': true,
+            'visible_para': 'public',
+            'id_lugar': item.lugarId,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select('id_publicacion')
+          .single();
+      
+      final newPostId = newPostResponse['id_publicacion'];
+      
+      // 2. Insertar en multimedia
+      await Supabase.instance.client.from('multimedia').insert({
+        'id_publicacion': newPostId,
+        'url_recurso': imageUrl,
+        'tipo_recurso': tipoRecurso,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      
+      if (item.userId != user.id) {
+        await Supabase.instance.client.from('notificaciones').insert({
+          'id_usuario_destino': item.userId,
+          'id_usuario_actor': user.id,
+          'tipo': 'compartir',
+          'id_publicacion': item.id,
+          'contenido': 'compartió tu publicación 🔄',
+        });
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Publicación compartida en tu perfil')),
+        );
+        _loadUserPosts();
+      }
+    } catch (e) {
+      debugPrint('Error al compartir: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al compartir publicación')),
+        );
+      }
+    }
+  }
 
   void _navigateToUserProfile(String userId) {
-  if (userId == widget.userId) return;
-
-  if (mounted) {
-    context.go('/user/$userId');
+    if (userId == widget.userId) return;
+    if (mounted) {
+      context.go('/user/$userId');
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -298,8 +427,7 @@ Future<void> _toggleFollow() async {
       ),
       body: _loading
           ? Center(
-              child:
-                  CircularProgressIndicator(color: SpotlyColors.accent(dark)),
+              child: CircularProgressIndicator(color: SpotlyColors.accent(dark)),
             )
           : _errorMessage.isNotEmpty
               ? Center(
@@ -325,8 +453,7 @@ Future<void> _toggleFollow() async {
                     else
                       SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              _buildPostItem(_posts[index], dark),
+                          (context, index) => _buildPostItem(_posts[index], dark),
                           childCount: _posts.length,
                         ),
                       ),
@@ -335,164 +462,127 @@ Future<void> _toggleFollow() async {
     );
   }
 
- Widget _buildProfileHeader(bool dark) {
-  final currentUserId =
-      Supabase.instance.client.auth.currentUser?.id;
+  Widget _buildProfileHeader(bool dark) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final isOwnProfile = currentUserId == widget.userId;
 
-  final isOwnProfile = currentUserId == widget.userId;
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 42,
+                backgroundImage: _userAvatar.isNotEmpty
+                    ? NetworkImage(_userAvatar)
+                    : null,
+                backgroundColor: dark ? Colors.white12 : Colors.grey.shade200,
+                child: _userAvatar.isEmpty
+                    ? Icon(
+                        LucideIcons.user,
+                        size: 40,
+                        color: SpotlyColors.subText(dark),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStat(
+                      '${_posts.length}',
+                      'Publicaciones',
+                      dark,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/followers/${widget.userId}/followers');
+                      },
+                      child: _buildStat(
+                        '$_followersCount',
+                        'Seguidores',
+                        dark,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/followers/${widget.userId}/following');
+                      },
+                      child: _buildStat(
+                        '$_followingCount',
+                        'Seguidos',
+                        dark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _userName,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: SpotlyColors.text(dark),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!isOwnProfile)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: _isFollowing
+                      ? Colors.grey.shade700
+                      : SpotlyColors.accent(dark),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _toggleFollow,
+                child: Text(
+                  _isFollowing ? 'Siguiendo' : 'Seguir',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
-  return Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
+  Widget _buildStat(String value, String label, bool dark) {
+    return Column(
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 42,
-              backgroundImage:
-                  _userAvatar.isNotEmpty
-                      ? NetworkImage(_userAvatar)
-                      : null,
-              backgroundColor:
-                  dark ? Colors.white12 : Colors.grey.shade200,
-              child: _userAvatar.isEmpty
-                  ? Icon(
-                      LucideIcons.user,
-                      size: 40,
-                      color: SpotlyColors.subText(dark),
-                    )
-                  : null,
-            ),
-
-            const SizedBox(width: 24),
-
-            Expanded(
-  child: Row(
-    mainAxisAlignment:
-        MainAxisAlignment.spaceEvenly,
-    children: [
-
-      _buildStat(
-        '${_posts.length}',
-        'Publicaciones',
-        dark,
-      ),
-
-      // =========================
-      // SEGUIDORES
-      // =========================
-      GestureDetector(
-        onTap: () {
-          context.push(
-            '/followers/${widget.userId}/followers',
-          );
-        },
-
-        child: _buildStat(
-          '$_followersCount',
-          'Seguidores',
-          dark,
-        ),
-      ),
-
-      // =========================
-      // SEGUIDOS
-      // =========================
-      GestureDetector(
-        onTap: () {
-          context.push(
-            '/followers/${widget.userId}/following',
-          );
-        },
-
-        child: _buildStat(
-          '$_followingCount',
-          'Seguidos',
-          dark,
-        ),
-      ),
-    ],
-  ),
-),
-          ],
-        ),
-
-        const SizedBox(height: 18),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            _userName,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: SpotlyColors.text(dark),
-            ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: SpotlyColors.text(dark),
           ),
         ),
-
-        const SizedBox(height: 16),
-
-        if (!isOwnProfile)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: _isFollowing
-                    ? Colors.grey.shade700
-                    : SpotlyColors.accent(dark),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                ),
-              ),
-              onPressed: _toggleFollow,
-              child: Text(
-                _isFollowing
-                    ? 'Siguiendo'
-                    : 'Seguir',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: SpotlyColors.subText(dark),
+            fontSize: 13,
           ),
+        ),
       ],
-    ),
-  );
-}
-
-Widget _buildStat(
-  String value,
-  String label,
-  bool dark,
-) {
-  return Column(
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          color: SpotlyColors.text(dark),
-        ),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        label,
-        style: TextStyle(
-          color: SpotlyColors.subText(dark),
-          fontSize: 13,
-        ),
-      ),
-    ],
-  );
-}
+    );
+  }
 
   Widget _buildPostItem(FeedItemModel item, bool dark) {
     final textColor = SpotlyColors.text(dark);
@@ -502,6 +592,7 @@ Widget _buildStat(
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header
         GestureDetector(
           onTap: () {
             if (item.userId != widget.userId) {
@@ -523,18 +614,48 @@ Widget _buildStat(
                       : null,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  item.usuario,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    fontSize: 14,
+                if (item.isShared)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Compartido por ${item.usuario}',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(LucideIcons.repeat, size: 12, color: Colors.green),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Publicación original de @${item.originalUserName ?? "usuario"}',
+                            style: TextStyle(
+                              color: subColor,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    item.usuario,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
         ),
+        
+        // Descripción
         if (item.descripcion != null && item.descripcion!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -543,6 +664,8 @@ Widget _buildStat(
               style: TextStyle(color: textColor, fontSize: 14),
             ),
           ),
+        
+        // Imagen
         Image.network(
           item.mediaUrl,
           width: double.infinity,
@@ -554,6 +677,8 @@ Widget _buildStat(
             child: Icon(LucideIcons.imageOff, color: subColor),
           ),
         ),
+        
+        // Acciones
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(
