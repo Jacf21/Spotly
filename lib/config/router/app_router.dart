@@ -13,6 +13,7 @@ import 'package:spotly/features/map/presentation/pages/map_page.dart';
 import 'package:spotly/core/widgets/main_navigation.dart';
 import 'package:spotly/features/places/presentation/pages/favorites_places_page.dart';
 import 'package:spotly/features/profile/presentation/pages/followers_page.dart';
+import 'package:spotly/features/posts/presentation/pages/favorite_posts_page.dart';
 
 // ── Páginas admin ──────────────────────────────────────────────────────────
 import 'package:spotly/features/admin/presentation/pages/admin_dashboard_page.dart';
@@ -133,6 +134,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin/perfil',
           builder: (context, state) => const AdminProfilePage(),
+        ),
+        GoRoute(
+          path: '/favorite-posts',
+          builder: (context, state) =>
+          const FavoritePostsPage(),
         ),
       ],
     ),

@@ -62,6 +62,9 @@ class ProfilePage extends StatelessWidget {
                 if (value == 'edit_profile') {
                   context.push('/edit-profile');
                 }
+                if (value == 'favorite_posts') {
+                  context.push('/favorite-posts');
+                }
               });
             },
             itemBuilder: (context) => [
@@ -103,6 +106,26 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
+              PopupMenuItem(
+                    value: 'favorite_posts',
+                        child: Row(
+                       children: [
+                   Icon(
+                      LucideIcons.bookmark,
+                       size: 18,
+                      color: SpotlyColors.text(dark),
+                      ),
+                            const SizedBox(width: 10),
+                      Text(
+                        'Publicaciones guardadas',
+                            style: TextStyle(
+                            color: SpotlyColors.text(dark),
+                        ),
+                        ),
+               ],
+             ),
+            ),
+
             ],
           )
         ],
