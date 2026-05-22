@@ -56,7 +56,7 @@ class LugarRemoteDatasource {
   }
 
   Future<List<FavoritePlaceModel>> getFavoritePlaces(String userId) async {
-    final response = await client.from('favorite_places').select('''
+    final response = await client.from('favoritos_lugares').select('''
           lugar_id,
           lugares!inner (
             id_lugar,
@@ -88,19 +88,19 @@ class LugarRemoteDatasource {
   Future<void> toggleFavorite(
       {required String userId, required int lugarId}) async {
     final existing = await client
-        .from('favorite_places')
+        .from('favoritos_lugares')
         .select()
         .eq('user_id', userId)
         .eq('lugar_id', lugarId);
 
     if (existing.isEmpty) {
-      await client.from('favorite_places').insert({
+      await client.from('favoritos_lugares').insert({
         'user_id': userId,
         'lugar_id': lugarId,
       });
     } else {
       await client
-          .from('favorite_places')
+          .from('favoritos_lugares')
           .delete()
           .eq('user_id', userId)
           .eq('lugar_id', lugarId);

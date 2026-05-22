@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/context/auth_context.dart';
@@ -413,59 +412,95 @@ final newPostResponse = await Supabase.instance.client
       isLoading = false;
     });
   }
-  Future<void> _reportPost(FeedItemModel item) async {
+  
+  Future<void> _reportPost(FeedItemModel item, final dark) async {
     final user = Supabase.instance.client.auth.currentUser;
 
     if (user == null) {
-      if (context.mounted) context.push('/login');
+      if (mounted) context.push('/login');
       return;
     }
 
+    // Capturar el context del Scaffold ANTES de cualquier await
+    final scaffoldMessenger = ScaffoldMessenger.of(context);  
     final controller = TextEditingController();
 
+    // Usar rootNavigator para evitar conflicto con el context del PopupMenu
     final motivo = await showDialog<String>(
       context: context,
+      useRootNavigator: true,
       barrierDismissible: true,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text("Reportar publicación"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: "Motivo (opcional)",
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: SpotlyColors.bg(dark), // Fondo del diálogo
+        title: Text(
+          "Reportar publicación",
+          style: TextStyle(color: SpotlyColors.text(dark)), // Color del título
+        ),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          style: TextStyle(color: SpotlyColors.text(dark)), // Color del texto
+          decoration: InputDecoration(
+            hintText: "Describe el motivo del reporte (opcional)",
+            hintStyle: TextStyle(color: SpotlyColors.subText(dark)), // Color del hint
+            border: const OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: dark ? Colors.white24 : Colors.black26),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: SpotlyColors.accent(dark), width: 2),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancelar"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              "Cancelar",
+              style: TextStyle(color: SpotlyColors.subText(dark)),
             ),
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, controller.text),
-              child: const Text("Reportar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text(
+              "Reportar",
+              style: TextStyle(color: Colors.redAccent),
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
 
     controller.dispose();
 
-    if (motivo == null) return;
+    if (motivo == null) return; // usuario canceló
 
-    await Supabase.instance.client.from('reportes_publicaciones').insert({
-      'id_publicacion': item.id,
-      'user_id': user.id,
-      'motivo': motivo,
-    });
+    try {
+      await Supabase.instance.client.from('reportes_publicaciones').insert({
+        'id_publicacion': item.id,
+        'user_id': user.id,
+        'motivo': motivo.isEmpty ? null : motivo,
+        'pendiente': true,
+      });
 
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Publicación reportada')),
-    );
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('Publicación reportada. Gracias.'),
+          backgroundColor: dark ? Colors.grey[800] : Colors.grey[200],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('Error al enviar el reporte'),
+          backgroundColor: dark ? Colors.grey[800] : Colors.grey[200],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
+
   
     @override
   Widget build(BuildContext context) {
@@ -593,7 +628,7 @@ final newPostResponse = await Supabase.instance.client
                 onSelected: (value) {
                   if (value == 'report') {
                     Future.delayed(Duration.zero, () {
-                      _reportPost(item);
+                      _reportPost(item, dark);
                     });
                   }
                 },
