@@ -591,18 +591,12 @@ final newPostResponse = await Supabase.instance.client
                   borderRadius: BorderRadius.circular(14),
                 ),
                 onSelected: (value) {
-<<<<<<< HEAD
-                  if (value == 'report') _reportPost(item, dark);
-                },
-              
-=======
                   if (value == 'report') {
                     Future.delayed(Duration.zero, () {
                       _reportPost(item);
                     });
                   }
                 },
->>>>>>> JGustavoAA
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     value: 'report',
