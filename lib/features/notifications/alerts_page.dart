@@ -176,6 +176,16 @@ class _AlertsPageState extends State<AlertsPage> {
 
                           return;
                         }
+                        if (tipo == 'follow') {
+
+                        final actorId = n['id_usuario_actor'];
+
+                        if (actorId != null) {
+                        context.push('/user/$actorId');
+                            }
+
+                          return;
+                            }
 
                         final postId = n['id_publicacion'];
                         final commentId = n['id_comentario'];

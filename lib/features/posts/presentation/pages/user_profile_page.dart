@@ -366,55 +366,62 @@ Future<void> _toggleFollow() async {
 
             const SizedBox(width: 24),
 
-            Expanded(
-  child: Row(
-    mainAxisAlignment:
-        MainAxisAlignment.spaceEvenly,
-    children: [
+Expanded(
+  child: FittedBox(
+    fit: BoxFit.scaleDown,
 
-      _buildStat(
-        '${_posts.length}',
-        'Publicaciones',
-        dark,
-      ),
+    child: Row(
+      children: [
 
-      // =========================
-      // SEGUIDORES
-      // =========================
-      GestureDetector(
-        onTap: () {
-          context.push(
-            '/followers/${widget.userId}/followers',
-          );
-        },
-
-        child: _buildStat(
-          '$_followersCount',
-          'Seguidores',
+        _buildStat(
+          '${_posts.length}',
+          'Publicaciones',
           dark,
         ),
-      ),
 
-      // =========================
-      // SEGUIDOS
-      // =========================
-      GestureDetector(
-        onTap: () {
-          context.push(
-            '/followers/${widget.userId}/following',
-          );
-        },
+        const SizedBox(width: 22),
 
-        child: _buildStat(
-          '$_followingCount',
-          'Seguidos',
-          dark,
+        // =========================
+        // SEGUIDORES
+        // =========================
+        GestureDetector(
+          onTap: () {
+            context.push(
+              '/followers/${widget.userId}/followers',
+            );
+          },
+
+          child: _buildStat(
+            '$_followersCount',
+            'Seguidores',
+            dark,
+          ),
         ),
-      ),
-    ],
+
+        const SizedBox(width: 22),
+
+        // =========================
+        // SEGUIDOS
+        // =========================
+        GestureDetector(
+          onTap: () {
+            context.push(
+              '/followers/${widget.userId}/following',
+            );
+          },
+
+          child: _buildStat(
+            '$_followingCount',
+            'Seguidos',
+            dark,
+          ),
+        ),
+      ],
+    ),
   ),
 ),
           ],
+
         ),
 
         const SizedBox(height: 18),
