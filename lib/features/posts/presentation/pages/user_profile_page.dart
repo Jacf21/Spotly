@@ -769,27 +769,27 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildStat(String value, String label, bool dark) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: SpotlyColors.text(dark),
-          ),
+  return Column(
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: SpotlyColors.text(dark),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: SpotlyColors.subText(dark),
-            fontSize: 13,
-          ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        style: TextStyle(
+          color: SpotlyColors.subText(dark),
+          fontSize: 13,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildPostItem(FeedItemModel item, bool dark) {
     final textColor = SpotlyColors.text(dark);
