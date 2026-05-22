@@ -98,6 +98,9 @@ class _AlertsPageState extends State<AlertsPage> {
     case 'advertencia_publicacion':
       return n['contenido'];
 
+    case 'compartir':
+      return '$nombre compartio tu publicación';
+
     default:
       return 'Nueva notificación';
   }
@@ -180,6 +183,31 @@ class _AlertsPageState extends State<AlertsPage> {
                         }
 
                         if (tipo == 'advertencia_publicacion') {
+                          return;
+                        }
+
+                        if (tipo == 'compartir') {
+                          final originalPostId = n['id_publicacion'];
+                          final actorId = n['id_usuario_actor'];
+
+                          if (originalPostId == null) return;
+
+                          // Buscar la publicación compartida por ese actor
+                          final result = await Supabase.instance.client
+                              .from('publicaciones')
+                              .select('id_publicacion')
+                              .eq('es_compartido', true)
+                              .eq('id_publicacion_original', originalPostId)
+                              .eq('id_usuario_que_comparte', actorId)
+                              .order('created_at', ascending: false)
+                              .limit(1)
+                              .maybeSingle();
+
+                          final sharedPostId = result?['id_publicacion'] ?? originalPostId;
+
+                          if (mounted) {
+                            context.push('/feed?postId=$sharedPostId');
+                          }
                           return;
                         }
 

@@ -129,9 +129,10 @@ class _CommentsPageState extends State<CommentsPage> {
     final replyToUserName = replyingTo?.nombreUsuario;
 
     String finalTexto = texto;
-    if (replyingTo != null) {
-      finalTexto = '@${replyingTo.nombreUsuario} $texto';
-    }
+// Solo agregar mención si NO estás respondiendo a tu propio comentario
+if (replyingTo != null && replyingTo.userId != user.id) {
+  finalTexto = '@${replyingTo.nombreUsuario} $texto';
+}
 
     _controller.clear();
     _cancelReply();
@@ -241,44 +242,7 @@ if (ownerPostId != user.id) {
   List<CommentModel> _repliesOf(int parentId) =>
       _comments.where((c) => c.parentId == parentId).toList();
 
-  Widget _buildThread(CommentModel comment, bool dark, Color textColor,
-      Color subColor, User? user) {
-    final isOwn = user?.id == comment.userId;
-    final replies = _repliesOf(comment.id);
-
-    _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CommentTile(
-            comment: comment,
-            isOwn: isOwn,
-            dark: dark,
-            textColor: textColor,
-            subColor: subColor,
-            onDelete: () => _deleteComment(comment),
-            onReply: () => _setReplyingTo(comment),
-            onLikeUpdate: (isLiked, newCount) =>
-                _updateCommentLike(comment.id, isLiked, newCount),
-            targetCommentId: widget.targetCommentId,
-          ),
-          if (replies.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 32),
-              child: Column(
-                children: replies
-                    .map(
-                        (r) => _buildThread(r, dark, textColor, subColor, user))
-                    .toList(),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -387,4 +351,46 @@ if (ownerPostId != user.id) {
       },
     );
   }
+
+Widget _buildThread(CommentModel comment, bool dark, Color textColor,
+    Color subColor, User? user, [int depth = 0]) {
+  final isOwn = user?.id == comment.userId;
+  final replies = _repliesOf(comment.id);
+  
+  // Limitar indentación máxima a 3 niveles (64px), pero mostrar todas las respuestas
+  final visualDepth = depth > 3 ? 3 : depth;
+
+  _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
+
+  return Padding(
+    padding: EdgeInsets.only(left: visualDepth > 0 ? 24.0 : 0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _CommentTile(
+          comment: comment,
+          isOwn: isOwn,
+          dark: dark,
+          textColor: textColor,
+          subColor: subColor,
+          onDelete: () => _deleteComment(comment),
+          onReply: () => _setReplyingTo(comment),
+          onLikeUpdate: (isLiked, newCount) =>
+              _updateCommentLike(comment.id, isLiked, newCount),
+          targetCommentId: widget.targetCommentId,
+        ),
+        if (replies.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Column(
+              children: replies
+                  .map((r) => _buildThread(
+                      r, dark, textColor, subColor, user, depth + 1))
+                  .toList(),
+            ),
+          ),
+      ],
+    ),
+  );
+}
 }

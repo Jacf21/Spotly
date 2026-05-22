@@ -20,13 +20,11 @@ class _EditLugarPageState extends State<EditLugarPage> {
   late final TextEditingController _nombreController;
   late final TextEditingController _descripcionController;
   late final TextEditingController _resumenController;
-  late final TextEditingController _direccionController;
   late final TextEditingController _alturaController;
   late final TextEditingController _climaController;
   late final TextEditingController _mejorEpocaController;
   late final TextEditingController _informacionUtilController;
   late final TextEditingController _categoriaController;
-  late final TextEditingController _departamentoController;
 
   bool _isLoading = false;
   late final LugarRepository _repo;
@@ -51,8 +49,6 @@ class _EditLugarPageState extends State<EditLugarPage> {
         TextEditingController(text: _safeString(widget.lugar.descripcion));
     _resumenController =
         TextEditingController(text: _safeString(widget.lugar.resumen));
-    _direccionController =
-        TextEditingController(text: _safeString(widget.lugar.direccion));
     _alturaController =
         TextEditingController(text: widget.lugar.alturaMsnm?.toString() ?? '');
     _climaController =
@@ -63,8 +59,6 @@ class _EditLugarPageState extends State<EditLugarPage> {
         TextEditingController(text: _safeString(widget.lugar.informacionUtil));
     _categoriaController =
         TextEditingController(text: _safeString(widget.lugar.categoria));
-    _departamentoController =
-        TextEditingController(text: _safeString(widget.lugar.departamento));
   }
 
   // Método de seguridad para strings nulos
@@ -76,13 +70,11 @@ class _EditLugarPageState extends State<EditLugarPage> {
     _safeDispose(_nombreController);
     _safeDispose(_descripcionController);
     _safeDispose(_resumenController);
-    _safeDispose(_direccionController);
     _safeDispose(_alturaController);
     _safeDispose(_climaController);
     _safeDispose(_mejorEpocaController);
     _safeDispose(_informacionUtilController);
     _safeDispose(_categoriaController);
-    _safeDispose(_departamentoController);
     super.dispose();
   }
 
@@ -129,9 +121,6 @@ class _EditLugarPageState extends State<EditLugarPage> {
         'resumen': _safeTrim(_resumenController.text).isEmpty
             ? null
             : _safeTrim(_resumenController.text),
-        'direccion': _safeTrim(_direccionController.text).isEmpty
-            ? null
-            : _safeTrim(_direccionController.text),
         'altura_msnm': _safeParseInt(_safeTrim(_alturaController.text)),
         'clima_recomendado': _safeTrim(_climaController.text).isEmpty
             ? null
@@ -335,24 +324,7 @@ class _EditLugarPageState extends State<EditLugarPage> {
               ),
               const SizedBox(height: 25),
 
-              _buildSectionTitle(dark, "UBICACIÓN"),
-              _buildTextField(
-                dark,
-                "Dirección",
-                _direccionController,
-                icon: Icons.location_on,
-                hintText: "Ej: Av. 6 de Agosto, esquina calle Comercio",
-              ),
-              const SizedBox(height: 15),
-              _buildTextField(
-                dark,
-                "Departamento (solo información, no editable en BD)",
-                _departamentoController,
-                icon: Icons.map,
-                hintText: "Ej: La Paz, Santa Cruz, Cochabamba",
-                enabled: false, // Campo solo lectura
-              ),
-              const SizedBox(height: 25),
+  
 
               _buildSectionTitle(dark, "CARACTERÍSTICAS"),
               _buildTextField(
