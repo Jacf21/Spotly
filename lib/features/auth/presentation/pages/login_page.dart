@@ -45,10 +45,21 @@ class _LoginPageState extends State<LoginPage> {
 
   void _onAuthChanged() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    if (auth.isVerifying) return;
+
+    if (auth.banMessage != null) {
+      SpotlyUI.toast(context, auth.banMessage!);
+      auth.clearBanMessage();
+      return;
+    }
+
     if (auth.isLoggedIn && mounted) {
       if (auth.role?.toLowerCase() == 'admin') {
+        SpotlyUI.toast(context, "Modo Admin: Acceso Total");
         context.go('/admin');
       } else {
+        SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
         context.go('/feed');
       }
     }
@@ -80,16 +91,14 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.user != null) {
         final user = response.user!;
-        final auth = Provider.of<AuthProvider>(context, listen: false);
 
-        // 🔍 Buscar perfil
+        // 🔍 Crear perfil si no existe
         final perfil = await Supabase.instance.client
             .from('perfiles')
             .select()
             .eq('id_usuario', user.id)
             .maybeSingle();
 
-        // 🆕 Si no existe → crearlo
         if (perfil == null) {
           await Supabase.instance.client.from('perfiles').insert({
             'id_usuario': user.id,
@@ -99,40 +108,13 @@ class _LoginPageState extends State<LoginPage> {
           });
         }
 
-        // 🔄 Obtener rol
-        final userData = await Supabase.instance.client
-            .from('perfiles')
-            .select('rol')
-            .eq('id_usuario', user.id)
-            .single();
-
-        final String userRol = (userData['rol'] ?? 'user').toString();
-
-        /// ✅ GUARDAR SESIÓN GLOBAL (Ahora pasando el ID del usuario)
-        auth.login(userRol, user.id);
-
-        if (!mounted) return;
-
-        auth.removeListener(_onAuthChanged);
-
-        if (userRol.toLowerCase() == 'admin') {
-          SpotlyUI.toast(context, "Modo Admin: Acceso Total");
-          context.go('/admin');
-        } else {
-          SpotlyUI.toast(context, "¡Bienvenido a Spotly!");
-          context.go('/feed');
-        }
       }
     } on AuthException catch (e) {
       debugPrint("Auth Error: ${e.message}");
       SpotlyUI.toast(context, e.message);
     } catch (e) {
       debugPrint("Error crítico: $e");
-      SpotlyUI.toast(context, "Error al verificar permisos");
-
-      if (mounted) {
-        context.go('/feed');
-      }
+      SpotlyUI.toast(context, "Error al iniciar sesión");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
