@@ -16,6 +16,10 @@ import '../../../posts/data/datasources/feed_remote_datasource.dart';
 import '../../../posts/data/datasources/post_interaction_remote_datasource.dart';
 import '../../../posts/data/repositories/post_interaction_repository.dart';
 import '../../../comments/presentation/pages/comments_page.dart';
+import 'package:spotly/features/stories/models/story_model.dart';
+import 'package:spotly/features/stories/widgets/stories_bar.dart';
+import 'package:spotly/features/stories/services/story_service.dart';
+
 
 class FeedPage extends StatefulWidget {
   final String? targetPostId;
@@ -39,10 +43,15 @@ class _FeedPageState extends State<FeedPage> {
   List<FeedItemModel> feed = [];
   String? _currentUserId;
   String? highlightedPostId;
+  final storyService = StoryService();
+List<StoryModel> stories = [];
+bool loadingStories = true;
 
   @override
   void initState() {
     super.initState();
+
+     loadStories();
     _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     loadFeed();
 
@@ -224,6 +233,26 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  Future<void> loadStories() async {
+  try {
+    final response = await storyService.getStories();
+
+    if (!mounted) return;
+
+    setState(() {
+      stories = response;
+      loadingStories = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      stories = [];
+      loadingStories = false;
+    });
+  }
+}
+
   Future<void> _openComments(FeedItemModel item) async {
     await showModalBottomSheet(
       context: context,
@@ -376,16 +405,59 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildFeedList(bool dark, bool isGuest) {
     return ListView.builder(
       controller: _scrollController,
-      itemCount: feed.length + (hasMore ? 1 : 0),
+      itemCount: feed.length + (hasMore ? 1 : 0)+1,
       itemBuilder: (context, index) {
-        if (index == feed.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        return _buildFeedItem(feed[index], dark, isGuest);
-      },
+
+  // =====================================
+  // STORIES
+  // =====================================
+
+  if (index == 0) {
+
+    if (loadingStories) {
+
+      return const Padding(
+
+        padding: EdgeInsets.all(20),
+
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return StoriesBar(
+
+      stories: stories,
+
+      onReload: loadStories,
+    );
+  }
+
+  index--;
+
+  // =====================================
+  // LOADING
+  // =====================================
+
+  if (index == feed.length) {
+
+    return const Padding(
+
+      padding: EdgeInsets.all(16),
+
+      child: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  return _buildFeedItem(
+    feed[index],
+    dark,
+    isGuest,
+  );
+},
     );
   }
 

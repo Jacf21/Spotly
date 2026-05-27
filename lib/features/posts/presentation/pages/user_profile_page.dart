@@ -125,13 +125,6 @@ Future<void> _toggleFollow() async {
         seguidoId: widget.userId,
 
       );
-      await Supabase.instance.client
-    .from('notificaciones_follow')
-    ..insert({
-  'id_usuario': widget.userId,
-  'id_usuario_actor': currentUser.id,
-});
-
       setState(() {
         _isFollowing = true;
         _followersCount++;

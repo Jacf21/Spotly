@@ -33,6 +33,7 @@ dependencies:
   # 🖼️ MEDIA
   cached_network_image: ^3.3.1
   image_picker: ^1.1.0
+  story_view: ^0.16.5
   path: ^1.9.0
 
   # 🧭 NAVIGATION & MAPS
