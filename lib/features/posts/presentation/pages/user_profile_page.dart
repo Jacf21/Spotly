@@ -113,31 +113,27 @@ class _UserProfilePageState extends State<UserProfilePage> {
           seguidoId: widget.userId,
         );
 
-        setState(() {
-          _isFollowing = false;
-          _followersCount--;
-        });
-      } else {
-        await repo.followUser(
-          seguidorId: currentUser.id,
-          seguidoId: widget.userId,
-        );
-        await Supabase.instance.client
-            .from('notificaciones_follow')
-            .insert({
-          'id_usuario': widget.userId,
-          'id_usuario_actor': currentUser.id,
-        });
+      setState(() {
+        _isFollowing = false;
+        _followersCount--;
+      });
+    } else {
+      await repo.followUser(
+        seguidorId: currentUser.id,
+        seguidoId: widget.userId,
 
-        setState(() {
-          _isFollowing = true;
-          _followersCount++;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error follow: $e');
+      );
+      
+
+      setState(() {
+        _isFollowing = true;
+        _followersCount++;
+      });
     }
+  } catch (e) {
+    debugPrint('Error follow: $e');
   }
+}
 
   // Cargar posts propios + compartidos (TODO EN UNO - la RPC ya trae ambos)
   Future<void> _loadUserPosts() async {
