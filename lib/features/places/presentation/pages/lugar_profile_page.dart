@@ -43,11 +43,12 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
 
   Future<void> _loadDetalle() async {
     final data = await _repo.getDetalle(widget.lugarId);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _lugar = data;
         _loadingLugar = false;
       });
+    }
   }
 
   Future<void> _loadPosts() async {
@@ -163,7 +164,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       },
       child: CustomScrollView(
         slivers: [
-          // ── AppBar ─────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -219,14 +219,12 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
             ),
           ),
 
-          // ── Info del lugar ──────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nombre + botones (favorito + ver en mapa + sugerir) + badge
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -246,7 +244,6 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // ── Botón "Ver en mapa" ────────────────────
                               if (l.coordenadas != null)
                                 Tooltip(
                                   message: 'Ver en mapa',
@@ -270,14 +267,12 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                                   ),
                                 ),
 
-                              // ── Botón favorito ─────────────────────────
                               _buildFavoriteButton(dark),
                             ],
                           ),
 
                           const SizedBox(height: 10),
 
-                          // ── Botón sugerir lugar ────────────────────
                           _buildSuggestButton(dark),
                         ],
                       ),
@@ -285,16 +280,15 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                   ),
 
                   const SizedBox(height: 8),
-
                   // Categoría + Departamento
                   Row(children: [
                     if (l.categoria.isNotEmpty) ...[
-                      Icon(LucideIcons.tag,
-                          size: 14, color: SpotlyColors.subText(dark)),
+                      Icon(LucideIcons.tag, size: 14, color: SpotlyColors.subText(dark)),
                       const SizedBox(width: 4),
-                      Text(l.categoria,
-                          style: TextStyle(
-                              color: SpotlyColors.subText(dark), fontSize: 13)),
+                      Flexible( // ← agregar
+                        child: Text(l.categoria,
+                            style: TextStyle(color: SpotlyColors.subText(dark), fontSize: 13)),
+                      ),
                       const SizedBox(width: 12),
                     ],
                     if (l.departamento.isNotEmpty) ...[
@@ -506,19 +500,25 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
       );
 
   Widget _chip(String label, IconData icon, bool dark) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: SpotlyColors.card(dark),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: SpotlyColors.shadow(dark),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: SpotlyColors.card(dark),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: SpotlyColors.shadow(dark),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: SpotlyColors.subText(dark)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(color: SpotlyColors.text(dark), fontSize: 12),
+            softWrap: true,
+            maxLines: 2,
+          ),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: SpotlyColors.subText(dark)),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(color: SpotlyColors.text(dark), fontSize: 12)),
-        ]),
-      );
+      ]),
+    );
 
   Widget _infoCard(String info, bool dark) => Container(
         padding: const EdgeInsets.all(16),

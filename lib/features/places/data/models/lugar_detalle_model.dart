@@ -56,8 +56,8 @@ class LugarDetalleModel {
       esVerificado:      j['es_verificado']       as bool? ?? false,
       esDestacado:       j['es_destacado']        as bool? ?? false,
       likeCount:         (j['like_count'] as num?)?.toInt() ?? 0,
-      categoria:         j['nombre_categoria']    as String? ?? '',
-      departamento:      j['nombre_departamento'] as String? ?? '',
+      categoria:         j['categoria']    as String? ?? '',
+      departamento:      j['departamento'] as String? ?? '',
       coordenadas: (lat != null && lng != null) ? LatLng(lat, lng) : null,
     );
   }

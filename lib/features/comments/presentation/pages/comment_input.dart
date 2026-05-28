@@ -49,7 +49,8 @@ class _CommentInput extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               style: TextStyle(color: textColor, fontSize: 14),
-              maxLines: null,
+              maxLines: 5,
+              minLines: 1,
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
                 hintText: hint,

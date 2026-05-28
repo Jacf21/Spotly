@@ -40,7 +40,6 @@ class _CommentsPageState extends State<CommentsPage> {
 
   bool _isLoading = true;
   bool _isSending = false;
-  int _addedCount = 0;
   bool _showEmoji = false;
 
   late final CommentRemoteDatasource _datasource;
@@ -169,7 +168,6 @@ if (ownerPostId != user.id) {
 
       setState(() {
         _comments.add(newComment);
-        _addedCount++;
       });
     } catch (e) {
       debugPrint('Error enviando comentario: $e');
@@ -183,23 +181,40 @@ if (ownerPostId != user.id) {
     }
   }
 
-  Future<void> _deleteComment(CommentModel comment) async {
+  Future<void> _deleteComment(CommentModel comment, bool dark) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null || user.id != comment.userId) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar comentario'),
-        content: const Text('¿Seguro que quieres eliminar este comentario?'),
+        backgroundColor: SpotlyColors.card(dark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Eliminar comentario',
+          style: TextStyle(
+            color: SpotlyColors.text(dark),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          '¿Seguro que quieres eliminar este comentario?',
+          style: TextStyle(color: SpotlyColors.subText(dark)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: SpotlyColors.accent(dark)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -211,13 +226,15 @@ if (ownerPostId != user.id) {
       await _datasource.deleteComment(commentId: comment.id, userId: user.id);
       setState(() {
         _comments.removeWhere((c) => c.id == comment.id);
-        _addedCount--;
       });
     } catch (e) {
       debugPrint('Error eliminando: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo eliminar el comentario')),
+          SnackBar(
+            content: const Text('No se pudo eliminar el comentario'),
+            backgroundColor: SpotlyColors.card(dark),
+          ),
         );
       }
     }
@@ -273,6 +290,7 @@ if (ownerPostId != user.id) {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   color: divColor,
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
                         child: Text(
@@ -373,7 +391,7 @@ Widget _buildThread(CommentModel comment, bool dark, Color textColor,
           dark: dark,
           textColor: textColor,
           subColor: subColor,
-          onDelete: () => _deleteComment(comment),
+          onDelete: () => _deleteComment(comment, dark),
           onReply: () => _setReplyingTo(comment),
           onLikeUpdate: (isLiked, newCount) =>
               _updateCommentLike(comment.id, isLiked, newCount),

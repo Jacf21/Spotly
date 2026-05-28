@@ -640,11 +640,6 @@ index--;
   final textColor = dark ? Colors.white : Colors.black;
   final subColor = dark ? Colors.white70 : Colors.black54;
 
-  // 🔍 DEPURACIÓN - Mostrar datos en consola
-  if (item.isShared) {
-    print('DEBUG FEED: id=${item.id}, isShared=${item.isShared}, originalUserName=${item.originalUserName}, usuario=${item.usuario}');
-  }
-
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

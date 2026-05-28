@@ -74,14 +74,13 @@ class LugaresDatasource {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  /// Trae las imágenes del bucket multimedia relacionadas al lugar
-  /// usando la tabla multimedia (url_recurso, es_portada)
   Future<List<Map<String, dynamic>>> fetchImagenesLugar(int lugarId) async {
     // Busca en publicaciones del lugar las imágenes subidas
     final pubs = await _client
         .from('publicaciones')
         .select('id_publicacion')
-        .eq('id_lugar', lugarId);
+        .eq('id_lugar', lugarId)
+        .eq('es_compartido', false);
 
     final pubIds = (pubs as List).map((p) => p['id_publicacion']).toList();
     if (pubIds.isEmpty) return [];
