@@ -131,15 +131,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     });
   }
 
-  // ── Selección de resultado ────────────────────────────────────────────────
-  // FIX PRINCIPAL: primero actualizamos estado local y movemos el mapa,
-  // DESPUÉS actualizamos el cubit. Así el dropdown ya desapareció cuando
-  // el BlocBuilder reconstruye, evitando el tap interrumpido.
-
   void _seleccionarResultado(SearchResult resultado) {
-    // Con onTapDown esto se ejecuta ANTES del cambio de foco,
-    // así que el mapa se mueve siempre sin importar el estado del teclado.
-
+    
     // 1. Actualiza el texto y oculta el dropdown
     _searchController.text = resultado.titulo;
     setState(() {
@@ -223,9 +216,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 _buildRecenterFab(dark),
               ],
 
-              // ── Dropdown de resultados (FUERA del BlocBuilder) ────────────
-              // Controlado por estado local para que onTap nunca sea
-              // interrumpido por un rebuild del árbol.
               if (_showResults) _buildSearchResults(dark),
             ],
           ),
@@ -402,8 +392,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Widget _buildRutaBanner(RouteInfo ruta, bool dark) {
     final accent = SpotlyColors.accent(dark);
     return Positioned(
-      // Sube el banner para que no tape el FAB de re-centrar (bottom: 100)
-      // El FAB de explorar zona está en bottom: 28, este queda encima de ambos
       bottom: 160,
       left: 16,
       right: 16,

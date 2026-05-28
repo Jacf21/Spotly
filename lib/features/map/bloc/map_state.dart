@@ -2,10 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/models/map_lugar_model.dart';
 
-// ─────────────────────────────────────────────
-//  SearchResult — resultado unificado (Supabase + Nominatim)
-// ─────────────────────────────────────────────
-
 class SearchResult {
   final String titulo;
   final String? subtitulo;
@@ -22,10 +18,7 @@ class SearchResult {
   });
 }
 
-// ─────────────────────────────────────────────
 //  RouteInfo — ruta calculada por OSRM
-// ─────────────────────────────────────────────
-
 class RouteInfo {
   final List<LatLng> puntos;
   final double distanciaKm;
@@ -38,10 +31,7 @@ class RouteInfo {
   });
 }
 
-// ─────────────────────────────────────────────
 //  Estados
-// ─────────────────────────────────────────────
-
 abstract class MapState extends Equatable {
   const MapState();
   @override

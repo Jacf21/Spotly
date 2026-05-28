@@ -20,11 +20,6 @@ class MapCubit extends Cubit<MapState> {
 
   MapCubit({required this.repository}) : super(MapInitial());
 
-  // ── Init ──────────────────────────────────────────────────────────────────
-  //
-  // [lugarInicial]: si se navega desde el perfil de un lugar, se pasa su LatLng
-  // para centrar el mapa ahí en vez de en la ubicación del usuario.
-
   Future<void> init({LatLng? lugarInicial}) async {
     emit(MapLoading());
 
@@ -79,10 +74,6 @@ class MapCubit extends Cubit<MapState> {
     });
   }
 
-  // ── Volver a mi ubicación (botón FAB) ────────────────────────────────────
-
-  /// Devuelve la LatLng actual del usuario para que la Page mueva el mapa.
-  /// Retorna null si no hay ubicación disponible.
   LatLng? getMiUbicacion() {
     final current = state;
     if (current is MapLoaded) return current.miUbicacion;
@@ -120,15 +111,11 @@ class MapCubit extends Cubit<MapState> {
     ));
   }
 
-  /// Limpia solo el marcador seleccionado (naranja) sin borrar la ruta activa.
-  /// Se usa cuando el usuario eligió "Cómo llegar" y cerró el sheet.
   void soloLimpiarSeleccion() {
     final current = state;
     if (current is! MapLoaded) return;
     emit(current.copyWith(clearLugarSeleccionado: true));
   }
-
-  // ── Trazar ruta (OSRM, gratuito, sin API key) ────────────────────────────
 
   Future<void> trazarRuta(LatLng destino) async {
     final current = state;
@@ -268,27 +255,33 @@ class MapCubit extends Cubit<MapState> {
         '/search',
         {
           'q': query,
-          'format': 'json',
+          'format': 'jsonv2',
           'limit': '5',
           'countrycodes': 'bo',
           'addressdetails': '1',
+          'accept-language': 'es',
         },
       );
 
-      // Nominatim exige un User-Agent descriptivo en producción (APK).
-      // Sin él devuelve 403 o lista vacía silenciosamente.
-      // Política: https://operations.osmfoundation.org/policies/nominatim/
-      final response = await http.get(uri, headers: {
-        'Accept-Language': 'es',
-        'User-Agent': 'Spotly/1.0 (app móvil Bolivia; contacto@spotly.app)',
-      }).timeout(const Duration(seconds: 8));
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'es',
+          'User-Agent': 'Spotly/1.0',
+        },
+      ).timeout(const Duration(seconds: 20)); // ← más tiempo para APK
 
       if (response.statusCode != 200) return [];
+      
+      final body = response.body.trim();
+      if (body.isEmpty || body == '[]') return [];
 
-      final List<dynamic> data = json.decode(response.body);
+      final List<dynamic> data = json.decode(body);
+      
       return data.map((item) {
-        final lat = double.parse(item['lat'] as String);
-        final lon = double.parse(item['lon'] as String);
+        final lat = double.tryParse(item['lat']?.toString() ?? '') ?? 0;
+        final lon = double.tryParse(item['lon']?.toString() ?? '') ?? 0;
         final displayName = item['display_name'] as String? ?? '';
         final partes = displayName.split(',');
         final titulo = partes.first.trim();
@@ -301,17 +294,15 @@ class MapCubit extends Cubit<MapState> {
           coordenadas: LatLng(lat, lon),
           esLugarRegistrado: false,
         );
-      }).toList();
-    } catch (_) {
+      }).where((r) => r.coordenadas.latitude != 0).toList();
+      
+    } catch (e) {
       return [];
     }
   }
 
   // ── Navegar a resultado de búsqueda ───────────────────────────────────────
 
-  /// Solo actualiza la zona y limpia resultados.
-  /// El movimiento del mapa lo hace la Page directamente con _mapController.move()
-  /// ANTES de llamar este método — igual que _irAMiUbicacion.
   void actualizarZonaBusqueda(LatLng coordenadas) {
     final current = state;
     if (current is! MapLoaded) return;

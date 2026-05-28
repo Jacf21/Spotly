@@ -4,7 +4,6 @@ class MapRemoteDatasource {
   final SupabaseClient client;
   MapRemoteDatasource(this.client);
 
-  /// Trae todos los lugares con coordenadas extraídas del campo GEOGRAPHY.
   /// Requiere la función RPC `get_lugares_con_coordenadas` en Supabase.
   Future<List<Map<String, dynamic>>> getLugaresConCoordenadas() async {
     final response = await client.rpc('get_lugares_con_coordenadas');
