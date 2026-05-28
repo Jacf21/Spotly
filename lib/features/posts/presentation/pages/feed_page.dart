@@ -17,6 +17,10 @@ import '../../../posts/data/datasources/feed_remote_datasource.dart';
 import '../../../posts/data/datasources/post_interaction_remote_datasource.dart';
 import '../../../posts/data/repositories/post_interaction_repository.dart';
 import '../../../comments/presentation/pages/comments_page.dart';
+import 'package:spotly/features/stories/models/story_model.dart';
+import 'package:spotly/features/stories/widgets/stories_bar.dart';
+import 'package:spotly/features/stories/services/story_service.dart';
+
 
 class FeedPage extends StatefulWidget {
   final String? targetPostId;
@@ -40,10 +44,15 @@ class _FeedPageState extends State<FeedPage> {
   List<FeedItemModel> feed = [];
   String? _currentUserId;
   String? highlightedPostId;
+  final storyService = StoryService();
+List<StoryModel> stories = [];
+bool loadingStories = true;
 
   @override
   void initState() {
     super.initState();
+
+     loadStories();
     _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     loadFeed();
 
@@ -352,6 +361,26 @@ final newPostResponse = await Supabase.instance.client
     }
   }
 
+  Future<void> loadStories() async {
+  try {
+    final response = await storyService.getStories();
+
+    if (!mounted) return;
+
+    setState(() {
+      stories = response;
+      loadingStories = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      stories = [];
+      loadingStories = false;
+    });
+  }
+}
+
   Future<void> _openComments(FeedItemModel item) async {
     await showModalBottomSheet(
       context: context,
@@ -541,8 +570,31 @@ final newPostResponse = await Supabase.instance.client
 
     return ListView.builder(
       controller: _scrollController,
-      itemCount: finalCount,
+      itemCount: finalCount + 1,
       itemBuilder: (context, index) {
+// =====================================
+// STORIES
+// =====================================
+
+if (index == 0) {
+
+  if (loadingStories) {
+
+    return const Padding(
+      padding: EdgeInsets.all(20),
+      child: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  return StoriesBar(
+    stories: stories,
+    onReload: loadStories,
+  );
+}
+
+index--;
         if (hasMore && index == finalCount - 1) {
           return const Padding(
             padding: EdgeInsets.all(16),
@@ -580,6 +632,7 @@ final newPostResponse = await Supabase.instance.client
         // Si pasó las validaciones, dibujamos el post real
         return _buildFeedItem(feed[postRealIndex], dark, isGuest);
       },
+      
     );
   }
 
