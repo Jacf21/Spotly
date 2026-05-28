@@ -695,35 +695,57 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ),
               const SizedBox(width: 24),
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStat(
-                      '${_posts.length}',
-                      'Publicaciones',
-                      dark,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('/followers/${widget.userId}/followers');
-                      },
-                      child: _buildStat(
-                        '$_followersCount',
-                        'Seguidores',
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+
+                  child: Row(
+                    children: [
+
+                      _buildStat(
+                        '${_posts.length}',
+                        'Publicaciones',
                         dark,
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('/followers/${widget.userId}/following');
-                      },
-                      child: _buildStat(
-                        '$_followingCount',
-                        'Seguidos',
-                        dark,
+
+                      const SizedBox(width: 22),
+
+                      // =========================
+                      // SEGUIDORES
+                      // =========================
+                      GestureDetector(
+                        onTap: () {
+                          context.push(
+                            '/followers/${widget.userId}/followers',
+                          );
+                        },
+
+                        child: _buildStat(
+                          '$_followersCount',
+                          'Seguidores',
+                          dark,
+                        ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(width: 22),
+
+                      // =========================
+                      // SEGUIDOS
+                      // =========================
+                      GestureDetector(
+                        onTap: () {
+                          context.push(
+                            '/followers/${widget.userId}/following',
+                          );
+                        },
+
+                        child: _buildStat(
+                          '$_followingCount',
+                          'Seguidos',
+                          dark,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -784,7 +806,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         label,
         style: TextStyle(
           color: SpotlyColors.subText(dark),
-          fontSize: 13,
+          fontSize: 11,
         ),
       ),
     ],
