@@ -75,40 +75,75 @@ if (index == 0) {
                   final XFile? file =
                       await showModalBottomSheet<XFile>(
                     context: context,
+                    backgroundColor: SpotlyColors.card(dark),
                     builder: (_) {
                       return SafeArea(
+                        child: Container(
+    color: SpotlyColors.card(dark),
                         child: Wrap(
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.camera_alt),
-                              title: const Text("Cámara"),
-                              onTap: () async {
-                                final img = await service.takePhoto();
-                                if (context.mounted) {
-                                  Navigator.pop(context, img);
-                                }
-                              },
-                            ),
+            leading: Icon(
+              Icons.camera_alt,
+              color: SpotlyColors.text(dark),
+            ),
+
+            title: Text(
+              "Cámara",
+              style: TextStyle(
+                color: SpotlyColors.text(dark),
+              ),
+            ),
+
+            onTap: () async {
+              final img = await service.takePhoto();
+
+              if (context.mounted) {
+                Navigator.pop(context, img);
+              }
+            },
+          ),
                             ListTile(
-                              leading: const Icon(Icons.photo),
-                              title: const Text("Galería"),
-                              onTap: () async {
-                                final img = await service.pickGallery();
-                                if (context.mounted) {
-                                  Navigator.pop(context, img);
-                                }
-                              },
-                            ),
+            leading: Icon(
+              Icons.photo,
+              color: SpotlyColors.text(dark),
+            ),
+
+            title: Text(
+              "Galería",
+              style: TextStyle(
+                color: SpotlyColors.text(dark),
+              ),
+            ),
+
+            onTap: () async {
+              final img = await service.pickGallery();
+
+              if (context.mounted) {
+                Navigator.pop(context, img);
+              }
+            },
+          ),
+                          
                           ],
+                        ),
                         ),
                       );
                     },
                   );
 
                   if (file != null) {
-                    await service.uploadStory(file);
-                    onReload();
-                  }
+  await service.uploadStory(file);
+  onReload();
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("📸 Historia subida correctamente"),
+      duration: Duration(seconds: 2),
+      backgroundColor: Colors.black87,
+    ),
+  );
+}
                 } else {
                   // ✔ YA TIENE STORIES → ABRE VIEWER
                   Navigator.push(
@@ -125,15 +160,17 @@ if (index == 0) {
                 width: 68,
                 height: 68,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF2DD4BF),
-                    width: 2,
-                  ),
-                  color: dark
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFFF1F5F9),
-                ),
+  shape: BoxShape.circle,
+  border: hasStories
+      ? Border.all(
+          color: const Color(0xFF2DD4BF),
+          width: 2,
+        )
+      : null,
+  color: dark
+      ? const Color(0xFF1E293B)
+      : const Color(0xFFF1F5F9),
+),
                 child: FutureBuilder(
                   future: supabase
                       .from('perfiles')
@@ -169,31 +206,58 @@ if (index == 0) {
                   final XFile? file =
                       await showModalBottomSheet<XFile>(
                     context: context,
+                    backgroundColor: SpotlyColors.card(dark),
                     builder: (_) {
                       return SafeArea(
+                        child: Container(
+    color: SpotlyColors.card(dark),
                         child: Wrap(
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.camera_alt),
-                              title: const Text("Cámara"),
-                              onTap: () async {
-                                final img = await service.takePhoto();
-                                if (context.mounted) {
-                                  Navigator.pop(context, img);
-                                }
-                              },
-                            ),
+            leading: Icon(
+              Icons.camera_alt,
+              color: SpotlyColors.text(dark),
+            ),
+
+            title: Text(
+              "Cámara",
+              style: TextStyle(
+                color: SpotlyColors.text(dark),
+              ),
+            ),
+
+            onTap: () async {
+              final img = await service.takePhoto();
+
+              if (context.mounted) {
+                Navigator.pop(context, img);
+              }
+            },
+          ),
                             ListTile(
-                              leading: const Icon(Icons.photo),
-                              title: const Text("Galería"),
-                              onTap: () async {
-                                final img = await service.pickGallery();
-                                if (context.mounted) {
-                                  Navigator.pop(context, img);
-                                }
-                              },
-                            ),
+            leading: Icon(
+              Icons.photo,
+              color: SpotlyColors.text(dark),
+            ),
+
+            title: Text(
+              "Galería",
+              style: TextStyle(
+                color: SpotlyColors.text(dark),
+              ),
+            ),
+
+            onTap: () async {
+              final img = await service.pickGallery();
+
+              if (context.mounted) {
+                Navigator.pop(context, img);
+              }
+            },
+          ),
+                          
                           ],
+                        ),
                         ),
                       );
                     },
