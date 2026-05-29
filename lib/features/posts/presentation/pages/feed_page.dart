@@ -593,13 +593,23 @@ if (index == 0) {
       ),
     );
   }
+if (index == 0) {
+  if (isGuest) {
+    return const SizedBox(); // 👈 INVITADO NO VE HISTORIAS
+  }
 
+  if (loadingStories) {
+    return const Padding(
+      padding: EdgeInsets.all(20),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
   return StoriesBar(
     stories: stories,
     onReload: loadStories,
   );
 }
-
+}
 index--;
         if (hasMore && index == finalCount - 1) {
           return const Padding(
