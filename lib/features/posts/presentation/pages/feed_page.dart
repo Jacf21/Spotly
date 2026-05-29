@@ -444,73 +444,79 @@ final newPostResponse = await Supabase.instance.client
     });
   }
   
-  Future<void> _reportPost(FeedItemModel item, final dark) async {
+  Future<void> _reportPost(FeedItemModel item, bool dark) async {
     final user = Supabase.instance.client.auth.currentUser;
-
     if (user == null) {
       if (mounted) context.push('/login');
       return;
     }
 
-    // Capturar el context del Scaffold ANTES de cualquier await
-    final scaffoldMessenger = ScaffoldMessenger.of(context);  
-    final controller = TextEditingController();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true); // ← raíz estable
+    String? motivo;
 
-    // Usar rootNavigator para evitar conflicto con el context del PopupMenu
-    final motivo = await showDialog<String>(
+    // ✅ Envuelve el dialog en un StatefulBuilder para manejar el controller
+    // dentro del ciclo de vida del propio dialog
+    await showDialog<void>(
       context: context,
       useRootNavigator: true,
       barrierDismissible: true,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: SpotlyColors.bg(dark), // Fondo del diálogo
-        title: Text(
-          "Reportar publicación",
-          style: TextStyle(color: SpotlyColors.text(dark)), // Color del título
-        ),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          style: TextStyle(color: SpotlyColors.text(dark)), // Color del texto
-          decoration: InputDecoration(
-            hintText: "Describe el motivo del reporte (opcional)",
-            hintStyle: TextStyle(color: SpotlyColors.subText(dark)), // Color del hint
-            border: const OutlineInputBorder(),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: dark ? Colors.white24 : Colors.black26),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: SpotlyColors.accent(dark), width: 2),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              "Cancelar",
-              style: TextStyle(color: SpotlyColors.subText(dark)),
+      builder: (dialogContext) {
+        final controller = TextEditingController(); // ← vive dentro del builder
+        return AlertDialog(
+          backgroundColor: SpotlyColors.bg(dark),
+          title: Text("Reportar publicación",
+              style: TextStyle(color: SpotlyColors.text(dark))),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            style: TextStyle(color: SpotlyColors.text(dark)),
+            decoration: InputDecoration(
+              hintText: "Describe el motivo del reporte (opcional)",
+              hintStyle: TextStyle(color: SpotlyColors.subText(dark)),
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                    color: dark ? Colors.white24 : Colors.black26),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide:
+                    BorderSide(color: SpotlyColors.accent(dark), width: 2),
+              ),
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text(
-              "Reportar",
-              style: TextStyle(color: Colors.redAccent),
+          actions: [
+            TextButton(
+              onPressed: () {
+                motivo = null;
+                navigator.pop();
+              },
+              child: Text("Cancelar",
+                  style: TextStyle(color: SpotlyColors.subText(dark))),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () {
+                motivo = controller.text.trim(); // ← lee ANTES de pop
+                navigator.pop();
+                // ✅ dispose DESPUÉS del pop, en el siguiente frame
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  controller.dispose();
+                });
+              },
+              child: const Text("Reportar",
+                  style: TextStyle(color: Colors.redAccent)),
+            ),
+          ],
+        );
+      },
     );
-
-    controller.dispose();
-
-    if (motivo == null) return; // usuario canceló
+    if (motivo == null) return;
 
     try {
       await Supabase.instance.client.from('reportes_publicaciones').insert({
         'id_publicacion': item.id,
         'user_id': user.id,
-        'motivo': motivo.isEmpty ? null : motivo,
+        'motivo': motivo!.isEmpty ? null : motivo,
         'pendiente': true,
       });
 
@@ -710,7 +716,7 @@ index--;
                 onSelected: (value) {
                   if (value == 'report') {
                     Future.delayed(Duration.zero, () {
-                      _reportPost(item, dark);
+                      _reportPost(item, dark,);
                     });
                   }
                 },
