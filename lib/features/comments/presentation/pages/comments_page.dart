@@ -93,7 +93,6 @@ class _CommentsPageState extends State<CommentsPage> {
       final user = Supabase.instance.client.auth.currentUser;
       final userId = user?.id ?? '';
 
-      // Usar el método con likes si el usuario está logueado
       if (userId.isNotEmpty) {
         final data =
             await _datasource.getCommentsWithLikes(widget.postId, userId);
@@ -128,10 +127,9 @@ class _CommentsPageState extends State<CommentsPage> {
     final replyToUserName = replyingTo?.nombreUsuario;
 
     String finalTexto = texto;
-// Solo agregar mención si NO estás respondiendo a tu propio comentario
-if (replyingTo != null && replyingTo.userId != user.id) {
-  finalTexto = '@${replyingTo.nombreUsuario} $texto';
-}
+    if (replyingTo != null && replyingTo.userId != user.id) {
+      finalTexto = '@${replyingTo.nombreUsuario} $texto';
+    }
 
     _controller.clear();
     _cancelReply();
@@ -144,27 +142,27 @@ if (replyingTo != null && replyingTo.userId != user.id) {
         parentId: replyToId,
         replyToUserName: replyToUserName,
       );
+      
       final post = await Supabase.instance.client
-    .from('publicaciones')
-    .select('id_usuario')
-    .eq('id_publicacion', widget.postId)
-    .single();
+          .from('publicaciones')
+          .select('id_usuario')
+          .eq('id_publicacion', widget.postId)
+          .single();
 
-final ownerPostId = post['id_usuario'];
+      final ownerPostId = post['id_usuario'];
 
-// CREAR NOTIFICACIÓN
-if (ownerPostId != user.id) {
-  await Supabase.instance.client
-      .from('notificaciones')
-      .insert({
-    'id_usuario_destino': ownerPostId,
-    'id_usuario_actor': user.id,
-    'tipo': 'comentario',
-    'id_publicacion': widget.postId,
-    'id_comentario': newComment.id,
-    'contenido': finalTexto,
-  });
-}
+      if (ownerPostId != user.id) {
+        await Supabase.instance.client
+            .from('notificaciones')
+            .insert({
+          'id_usuario_destino': ownerPostId,
+          'id_usuario_actor': user.id,
+          'tipo': 'comentario',
+          'id_publicacion': widget.postId,
+          'id_comentario': newComment.id,
+          'contenido': finalTexto,
+        });
+      }
 
       setState(() {
         _comments.add(newComment);
@@ -240,7 +238,6 @@ if (ownerPostId != user.id) {
     }
   }
 
-  // Método para actualizar el like de un comentario localmente (callback desde el botón)
   void _updateCommentLike(int commentId, bool isLiked, int newLikeCount) {
     setState(() {
       final index = _comments.indexWhere((c) => c.id == commentId);
@@ -258,8 +255,6 @@ if (ownerPostId != user.id) {
 
   List<CommentModel> _repliesOf(int parentId) =>
       _comments.where((c) => c.parentId == parentId).toList();
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -370,45 +365,52 @@ if (ownerPostId != user.id) {
     );
   }
 
-Widget _buildThread(CommentModel comment, bool dark, Color textColor,
-    Color subColor, User? user, [int depth = 0]) {
-  final isOwn = user?.id == comment.userId;
-  final replies = _repliesOf(comment.id);
-  
-  // Limitar indentación máxima a 3 niveles (64px), pero mostrar todas las respuestas
-  final visualDepth = depth > 3 ? 3 : depth;
+  // ============================================
+  // MÉTODO _buildThread MODIFICADO - Limita a 2 niveles
+  // ============================================
+  Widget _buildThread(CommentModel comment, bool dark, Color textColor,
+      Color subColor, User? user, [int depth = 0]) {
+    final isOwn = user?.id == comment.userId;
+    final replies = _repliesOf(comment.id);
+    
+    // Limitar indentación máxima a 3 niveles (64px)
+    final visualDepth = depth > 3 ? 3 : depth;
+    
+    // 👇 NUEVO: Solo permitir responder si depth == 0 (comentario principal)
+    // Los comentarios con depth >= 1 son respuestas y NO pueden tener más respuestas
+    final canReply = depth == 0;
 
-  _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
+    _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
 
-  return Padding(
-    padding: EdgeInsets.only(left: visualDepth > 0 ? 24.0 : 0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _CommentTile(
-          comment: comment,
-          isOwn: isOwn,
-          dark: dark,
-          textColor: textColor,
-          subColor: subColor,
-          onDelete: () => _deleteComment(comment, dark),
-          onReply: () => _setReplyingTo(comment),
-          onLikeUpdate: (isLiked, newCount) =>
-              _updateCommentLike(comment.id, isLiked, newCount),
-          targetCommentId: widget.targetCommentId,
-        ),
-        if (replies.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Column(
-              children: replies
-                  .map((r) => _buildThread(
-                      r, dark, textColor, subColor, user, depth + 1))
-                  .toList(),
-            ),
+    return Padding(
+      padding: EdgeInsets.only(left: visualDepth > 0 ? 24.0 : 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CommentTile(
+            comment: comment,
+            isOwn: isOwn,
+            dark: dark,
+            textColor: textColor,
+            subColor: subColor,
+            onDelete: () => _deleteComment(comment, dark),
+            onReply: canReply ? () => _setReplyingTo(comment) : null,
+            onLikeUpdate: (isLiked, newCount) =>
+                _updateCommentLike(comment.id, isLiked, newCount),
+            targetCommentId: widget.targetCommentId,
           ),
-      ],
-    ),
-  );
-}
+          if (replies.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Column(
+                children: replies
+                    .map((r) => _buildThread(
+                        r, dark, textColor, subColor, user, depth + 1))
+                    .toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

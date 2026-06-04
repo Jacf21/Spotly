@@ -7,7 +7,7 @@ class _CommentTile extends StatelessWidget {
   final Color textColor;
   final Color subColor;
   final VoidCallback onDelete;
-  final VoidCallback onReply;
+  final VoidCallback? onReply; // 👈 MODIFICADO: ahora puede ser null
   final void Function(bool isLiked, int newCount) onLikeUpdate;
   final String? targetCommentId;
 
@@ -56,8 +56,8 @@ class _CommentTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
-  text: _buildTextWithMention(),
-),
+                    text: _buildTextWithMention(),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -66,17 +66,19 @@ class _CommentTile extends StatelessWidget {
                         style: TextStyle(color: subColor, fontSize: 11),
                       ),
                       const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: onReply,
-                        child: Text(
-                          'Responder',
-                          style: TextStyle(
-                            color: SpotlyColors.accent(dark),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
+                      // 👇 BOTÓN RESPONDER - Solo visible si onReply no es null
+                      if (onReply != null)
+                        GestureDetector(
+                          onTap: onReply,
+                          child: Text(
+                            'Responder',
+                            style: TextStyle(
+                              color: SpotlyColors.accent(dark),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
                       const SizedBox(width: 12),
                       _CommentLikeButton(
                         commentId: comment.id,
@@ -103,40 +105,41 @@ class _CommentTile extends StatelessWidget {
       ),
     );
   }
+
   TextSpan _buildTextWithMention() {
-  final texto = comment.texto;
-  // Si el texto empieza con @, extraer la mención
-  if (texto.startsWith('@')) {
-    final espacioIndex = texto.indexOf(' ');
-    if (espacioIndex != -1) {
-      final mencion = texto.substring(0, espacioIndex);
-      final resto = texto.substring(espacioIndex + 1);
-      return TextSpan(
-        style: TextStyle(color: textColor, fontSize: 14),
-        children: [
-          TextSpan(
-            text: '${comment.nombreUsuario} ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          TextSpan(
-            text: '$mencion ',
-            style: const TextStyle(color: Colors.blueAccent),
-          ),
-          TextSpan(text: resto),
-        ],
-      );
+    final texto = comment.texto;
+    // Si el texto empieza con @, extraer la mención
+    if (texto.startsWith('@')) {
+      final espacioIndex = texto.indexOf(' ');
+      if (espacioIndex != -1) {
+        final mencion = texto.substring(0, espacioIndex);
+        final resto = texto.substring(espacioIndex + 1);
+        return TextSpan(
+          style: TextStyle(color: textColor, fontSize: 14),
+          children: [
+            TextSpan(
+              text: '${comment.nombreUsuario} ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: '$mencion ',
+              style: const TextStyle(color: Colors.blueAccent),
+            ),
+            TextSpan(text: resto),
+          ],
+        );
+      }
     }
+    // Si no hay mención al inicio, mostrar todo normal
+    return TextSpan(
+      style: TextStyle(color: textColor, fontSize: 14),
+      children: [
+        TextSpan(
+          text: '${comment.nombreUsuario} ',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        TextSpan(text: texto),
+      ],
+    );
   }
-  // Si no hay mención al inicio, mostrar todo normal
-  return TextSpan(
-    style: TextStyle(color: textColor, fontSize: 14),
-    children: [
-      TextSpan(
-        text: '${comment.nombreUsuario} ',
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      TextSpan(text: texto),
-    ],
-  );
-}
 }
