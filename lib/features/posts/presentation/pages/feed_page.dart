@@ -45,14 +45,16 @@ class _FeedPageState extends State<FeedPage> {
   String? _currentUserId;
   String? highlightedPostId;
   final storyService = StoryService();
-List<StoryModel> stories = [];
-bool loadingStories = true;
+  List<StoryModel> stories = [];
+  bool loadingStories = true;
+  
+  // Cache para evitar múltiples consultas a la BD
+  final Map<int, bool> _originalPostBlockedCache = {};
 
   @override
   void initState() {
     super.initState();
-
-     loadStories();
+    loadStories();
     _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     loadFeed();
 
@@ -137,6 +139,7 @@ bool loadingStories = true;
       feed = [];
       hasMore = true;
       isLoading = false;
+      _originalPostBlockedCache.clear();
     });
     loadFeed();
   }
@@ -155,7 +158,33 @@ bool loadingStories = true;
     super.dispose();
   }
 
-  // FUNCIÓN COMPARTIR CORREGIDA - Usa publicaciones y multimedia
+  // ============================================
+  // NUEVO MÉTODO: Verificar si publicación original está bloqueada
+  // ============================================
+  Future<bool> _isOriginalPostBlocked(int? originalPostId) async {
+    if (originalPostId == null) return false;
+    
+    // Revisar caché primero
+    if (_originalPostBlockedCache.containsKey(originalPostId)) {
+      return _originalPostBlockedCache[originalPostId]!;
+    }
+    
+    try {
+      final result = await Supabase.instance.client
+          .from('publicaciones')
+          .select('estado')
+          .eq('id_publicacion', originalPostId)
+          .maybeSingle();
+      
+      final isBlocked = result != null && result['estado'] == 'bloqueado';
+      _originalPostBlockedCache[originalPostId] = isBlocked;
+      return isBlocked;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // FUNCIÓN COMPARTIR CORREGIDA - Añade campo 'estado'
   Future<void> _share(FeedItemModel item) async {
     final user = Supabase.instance.client.auth.currentUser;
     
@@ -235,23 +264,24 @@ bool loadingStories = true;
       final imageUrl = multimediaData?['url_recurso'] ?? '';
       final tipoRecurso = multimediaData?['tipo_recurso'] ?? 'foto';
       
-      // 1. Insertar en publicaciones
-final newPostResponse = await Supabase.instance.client
-    .from('publicaciones')
-    .insert({
-      'id_usuario': user.id,
-      'id_usuario_que_comparte': user.id,
-      'id_usuario_original': item.userId,   // 👈 AGREGAR ESTA LÍNEA
-      'id_publicacion_original': item.id,
-      'es_compartido': true,
-      'descripcion_experiencia': null,
-      'comentario_activado': true,
-      'visible_para': 'public',
-      'id_lugar': item.lugarId,
-      'created_at': DateTime.now().toIso8601String(),
-    })
-    .select('id_publicacion')
-    .single();
+      // 1. Insertar en publicaciones con campo 'estado'
+      final newPostResponse = await Supabase.instance.client
+          .from('publicaciones')
+          .insert({
+            'id_usuario': user.id,
+            'id_usuario_que_comparte': user.id,
+            'id_usuario_original': item.userId,
+            'id_publicacion_original': item.id,
+            'es_compartido': true,
+            'descripcion_experiencia': null,
+            'comentario_activado': true,
+            'visible_para': 'public',
+            'id_lugar': item.lugarId,
+            'created_at': DateTime.now().toIso8601String(),
+            'estado': 'activo',  // 👈 CAMPO AGREGADO
+          })
+          .select('id_publicacion')
+          .single();
       
       final newPostId = newPostResponse['id_publicacion'];
       
@@ -362,24 +392,24 @@ final newPostResponse = await Supabase.instance.client
   }
 
   Future<void> loadStories() async {
-  try {
-    final response = await storyService.getStories();
+    try {
+      final response = await storyService.getStories();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      stories = response;
-      loadingStories = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
+      setState(() {
+        stories = response;
+        loadingStories = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
 
-    setState(() {
-      stories = [];
-      loadingStories = false;
-    });
+      setState(() {
+        stories = [];
+        loadingStories = false;
+      });
+    }
   }
-}
 
   Future<void> _openComments(FeedItemModel item) async {
     await showModalBottomSheet(
@@ -407,13 +437,13 @@ final newPostResponse = await Supabase.instance.client
       lng: -68.15,
     );
     if (mounted) {
-        setState(() => feed = data);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) _scrollToTargetPost();
-          });
+      setState(() => feed = data);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _scrollToTargetPost();
         });
-      }
+      });
+    }
   }
 
   Future<void> loadMore() async {
@@ -452,17 +482,15 @@ final newPostResponse = await Supabase.instance.client
     }
 
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context, rootNavigator: true); // ← raíz estable
+    final navigator = Navigator.of(context, rootNavigator: true);
     String? motivo;
 
-    // ✅ Envuelve el dialog en un StatefulBuilder para manejar el controller
-    // dentro del ciclo de vida del propio dialog
     await showDialog<void>(
       context: context,
       useRootNavigator: true,
       barrierDismissible: true,
       builder: (dialogContext) {
-        final controller = TextEditingController(); // ← vive dentro del builder
+        final controller = TextEditingController();
         return AlertDialog(
           backgroundColor: SpotlyColors.bg(dark),
           title: Text("Reportar publicación",
@@ -496,9 +524,8 @@ final newPostResponse = await Supabase.instance.client
             ),
             TextButton(
               onPressed: () {
-                motivo = controller.text.trim(); // ← lee ANTES de pop
+                motivo = controller.text.trim();
                 navigator.pop();
-                // ✅ dispose DESPUÉS del pop, en el siguiente frame
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   controller.dispose();
                 });
@@ -538,8 +565,7 @@ final newPostResponse = await Supabase.instance.client
     }
   }
 
-  
-    @override
+  @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
     final isGuest = !context.watch<AuthProvider>().isLoggedIn;
@@ -547,8 +573,7 @@ final newPostResponse = await Supabase.instance.client
     return AnimatedContainer(
       duration: SpotlyConfig.animShort,
       color: SpotlyColors.bg(dark),
-      child:
-          feed.isEmpty ? _buildEmptyState(dark) : _buildFeedList(dark, isGuest),
+      child: feed.isEmpty ? _buildEmptyState(dark) : _buildFeedList(dark, isGuest),
     );
   }
 
@@ -578,48 +603,32 @@ final newPostResponse = await Supabase.instance.client
       controller: _scrollController,
       itemCount: finalCount + 1,
       itemBuilder: (context, index) {
-// =====================================
-// STORIES
-// =====================================
-
-if (index == 0) {
-
-  if (loadingStories) {
-
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-if (index == 0) {
-  if (isGuest) {
-    return const SizedBox(); // 👈 INVITADO NO VE HISTORIAS
-  }
-
-  if (loadingStories) {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
-  return StoriesBar(
-    stories: stories,
-    onReload: loadStories,
-  );
-}
-}
-index--;
-        if (hasMore && index == finalCount - 1) {
+        if (index == 0) {
+          if (isGuest) {
+            return const SizedBox();
+          }
+          if (loadingStories) {
+            return const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return StoriesBar(
+            stories: stories,
+            onReload: loadStories,
+          );
+        }
+        
+        int adjustedIndex = index - 1;
+        
+        if (hasMore && adjustedIndex == finalCount - 1) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Insertar carrusel horizontal en la posición (índice) del feed
-        if (index == 3) {
+        if (adjustedIndex == 3) {
           return FutureBuilder<List<Map<String, dynamic>>>(
             future: SearchRepository().getPeopleSuggestions(),
             builder: (context, snapshot) {
@@ -635,235 +644,282 @@ index--;
         }
 
         int postRealIndex;
-        if (index > 3) {
-          postRealIndex = index - 1;
+        if (adjustedIndex > 3) {
+          postRealIndex = adjustedIndex - 1;
         } else {
-          postRealIndex = index; 
+          postRealIndex = adjustedIndex;
         }
 
         if (postRealIndex < 0 || postRealIndex >= feed.length) {
           return const SizedBox.shrink();
         }
 
-        // Si pasó las validaciones, dibujamos el post real
         return _buildFeedItem(feed[postRealIndex], dark, isGuest);
       },
-      
+    );
+  }
+
+  // ============================================
+  // WIDGET PARA CONTENIDO NO DISPONIBLE
+  // ============================================
+  Widget _buildContenidoNoDisponible(bool dark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: dark ? Colors.red.withOpacity(0.15) : Colors.red.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.alertTriangle, color: Colors.red, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "[contenido no disponible]",
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFeedItem(FeedItemModel item, bool dark, bool isGuest) {
-  final textColor = dark ? Colors.white : Colors.black;
-  final subColor = dark ? Colors.white70 : Colors.black54;
+    final textColor = dark ? Colors.white : Colors.black;
+    final subColor = dark ? Colors.white70 : Colors.black54;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // Header: avatar + usuario
-      GestureDetector(
-        onTap: () => _navigateToUserProfile(
-          item.isShared ? (item.originalUserId ?? item.userId) : item.userId
-        ),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
-                backgroundImage:
-                    item.avatar.isNotEmpty ? NetworkImage(item.avatar) : null,
-                child: item.avatar.isEmpty
-                    ? Icon(LucideIcons.user, color: subColor, size: 20)
-                    : null,
+    return FutureBuilder<bool>(
+      future: item.isShared ? _isOriginalPostBlocked(item.idPublicacionOriginal) : Future.value(false),
+      builder: (context, snapshot) {
+        final isOriginalBlocked = snapshot.data ?? false;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: avatar + usuario
+            GestureDetector(
+              onTap: () => _navigateToUserProfile(
+                item.isShared ? (item.originalUserId ?? item.userId) : item.userId
               ),
-              const SizedBox(width: 12),
-              if (item.isShared)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Compartido por ${item.usuario}',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
+                      backgroundImage: item.avatar.isNotEmpty ? NetworkImage(item.avatar) : null,
+                      child: item.avatar.isEmpty
+                          ? Icon(LucideIcons.user, color: subColor, size: 20)
+                          : null,
                     ),
-                    Row(
-                      children: [
-                        Icon(LucideIcons.repeat, size: 12, color: Colors.green),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Publicación original de @${item.originalUserName ?? "usuario"}',
+                    const SizedBox(width: 12),
+                    if (item.isShared)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(LucideIcons.repeat, size: 14, color: Colors.green),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Compartido por ${item.usuario}',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Publicación original de @${item.originalUserName ?? "usuario"}',
+                              style: TextStyle(
+                                color: subColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: Text(
+                          item.usuario,
                           style: TextStyle(
-                            color: subColor,
-                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    PopupMenuButton<String>(
+                      icon: Icon(LucideIcons.moreVertical, color: subColor),
+                      color: SpotlyColors.card(dark),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      onSelected: (value) {
+                        if (value == 'report') {
+                          Future.delayed(Duration.zero, () {
+                            _reportPost(item, dark);
+                          });
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              const Icon(LucideIcons.flag, color: Colors.redAccent, size: 18),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Reportar publicación',
+                                style: TextStyle(color: SpotlyColors.text(dark)),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ],
-                )
-              else
-                Text(
-                  item.usuario,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    fontSize: 14,
+                ),
+              ),
+            ),
+            
+            // Si es compartido y la original está bloqueada, mostrar mensaje
+            if (item.isShared && isOriginalBlocked)
+              _buildContenidoNoDisponible(dark)
+            else ...[
+              // Descripción (solo si no está bloqueada)
+              if (item.descripcion != null && item.descripcion!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(color: textColor, fontSize: 14),
+                      children: [
+                        TextSpan(text: item.descripcion),
+                      ],
+                    ),
                   ),
                 ),
-              const Spacer(),
-              PopupMenuButton<String>(
-                icon: Icon(LucideIcons.moreVertical, color: subColor),
-                color: SpotlyColors.card(dark),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+
+              // Imagen (solo si no está bloqueada)
+              Image.network(
+                item.mediaUrl,
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 300,
+                  color: dark ? Colors.white12 : Colors.black12,
+                  child: Icon(LucideIcons.imageOff, color: subColor),
                 ),
-                onSelected: (value) {
-                  if (value == 'report') {
-                    Future.delayed(Duration.zero, () {
-                      _reportPost(item, dark,);
-                    });
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'report',
-                    child: Row(
-                      children: [
-                        const Icon(LucideIcons.flag, color: Colors.redAccent, size: 18),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Reportar publicación',
-                          style: TextStyle(color: SpotlyColors.text(dark)),
-                        ),
-                      ],
+              ),
+            ],
+
+            // Acciones (siempre visibles)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  _iconWithCount(
+                    icon: LucideIcons.heart,
+                    dark: dark,
+                    isGuest: isGuest,
+                    isActive: item.isLiked,
+                    activeColor: Colors.red,
+                    count: item.likesCount,
+                    onTap: () => _handleLike(item),
+                  ),
+                  _iconWithCount(
+                    icon: LucideIcons.messageCircle,
+                    dark: dark,
+                    isGuest: isGuest,
+                    count: item.comentarioCount,
+                    isActive: false,
+                    activeColor: Colors.grey,
+                    onTap: () async {
+                      if (!item.comentarioActivado) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text("No puedes comentar esta publicación"),
+                            backgroundColor: dark ? Colors.white24 : Colors.black87,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                        return;
+                      }
+                      await showModalBottomSheet<int>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => CommentsPage(postId: item.id),
+                      );
+                      if (!mounted) return;
+                      final repo = FeedRepository(
+                        FeedRemoteDatasource(Supabase.instance.client),
+                      );
+                      final updatedCount = await repo.getCommentCount(item.id);
+                      if (!mounted) return;
+                      setState(() => item.comentarioCount = updatedCount);
+                    },
+                  ),
+                  IconButton(
+                    onPressed: () => _share(item),
+                    icon: Icon(
+                      LucideIcons.send,
+                      color: dark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  if (item.lugar.isNotEmpty)
+                    IconButton(
+                      onPressed: () => context.push('/lugar/${item.lugarId}'),
+                      icon: Icon(LucideIcons.mapPin,
+                          color: dark ? Colors.white70 : Colors.black54),
+                      tooltip: item.lugar,
+                    ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      if (isGuest) {
+                        context.push('/login');
+                        return;
+                      }
+                      _handleSave(item);
+                    },
+                    icon: Icon(
+                      LucideIcons.bookmark,
+                      color: item.isSaved
+                          ? Colors.amber
+                          : (dark ? Colors.white70 : Colors.black54),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-      
-      // Descripción
-      if (item.descripcion != null && item.descripcion!.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          child: RichText(
-            text: TextSpan(
-              style: TextStyle(color: textColor, fontSize: 14),
-              children: [
-                TextSpan(text: item.descripcion),
-              ],
             ),
-          ),
-        ),
-
-      // Imagen
-      Image.network(
-        item.mediaUrl,
-        width: double.infinity,
-        height: 300,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          height: 300,
-          color: dark ? Colors.white12 : Colors.black12,
-          child: Icon(LucideIcons.imageOff, color: subColor),
-        ),
-      ),
-
-      // Acciones
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Row(
-          children: [
-            _iconWithCount(
-              icon: LucideIcons.heart,
-              dark: dark,
-              isGuest: isGuest,
-              isActive: item.isLiked,
-              activeColor: Colors.red,
-              count: item.likesCount,
-              onTap: () => _handleLike(item),
-            ),
-            _iconWithCount(
-              icon: LucideIcons.messageCircle,
-              dark: dark,
-              isGuest: isGuest,
-              count: item.comentarioCount,
-              isActive: false,
-              activeColor: Colors.grey,
-              onTap: () async {
-                if (!item.comentarioActivado) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text("No puedes comentar esta publicación"),
-                      backgroundColor: dark ? Colors.white24 : Colors.black87,
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  return;
-                }
-                await showModalBottomSheet<int>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => CommentsPage(postId: item.id),
-                );
-                if (!mounted) return;
-                final repo = FeedRepository(
-                  FeedRemoteDatasource(Supabase.instance.client),
-                );
-                final updatedCount = await repo.getCommentCount(item.id);
-                if (!mounted) return;
-                setState(() => item.comentarioCount = updatedCount);
-              },
-            ),
-            IconButton(
-              onPressed: () => _share(item),
-              icon: Icon(
-                LucideIcons.send,
-                color: dark ? Colors.white70 : Colors.black54,
-              ),
-            ),
-            if (item.lugar.isNotEmpty)
-              IconButton(
-                onPressed: () => context.push('/lugar/${item.lugarId}'),
-                icon: Icon(LucideIcons.mapPin,
-                    color: dark ? Colors.white70 : Colors.black54),
-                tooltip: item.lugar,
-              ),
-            const Spacer(),
-            IconButton(
-              onPressed: () {
-                if (isGuest) {
-                  context.push('/login');
-                  return;
-                }
-                _handleSave(item);
-              },
-              icon: Icon(
-                LucideIcons.bookmark,
-                color: item.isSaved
-                    ? Colors.amber
-                    : (dark ? Colors.white70 : Colors.black54),
-              ),
-            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
           ],
-        ),
-      ),
-      const Divider(height: 1),
-      const SizedBox(height: 8),
-    ],
-  );
-}
+        );
+      },
+    );
+  }
 
   Widget _iconWithCount({
     required IconData icon,
@@ -874,8 +930,7 @@ index--;
     Color activeColor = Colors.red,
     int count = 0,
   }) {
-    final color =
-        isActive ? activeColor : (dark ? Colors.white70 : Colors.black54);
+    final color = isActive ? activeColor : (dark ? Colors.white70 : Colors.black54);
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
