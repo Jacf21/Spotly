@@ -7,7 +7,7 @@ class _CommentTile extends StatelessWidget {
   final Color textColor;
   final Color subColor;
   final VoidCallback onDelete;
-  final VoidCallback? onReply; // 👈 MODIFICADO: ahora puede ser null
+  final VoidCallback? onReply;
   final void Function(bool isLiked, int newCount) onLikeUpdate;
   final String? targetCommentId;
 
@@ -55,8 +55,13 @@ class _CommentTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: _buildTextWithMention(),
+                  // 👇 MODIFICADO PARA HU14-12: Manejo de textos largos
+                  Flexible(
+                    child: RichText(
+                      softWrap: true,
+                      overflow: TextOverflow.visible,
+                      text: _buildTextWithMention(),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -66,7 +71,6 @@ class _CommentTile extends StatelessWidget {
                         style: TextStyle(color: subColor, fontSize: 11),
                       ),
                       const SizedBox(width: 12),
-                      // 👇 BOTÓN RESPONDER - Solo visible si onReply no es null
                       if (onReply != null)
                         GestureDetector(
                           onTap: onReply,
