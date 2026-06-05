@@ -1,3 +1,6 @@
+/// Entidad de dominio que representa el perfil completo de un usuario.
+/// Contiene todos los datos personales y de configuración del perfil.
+/// Es independiente de la capa de datos y se usa en toda la aplicación.
 class ProfileEntity {
   final String id;
   final String email;
