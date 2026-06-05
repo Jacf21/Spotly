@@ -1,5 +1,8 @@
 import '../../domain/entities/user.dart';
 
+/// Modelo de Usuario para la capa de datos.
+/// Extiende la entidad User y agrega métodos de serialización/deserialización
+/// para comunicación con Supabase.
 class UserModel extends User {
   UserModel({
     required super.id,
@@ -10,8 +13,9 @@ class UserModel extends User {
     required super.rol,
   });
 
-  /// 📥 De JSON (Supabase) a Modelo
-  /// Asegúrate de que estos nombres coincidan con tu tabla en Supabase
+  /// Convierte un JSON de Supabase a un objeto UserModel.
+  /// Los nombres de los campos deben coincidir con la tabla 'perfiles' en Supabase.
+  /// Retorna una instancia de UserModel con los datos mapeados.
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id_usuario']?.toString() ?? '',
@@ -23,20 +27,20 @@ class UserModel extends User {
     );
   }
 
-  /// 📤 De Modelo a JSON (Para hacer el UPDATE o INSERT)
+  /// Convierte un UserModel a JSON para operaciones de UPDATE o INSERT en Supabase.
+  /// El campo email no se incluye para evitar que sea editable en la tabla perfiles.
   Map<String, dynamic> toJson() {
     return {
       'id_usuario': id,
       'nombres': nombres,
       'apellidos': apellidos,
       'nombre_usuario': nombreUsuario,
-      // No incluimos el email si no quieres que sea editable en la tabla perfiles
       'rol': rol,
     };
   }
 
-  /// 🔄 Utilidad: Convertir una Entidad User a UserModel
-  /// Esto te ahorrará mucho código en el RepositoryImpl
+  /// Convierte una entidad User a UserModel.
+  /// Útil en el RepositoryImpl para transformar entidades de dominio a modelos de datos.
   factory UserModel.fromEntity(User user) {
     return UserModel(
       id: user.id,
