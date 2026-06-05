@@ -16,7 +16,8 @@ class MainNavigation extends StatelessWidget {
   final Widget child;
 
   const MainNavigation({super.key, required this.child});
-
+  /// Obtiene el índice de navegación para usuarios normales
+  /// según la ruta actual.
   int _getUserIndex(String location) {
     if (location.startsWith('/feed')) return 0;
     if (location.startsWith('/map')) return 1;
@@ -25,7 +26,8 @@ class MainNavigation extends StatelessWidget {
     if (location.startsWith('/profile')) return 4;
     return 0;
   }
-
+  /// Obtiene el índice de navegación para el panel administrativo
+  /// según la ruta actual.
   int _getAdminIndex(String location) {
     if (location.startsWith('/admin/usuarios')) return 1;
     if (location.startsWith('/admin/publicaciones')) return 2;
@@ -33,7 +35,8 @@ class MainNavigation extends StatelessWidget {
     if (location.startsWith('/admin/perfil')) return 4;
     return 0; // /admin o /admin/dashboard
   }
-
+  /// Recupera la cantidad de notificaciones pendientes
+  /// del usuario autenticado.
   Future<int> _getNotifFuture() {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return Future.value(0);
@@ -77,7 +80,8 @@ class MainNavigation extends StatelessWidget {
       ),
     );
   }
-
+  /// Construye la barra de navegación inferior adaptándose
+  /// al rol y estado de autenticación del usuario.
   Widget _buildBottomNav(
     BuildContext context,
     int currentIndex,
@@ -103,7 +107,7 @@ class MainNavigation extends StatelessWidget {
           builder: (context, snapshot) {
             final notifCount = snapshot.data ?? 0;
 
-            // ── Admin: fila simple, sin botón flotante ──────────────────────
+            //  Admin: fila simple, sin botón flotante
             if (isAdmin) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -125,7 +129,7 @@ class MainNavigation extends StatelessWidget {
               );
             }
 
-            // ── Usuario normal: fila + botón central flotante ───────────────
+            //  Usuario normal: fila + botón central flotante 
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -152,7 +156,7 @@ class MainNavigation extends StatelessWidget {
                   ),
                 ),
 
-                // Botón "+" centrado flotante
+                // Acceso rápido a la creación de publicaciones.
                 Positioned(
                   top: 5,
                   left: 0,

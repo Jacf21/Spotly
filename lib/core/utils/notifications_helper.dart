@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// 🔔 Contar notificaciones NO leídas
+/// Contar notificaciones NO leídas
 Future<int> getNotificationCount(String userId) async {
 
   final response = await Supabase.instance.client
@@ -12,7 +12,7 @@ Future<int> getNotificationCount(String userId) async {
   return response.length;
 }
 
-/// 👁 Marcar TODAS como leídas
+/// Marcar TODAS como leídas
 Future<void> markNotificationsAsSeen(String userId) async {
 
   await Supabase.instance.client
@@ -22,7 +22,7 @@ Future<void> markNotificationsAsSeen(String userId) async {
       .eq('leido', false);
 }
 
-/// ✅ Marcar UNA notificación como leída
+///  Marcar UNA notificación como leída
 Future<void> markNotificationRead(int notificationId) async {
 
   await Supabase.instance.client
@@ -31,7 +31,7 @@ Future<void> markNotificationRead(int notificationId) async {
       .eq('id_notificacion', notificationId);
 }
 
-/// ✅ Saber si una notificación está leída
+///  Saber si una notificación está leída
 Future<bool> isNotificationRead(int notificationId) async {
 
   final response = await Supabase.instance.client

@@ -6,7 +6,7 @@ class AuthProvider extends ChangeNotifier {
   String? _role;
   String? _userId;
 
-  // Para mostrar el mensaje de ban en la UI
+  // Mensaje de suspensión mostrado en la interfaz
   String? _banMessage;
   String? get banMessage => _banMessage;
 
@@ -22,6 +22,7 @@ class AuthProvider extends ChangeNotifier {
     _init();
   }
 
+  /// Obtiene el rol del usuario desde la base de datos.
   Future<String> _fetchRoleFromDB(String userId) async {
     try {
       final data = await Supabase.instance.client
@@ -36,8 +37,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Verifica si la cuenta está baneada.
-  /// Retorna null si puede entrar, o el mensaje de ban si está bloqueado.
+  /// Verifica si la cuenta está suspendida.
+  /// Retorna null si el acceso está permitido.
   Future<String?> _checkBan(String userId) async {
     try {
       final data = await Supabase.instance.client
@@ -47,22 +48,21 @@ class AuthProvider extends ChangeNotifier {
           .single();
 
       final esActivo = data['es_activo'] as bool? ?? true;
-      if (esActivo) return null; // sin ban
+      if (esActivo) return null;
 
       final banHasta = data['ban_hasta'] != null
           ? DateTime.tryParse(data['ban_hasta'] as String)
           : null;
 
-      // Ban temporal vencido → desbanear automáticamente
+      // Reactiva automáticamente cuentas con suspensión temporal vencida.
       if (banHasta != null && banHasta.isBefore(DateTime.now())) {
         await Supabase.instance.client
             .from('perfiles')
             .update({'es_activo': true, 'ban_hasta': null, 'motivo_ban': null})
             .eq('id_usuario', userId);
-        return null; // ya está perdonado
+        return null;
       }
 
-      // Cuenta realmente baneada → armar mensaje
       final motivo = data['motivo_ban'] as String?;
       if (banHasta != null) {
         return 'Tu cuenta está suspendida hasta '
@@ -78,6 +78,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Crea el perfil del usuario si inicia sesión con Google
+  /// y aún no existe en la tabla perfiles.
   Future<void> _syncGoogleProfile(User user) async {
     try {
       final perfil = await Supabase.instance.client
@@ -103,6 +105,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Inicializa el estado de autenticación y escucha cambios de sesión.
   void _init() {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
@@ -120,7 +123,7 @@ class AuthProvider extends ChangeNotifier {
       final session = data.session;
 
       if (event == AuthChangeEvent.signedIn && session != null) {
-        // Ignorar si ya estamos procesando un login
+        // Evita procesar múltiples inicios de sesión simultáneamente.
         if (_checking) return;
         _checking = true;
         _verifying = true;
@@ -130,12 +133,11 @@ class AuthProvider extends ChangeNotifier {
           final userId = session.user.id;
           final provider = session.user.appMetadata['provider'];
 
-          // Sync Google profile (no notifica todavía)
           if (provider == 'google') {
             await _syncGoogleProfile(session.user);
           }
 
-          // Verificar ban ANTES de cualquier notifyListeners
+          // La validación de suspensión se realiza antes de habilitar la sesión.
           final banMsg = await _checkBan(userId);
           if (banMsg != null) {
             _isBanning = true;
@@ -146,7 +148,7 @@ class AuthProvider extends ChangeNotifier {
             _role = null;
             _userId = null;
             _banMessage = banMsg;
-            notifyListeners(); // única notificación: cuenta baneada
+            notifyListeners();
             return;
           }
 
@@ -161,7 +163,7 @@ class AuthProvider extends ChangeNotifier {
             _role = await _fetchRoleFromDB(userId);
           }
 
-          notifyListeners(); // única notificación: login ok
+          notifyListeners();
 
         } finally {
           _checking = false;
@@ -169,6 +171,7 @@ class AuthProvider extends ChangeNotifier {
         }
 
       } else if (event == AuthChangeEvent.signedOut) {
+        // Ignora eventos de cierre de sesión generados por el proceso de suspensión.
         if (_isBanning || _checking) {
           _verifying = false;
           notifyListeners();
@@ -188,6 +191,7 @@ class AuthProvider extends ChangeNotifier {
     _banMessage = null;
   }
 
+  /// Inicia sesión utilizando un usuario obtenido desde la base de datos.
   Future<void> loginFromDB(String userId) async {
     _isLoggedIn = true;
     _userId = userId;
@@ -203,6 +207,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cierra la sesión local y en Supabase.
   void logout() {
     _isLoggedIn = false;
     _role = null;

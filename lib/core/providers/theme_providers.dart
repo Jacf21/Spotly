@@ -10,12 +10,14 @@ class ThemeProvider extends ChangeNotifier {
     _loadTheme();
   }
   
+  /// Cargar tema
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
     notifyListeners();
   }
   
+  /// Cargar tema
   Future<void> toggleTheme() async {
     _isDarkMode = !_isDarkMode;
     final prefs = await SharedPreferences.getInstance();

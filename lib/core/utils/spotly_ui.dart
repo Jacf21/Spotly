@@ -3,14 +3,14 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../widgets/layout/spotly_nav_item.dart';
 
 class SpotlyUI {
-  /// 🔔 TOAST
+  ///  TOAST
   static void toast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
-  /// 🔻 NAVBAR ITEMS
+  /// NAVBAR ITEMS
   static List<Widget> buildNavItems({
     required int currentIndex,
     required bool isDark,
@@ -19,7 +19,7 @@ class SpotlyUI {
     required int notifCount,
   }) {
     if (isAdmin) {
-      // ── Admin: 5 items distribuidos uniformemente, sin botón central ───────
+      //  Admin: 5 items distribuidos uniformemente, sin botón central 
       final items = [
         (LucideIcons.layoutDashboard, 'Panel',     0),
         (LucideIcons.users,           'Usuarios',      1),
@@ -47,7 +47,7 @@ class SpotlyUI {
       ];
     }
 
-    // ── Usuario normal: izquierda / espacio para botón + / derecha ──────────
+    //  Usuario normal: izquierda / espacio para botón + / derecha 
     return [
       Expanded(
         child: Row(

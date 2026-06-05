@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../context/auth_context.dart';
 import '../../themes/spotly_colors.dart';
 
+/// Modal de cerre de sesion
 class LogoutService {
   static Future<void> logout({
     required BuildContext context,

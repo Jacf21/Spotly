@@ -40,6 +40,7 @@ class _SpotlyFeedItemState extends State<SpotlyFeedItem> {
 
   bool get dark => widget.dark;
 
+  /// Manejo de likes
   Future<void> _handleLike() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) { context.push('/login'); return; }
@@ -62,6 +63,7 @@ class _SpotlyFeedItemState extends State<SpotlyFeedItem> {
     }
   }
 
+  /// Manejo de guardado de publicaciones
   Future<void> _handleSave(bool isGuest) async {
     if (isGuest) { context.push('/login'); return; }
     final user = Supabase.instance.client.auth.currentUser!;
@@ -77,6 +79,7 @@ class _SpotlyFeedItemState extends State<SpotlyFeedItem> {
     }
   }
 
+  /// Manejo de comentarios
   Future<void> _handleComment() async {
     if (!item.comentarioActivado) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

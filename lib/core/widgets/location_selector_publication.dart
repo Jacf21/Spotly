@@ -6,7 +6,10 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:spotly/core/utils/theme_utils.dart';
 
+/// Selector de ubicación que permite elegir un lugar
+/// mediante GPS, mapa interactivo o búsqueda por texto.
 class PostLocationSelector extends StatefulWidget {
+  /// Devuelve las coordenadas y la información geográfica seleccionada.
   final void Function(LatLng coords, String deptoName, String city) onLocationChanged;
 
   const PostLocationSelector({super.key, required this.onLocationChanged});
@@ -19,8 +22,11 @@ enum _LocationMode { gps, map, search }
 
 class _PostLocationSelectorState extends State<PostLocationSelector> {
   _LocationMode _mode = _LocationMode.gps;
+  // Ubicación actualmente seleccionada por el usuario.
   LatLng _pinLocation = const LatLng(-17.3935, -66.1570);
+  // Nombre legible obtenido mediante geocodificación inversa.
   String _displayName = "Cochabamba, Bolivia";
+  // Controla el indicador de carga durante consultas geográficas.
   bool _isGeocoding = false;
   bool _mapExpanded = false;
 
@@ -31,12 +37,14 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
 
   @override
   void dispose() {
+    // Libera recursos asociados al buscador
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
 
-  // Geocodificación inversa: coords → nombre legible (Nominatim OSM, gratis)
+  /// Convierte coordenadas geográficas en una dirección legible
+  /// utilizando el servicio Nominatim de OpenStreetMap.
   Future<void> _reverseGeocode(LatLng coords) async {
     setState(() => _isGeocoding = true);
     try {
@@ -54,7 +62,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
         final state = addr['state'] ?? '';
         setState(() => _displayName = '$city, $state');
 
-        // Llamamos al callback del padre con los datos reales
+        // Notifica al widget padre la ubicación seleccionada.
         widget.onLocationChanged(coords, state, city);
       }
     } catch (_) {
@@ -64,8 +72,9 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
     }
   }
 
-  // Búsqueda directa: texto → lista de lugares (Nominatim)
+  /// Busca ubicaciones a partir de texto utilizando Nominatim.
   Future<void> _searchPlaces(String query) async {
+    // Evita consultas innecesarias con textos demasiado cortos.
     if (query.length < 3) {
       setState(() => _searchResults = []);
       return;
@@ -89,6 +98,8 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
     } catch (_) {}
   }
 
+  /// Actualiza el mapa y selecciona una ubicación obtenida
+  /// desde los resultados de búsqueda.
   void _selectSearchResult(Map<String, dynamic> result) {
     final coords = LatLng(result['lat'], result['lon']);
     setState(() {
@@ -119,7 +130,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
         ),
         const SizedBox(height: 12),
 
-        // Selector de modo (3 chips)
+        // Permite alternar entre GPS, mapa y búsqueda manual.
         Row(
           children: _LocationMode.values.map((mode) {
             final labels = {
@@ -151,7 +162,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
                     border: Border.all(
                       color: selected
                           ? Colors.transparent
-                          : (dark ? Colors.white12 : Colors.grey.shade300), // 👈
+                          : (dark ? Colors.white12 : Colors.grey.shade300),
                     ),
                   ),
                   child: Column(
@@ -174,11 +185,11 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
 
         const SizedBox(height: 12),
 
-        // Modo BUSCAR
+        // Interfaz de búsqueda de ubicaciones.
         if (_mode == _LocationMode.search) ...[
           TextField(
             controller: _searchController,
-            style: TextStyle(color: dark ? Colors.white : Colors.black), // 👈
+            style: TextStyle(color: dark ? Colors.white : Colors.black),
             onChanged: (v) {
               _debounce?.cancel();
               _debounce = Timer(
@@ -186,16 +197,16 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
             },
             decoration: InputDecoration(
               hintText: "Ej: Parque Nacional Tunari",
-              hintStyle: TextStyle( // 👈
+              hintStyle: TextStyle(
                   color: dark ? Colors.white38 : Colors.grey),
               prefixIcon: Icon(Icons.search,
                   size: 20,
-                  color: dark ? Colors.white54 : Colors.grey), // 👈
+                  color: dark ? Colors.white54 : Colors.grey),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(Icons.clear,
                           size: 18,
-                          color: dark ? Colors.white54 : Colors.grey), // 👈
+                          color: dark ? Colors.white54 : Colors.grey),
                       onPressed: () {
                         _searchController.clear();
                         setState(() => _searchResults = []);
@@ -215,7 +226,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
             Container(
               margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF1E293B) : Colors.white, // 👈
+                color: dark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -229,24 +240,24 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
                 itemCount: _searchResults.length,
                 separatorBuilder: (_, __) => Divider(
                     height: 1,
-                    color: dark ? Colors.white12 : Colors.grey.shade200), // 👈
+                    color: dark ? Colors.white12 : Colors.grey.shade200),
                 itemBuilder: (_, i) {
                   final r = _searchResults[i];
                   return ListTile(
                     leading: Icon(Icons.place_outlined,
                         size: 18,
-                        color: dark ? Colors.white54 : Colors.grey), // 👈
+                        color: dark ? Colors.white54 : Colors.grey),
                     title: Text(
                       r['name'].toString().split(',').first,
                       style: TextStyle(
                           fontSize: 14,
-                          color: dark ? Colors.white : Colors.black), // 👈
+                          color: dark ? Colors.white : Colors.black),
                     ),
                     subtitle: Text(
                       r['name'].toString().split(',').skip(1).take(2).join(','),
                       style: TextStyle(
                           fontSize: 11,
-                          color: dark ? Colors.white38 : Colors.grey), // 👈
+                          color: dark ? Colors.white38 : Colors.grey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -258,7 +269,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
           const SizedBox(height: 12),
         ],
 
-        // Mapa
+        // Mapa interactivo para selección manual de ubicación.
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 300),
           crossFadeState: (_mode == _LocationMode.map ||
@@ -269,7 +280,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
           secondChild: const SizedBox.shrink(),
         ),
 
-        // Chip ubicación seleccionada
+        // Muestra la ubicación actualmente seleccionada.
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -284,7 +295,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
               Expanded(
                 child: _isGeocoding
                     ? LinearProgressIndicator(
-                        color: dark ? Colors.white54 : Colors.grey) // 👈
+                        color: dark ? Colors.white54 : Colors.grey) 
                     : Text(
                         _displayName,
                         style: TextStyle(
@@ -299,6 +310,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
     );
   }
 
+  /// Construye el mapa interactivo y el marcador de ubicación.
   Widget _buildMap(bool dark) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),

@@ -21,14 +21,14 @@ class SpotlyCrystalCard extends StatelessWidget {
         color: SpotlyColors.card(dark),
         borderRadius: BorderRadius.circular(28),
 
-        /// ✨ efecto glass + borde sutil
+        ///  efecto glass + borde sutil
         border: Border.all(
           color: dark
               ? Colors.white.withOpacity(0.08)
               : Colors.black.withOpacity(0.08),
         ),
 
-        /// 🌑 sombra adaptativa
+        ///  sombra adaptativa
         boxShadow: SpotlyColors.shadow(dark),
       ),
       child: child,
