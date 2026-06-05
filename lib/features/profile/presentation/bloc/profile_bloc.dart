@@ -9,6 +9,9 @@ import 'package:spotly/features/profile/domain/usecases/upload_avatar_usecase.da
 part 'profile_event.dart';
 part 'profile_state.dart';
 
+/// BLoC para la gestión del perfil de usuario.
+/// Maneja la carga, actualización de datos y cambio de foto de perfil.
+/// Comunica la capa de presentación con los casos de uso.
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetProfileUseCase getProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
@@ -19,6 +22,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     required this.updateProfileUseCase,
     required this.uploadAvatarUseCase,
   }) : super(ProfileInitial()) {
+    
+    /// Evento: Obtener perfil de usuario por ID.
+    /// Emite ProfileLoading mientras carga, luego ProfileLoaded con los datos,
+    /// o ProfileError si falla.
     on<OnFetchProfile>((event, emit) async {
       emit(ProfileLoading());
       try {
@@ -29,6 +36,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       }
     });
 
+    /// Evento: Actualizar datos del perfil.
+    /// Toma el perfil actual, aplica los cambios del evento y persiste.
+    /// Emite ProfileUpdateSuccess al finalizar y recarga el perfil actualizado.
     on<OnUpdateProfile>((event, emit) async {
       final currentState = state;
       if (currentState is ProfileLoaded) {
@@ -52,23 +62,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
           await updateProfileUseCase.execute(updatedProfile);
           emit(ProfileUpdateSuccess());
-          add(OnFetchProfile(currentProfile.id));
+          add(OnFetchProfile(currentProfile.id)); // Recarga datos actualizados
         } catch (e) {
           emit(ProfileError("Error al actualizar: ${e.toString()}"));
-          emit(ProfileLoaded(currentProfile));
+          emit(ProfileLoaded(currentProfile)); // Revertir al estado anterior
         }
       }
     });
 
+    /// Evento: Actualizar foto de perfil.
+    /// Sube la imagen a Supabase Storage, actualiza la URL en el perfil
+    /// y recarga los datos completos del usuario.
     on<OnUpdateAvatar>((event, emit) async {
-    emit(ProfileAvatarUpdating());
-    try {
-      final url = await uploadAvatarUseCase.execute(event.userId, event.file);
-      emit(ProfileAvatarUpdated(url));
-      add(OnFetchProfile(event.userId)); // refresca el perfil completo
-    } catch (e) {
-      emit(ProfileError('Error actualizando avatar: ${e.toString()}'));
-    }
-  });
+      emit(ProfileAvatarUpdating());
+      try {
+        final url = await uploadAvatarUseCase.execute(event.userId, event.file);
+        emit(ProfileAvatarUpdated(url));
+        add(OnFetchProfile(event.userId)); // Refresca el perfil completo
+      } catch (e) {
+        emit(ProfileError('Error actualizando avatar: ${e.toString()}'));
+      }
+    });
   }
 }
