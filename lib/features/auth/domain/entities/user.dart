@@ -1,3 +1,5 @@
+/// Entidad de dominio que representa a un usuario en el sistema.
+/// Contiene los atributos básicos del usuario independientemente de la fuente de datos.
 class User {
   final String id;
   final String nombres;
