@@ -39,6 +39,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     super.dispose();
   }
 
+  /// Cargar datos
   Future<void> _loadAll() async {
     if (mounted) setState(() => _loading = true);
     try {
@@ -55,6 +56,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     }
   }
 
+  /// aplicar filtros
   void _aplicarFiltros() {
     final q = _searchController.text.toLowerCase().trim();
     setState(() {
@@ -74,6 +76,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
   int get _totalBaneados => _usuarios.where((u) => !u.esActivo).length;
   int get _totalConReportes => _usuarios.where((u) => u.reportesPendientes > 0).length;
 
+  /// ver detalles del usuario
   void _abrirDetalle(AdminUsuarioModel usuario, bool dark) {
     showModalBottomSheet(
       context: context,
@@ -88,6 +91,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     );
   }
 
+  /// Constructor
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -254,6 +258,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     );
   }
 
+  /// modal de filtro de roles
   void _showRolSheet(bool dark) {
     final roles = ['admin', 'user'];
     showModalBottomSheet(
@@ -301,6 +306,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
     );
   }
 
+  /// modal de filtro por estado de cuenta
   void _showEstadoSheet(bool dark) {
     showModalBottomSheet(
       context: context,
@@ -340,8 +346,7 @@ class _AdminUsuariosPageState extends State<AdminUsuariosPage> {
   }
 }
 
-// ── Tarjeta ───────────────────────────────────────────────────────────────────
-
+/// Tarjeta 
 class _UsuarioCard extends StatelessWidget {
   final AdminUsuarioModel usuario;
   final bool dark;
@@ -475,8 +480,7 @@ class _UsuarioCard extends StatelessWidget {
   }
 }
 
-// ── Sheet de detalle ──────────────────────────────────────────────────────────
-
+/// Sheet de detalle 
 class _UsuarioDetalleSheet extends StatefulWidget {
   final AdminUsuarioModel usuario;
   final bool dark;
@@ -497,8 +501,7 @@ class _UsuarioDetalleSheet extends StatefulWidget {
 class _UsuarioDetalleSheetState extends State<_UsuarioDetalleSheet> {
   bool _procesando = false;
 
-  // ── Ban con selector de tipo ───────────────────────────────────────────────
-
+  /// Ban con selector de tipo 
   Future<void> _mostrarOpcionesBan() async {
     final dark = widget.dark;
     final u = widget.usuario;
@@ -564,6 +567,7 @@ class _UsuarioDetalleSheetState extends State<_UsuarioDetalleSheet> {
     await _confirmarBan(tipoBan);
   }
 
+  /// Funcion y modal de confirmacion de baneo de cuenta
   Future<void> _confirmarBan(String tipoBan) async {
     final dark = widget.dark;
     final u = widget.usuario;
@@ -674,6 +678,7 @@ class _UsuarioDetalleSheetState extends State<_UsuarioDetalleSheet> {
     }
   }
 
+  /// funcion y modal de confirmacion de desbaneo
   Future<void> _confirmarDesbanear() async {
     final dark = widget.dark;
     final u = widget.usuario;
@@ -751,6 +756,7 @@ class _UsuarioDetalleSheetState extends State<_UsuarioDetalleSheet> {
     }
   }
 
+  /// Constructor
   @override
   Widget build(BuildContext context) {
     final dark = widget.dark;
@@ -891,8 +897,7 @@ class _UsuarioDetalleSheetState extends State<_UsuarioDetalleSheet> {
   }
 }
 
-// ── Sección de reportes ───────────────────────────────────────────────────────
-
+/// Sección de reportes 
 class _ReportesSection extends StatefulWidget {
   final String userId;
   final bool dark;
@@ -933,6 +938,7 @@ class _ReportesSectionState extends State<_ReportesSection> {
     }
   }
 
+  /// Constructor
   @override
   Widget build(BuildContext context) {
     final dark = widget.dark;
@@ -1028,8 +1034,7 @@ class _ReportesSectionState extends State<_ReportesSection> {
   }
 }
 
-// ── Widgets auxiliares ────────────────────────────────────────────────────────
-
+/// Widgets auxiliares 
 class _StatChip extends StatelessWidget {
   final String label;
   final String value;
@@ -1059,6 +1064,7 @@ class _StatChip extends StatelessWidget {
   }
 }
 
+/// Chip de filtros
 class _FiltroChip extends StatelessWidget {
   final String label;
   final bool active;
@@ -1096,6 +1102,7 @@ class _FiltroChip extends StatelessWidget {
   }
 }
 
+/// Items
 class _StatItem extends StatelessWidget {
   final String label;
   final String value;
@@ -1117,6 +1124,7 @@ class _StatItem extends StatelessWidget {
   }
 }
 
+/// fila se informacion
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;

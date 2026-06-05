@@ -42,6 +42,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
     super.dispose();
   }
 
+  /// Funcion para obtener todos los datos necesarios
   Future<void> _loadAll() async {
     if (mounted) setState(() => _loading = true);
     try {
@@ -76,8 +77,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
     });
   }
 
-  // ── Modal de edición ──────────────────────────────────────────────────────
-
+  /// Modal de edición
   void _abrirEdicion(AdminLugarModel lugar, bool dark) {
     showModalBottomSheet(
       context: context,
@@ -93,8 +93,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
+  /// Construvctor
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -110,7 +109,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ────────────────────────────────────────────
+          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
@@ -245,7 +244,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
             ),
           ),
 
-          // ── Lista ──────────────────────────────────────────────
+          /// Lista
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -282,6 +281,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
     );
   }
 
+  /// Filtros
   void _showFilterSheet({
     required String title,
     required List<String> options,
@@ -294,7 +294,6 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
       backgroundColor: SpotlyColors.card(dark),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      // isScrollControlled evita el overflow cuando hay muchas opciones
       isScrollControlled: true,
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.6,
@@ -358,8 +357,7 @@ class _AdminLugaresPageState extends State<AdminLugaresPage> {
   }
 }
 
-// ── Tarjeta de lugar ──────────────────────────────────────────────────────────
-
+/// Tarjeta de lugar
 class _LugarCard extends StatelessWidget {
   final AdminLugarModel lugar;
   final bool dark;
@@ -467,8 +465,7 @@ class _LugarCard extends StatelessWidget {
   }
 }
 
-// ── Chip de filtro ────────────────────────────────────────────────────────────
-
+/// Chip de filtro
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool active;
@@ -513,8 +510,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ── Sheet de edición ──────────────────────────────────────────────────────────
-
+/// Sheet de edición
 class _EditarLugarSheet extends StatefulWidget {
   final AdminLugarModel lugar;
   final List<Map<String, dynamic>> categorias;
@@ -534,13 +530,13 @@ class _EditarLugarSheet extends StatefulWidget {
   State<_EditarLugarSheet> createState() => _EditarLugarSheetState();
 }
 
+/// Shet de edicion de lugar
 class _EditarLugarSheetState extends State<_EditarLugarSheet> {
   late final TextEditingController _nombreCtrl;
   late final TextEditingController _descCtrl;
   int? _categoriaSeleccionada;
   bool _guardando = false;
 
-  // Para el selector de foto
   List<Map<String, dynamic>> _imagenes = [];
   bool _loadingImagenes = false;
   String? _fotoSeleccionada;
@@ -562,6 +558,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
     super.dispose();
   }
 
+  /// obtener imagenes asociadas
   Future<void> _cargarImagenes() async {
     if (_loadingImagenes) return;
     setState(() { _loadingImagenes = true; _mostrarFotos = true; });
@@ -573,6 +570,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
     }
   }
 
+  /// Guardar cambios
   Future<void> _guardar() async {
     if (_nombreCtrl.text.trim().isEmpty) return;
     setState(() => _guardando = true);
@@ -607,6 +605,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
     }
   }
 
+  /// Construcctor de seccion de edicion de lugar
   @override
   Widget build(BuildContext context) {
     final dark = widget.dark;
@@ -660,7 +659,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
             ]),
             const SizedBox(height: 20),
 
-            // ── Foto de portada ──────────────────────────────
+            /// Foto de portada
             Text('Foto de portada',
                 style: TextStyle(
                     color: text,
@@ -718,7 +717,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
               ),
             ]),
 
-            // Grid de imágenes del lugar
+            /// Grid de imágenes del lugar
             if (_mostrarFotos) ...[
               const SizedBox(height: 12),
               if (_loadingImagenes)
@@ -786,7 +785,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
 
             const SizedBox(height: 20),
 
-            // ── Nombre ───────────────────────────────────────
+            /// Nombre
             Text('Nombre',
                 style: TextStyle(
                     color: text,
@@ -811,7 +810,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
             ),
             const SizedBox(height: 16),
 
-            // ── Descripción ──────────────────────────────────
+            /// Descripción
             Text('Descripción',
                 style: TextStyle(
                     color: text,
@@ -836,7 +835,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
             ),
             const SizedBox(height: 16),
 
-            // ── Categoría ────────────────────────────────────
+            /// Categoría
             Text('Categoría',
                 style: TextStyle(
                     color: text,
@@ -871,7 +870,7 @@ class _EditarLugarSheetState extends State<_EditarLugarSheet> {
             ),
             const SizedBox(height: 24),
 
-            // ── Botón guardar ────────────────────────────────
+            /// Botón guardar
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

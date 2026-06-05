@@ -1,11 +1,10 @@
-// features/admin/data/datasources/publicaciones_datasource.dart
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PublicacionesDatasource {
   final SupabaseClient _client;
   PublicacionesDatasource(this._client);
 
+  /// Obtener el numero total de publicaciones
   Future<int> countPublicaciones() async {
     final res = await _client
         .from('publicaciones')
@@ -14,6 +13,7 @@ class PublicacionesDatasource {
     return res.count;
   }
 
+  /// Obtener el numero total de reportes
   Future<int> countReportes() async {
     final res = await _client
         .from('reportes_publicaciones')
@@ -22,6 +22,7 @@ class PublicacionesDatasource {
     return res.count;
   }
 
+  /// Obtener el numero total de publicaciones conrepotes registrados
   Future<int> countPublicacionesConReportes() async {
     final data = await _client
         .from('reportes_publicaciones')
@@ -30,8 +31,8 @@ class PublicacionesDatasource {
     return (data as List).map((r) => r['id_publicacion']).toSet().length;
   }
 
+  /// Obtener reportes de estatus pendientes
   Future<List<Map<String, dynamic>>> fetchReportes() async {
-    // Query simple sin joins anidados
     final data = await _client
         .from('reportes_publicaciones')
         .select('id_reporte, motivo, pendiente, created_at, id_publicacion')
@@ -43,7 +44,6 @@ class PublicacionesDatasource {
 
     final ids = reportes.map((r) => r['id_publicacion']).toSet().toList();
 
-    // Trae publicaciones sin multimedia
     final pubs = await _client
         .from('publicaciones')
         .select('''
@@ -65,7 +65,6 @@ class PublicacionesDatasource {
         p['id_publicacion']: p
     };
 
-    // Trae imágenes de portada separado
     final multimedia = await _client
         .from('multimedia')
         .select('id_publicacion, url_recurso, es_portada')
@@ -77,7 +76,6 @@ class PublicacionesDatasource {
         m['id_publicacion']: m['url_recurso'] as String?
     };
 
-    // Combina todo
     for (final pub in pubsMap.values) {
       final id = pub['id_publicacion'];
       pub['media_url'] = multimediaMap[id];
@@ -90,8 +88,8 @@ class PublicacionesDatasource {
     }).whereType<Map<String, dynamic>>().toList();
   }
 
+  /// Obtener todas la publicaiones del sistema
   Future<List<Map<String, dynamic>>> fetchPublicaciones() async {
-    // Query simple sin multimedia anidada
     final data = await _client
         .from('publicaciones')
         .select('''
@@ -137,6 +135,7 @@ class PublicacionesDatasource {
     return pubs;
   }
 
+  /// Desactivar publicacion
   Future<void> updateActivo(int pubId, bool nuevoEstado) async {
     await _client
         .from('publicaciones')
@@ -144,6 +143,8 @@ class PublicacionesDatasource {
         .eq('id_publicacion', pubId);
   }
 
+  
+  /// Cambiar estatus del reporte
   Future<void> markReportesResueltos(int pubId) async {
     await _client
         .from('reportes_publicaciones')
@@ -152,6 +153,7 @@ class PublicacionesDatasource {
         .eq('pendiente', true);
   }
 
+  /// Ignorar Reporte
   Future<void> ignorarReportes(int pubId) async {
     await _client
         .from('reportes_publicaciones')
@@ -160,6 +162,7 @@ class PublicacionesDatasource {
         .eq('pendiente', true);
   }
 
+  /// Notificar estado de la publicacion al propietario
   Future<void> insertNotificacion({
     required String idUsuarioDestino,
     required String? idUsuarioActor,

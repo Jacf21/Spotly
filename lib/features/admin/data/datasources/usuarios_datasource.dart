@@ -4,6 +4,7 @@ class UsuariosDatasource {
   final SupabaseClient _client;
   UsuariosDatasource(this._client);
 
+  /// Obtener todos los usuarios
   Future<List<Map<String, dynamic>>> fetchUsuarios() async {
     final data = await _client
         .from('perfiles')
@@ -33,7 +34,7 @@ class UsuariosDatasource {
 
     final ids = usuarios.map((u) => u['id_usuario'].toString()).toList();
 
-    // Conteo real de publicaciones (excluyendo compartidas)
+    // Conteo real de publicaciones
     final pubs = await _client
         .from('publicaciones')
         .select('id_usuario')
@@ -80,9 +81,10 @@ class UsuariosDatasource {
     return usuarios;
   }
 
+  /// Funcion de baneo de usuario
   Future<void> banearUsuario({
     required String userId,
-    required String tipoBan, // 'temporal' | 'definitivo'
+    required String tipoBan,
     required String? motivoBan,
   }) async {
     final banHasta = tipoBan == 'temporal'
@@ -96,21 +98,12 @@ class UsuariosDatasource {
     }).eq('id_usuario', userId);
   }
 
+  /// Funcion de quietar baneo a usuario
   Future<void> desbanearUsuario(String userId) async {
     await _client.from('perfiles').update({
       'es_activo': true,
       'ban_hasta': null,
       'motivo_ban': null,
     }).eq('id_usuario', userId);
-  }
-
-  Future<void> cambiarRol({
-    required String userId,
-    required String nuevoRol,
-  }) async {
-    await _client
-        .from('perfiles')
-        .update({'rol': nuevoRol})
-        .eq('id_usuario', userId);
   }
 }

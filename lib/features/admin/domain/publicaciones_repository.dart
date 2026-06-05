@@ -16,6 +16,7 @@ abstract class PublicacionesRepository {
     required String? adminId,
   });
 
+  /// Ignorar reporte
   Future<void> ignorarReportes({
     required int pubId,
     required String idUsuario,

@@ -45,7 +45,7 @@ class LugaresDatasource {
       pubCountMap[id] = (pubCountMap[id] ?? 0) + 1;
     }
 
-    // Conteo de likes desde favoritos_lugares — query directa sin inFilter
+    // Conteo de likes desde favoritos_lugares
     final likes = await _client
         .from('favoritos_lugares')
         .select('lugar_id');

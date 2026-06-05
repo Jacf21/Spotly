@@ -7,6 +7,7 @@ class PublicacionesRepositoryImpl implements PublicacionesRepository {
   final PublicacionesDatasource _ds;
   PublicacionesRepositoryImpl(this._ds);
 
+  /// Obtener totales de publicaciones con o sin reportes
   @override
   Future<({int totalPublicaciones, int totalReportes, int conReportes})>
       getStats() async {
@@ -22,6 +23,7 @@ class PublicacionesRepositoryImpl implements PublicacionesRepository {
     );
   }
 
+  /// Obtener todas las publicaciones con reportes
   @override
   Future<List<Map<String, dynamic>>> getReportadas() async {
     final raw = await _ds.fetchReportes();
@@ -40,9 +42,11 @@ class PublicacionesRepositoryImpl implements PublicacionesRepository {
     return grouped.values.toList();
   }
 
+  /// Obtener todas la publicaciones
   @override
   Future<List<Map<String, dynamic>>> getTodas() => _ds.fetchPublicaciones();
 
+  /// Verificar si la publicacion esta activa o no
   @override
   Future<void> toggleActivo({
     required int pubId,
@@ -52,8 +56,6 @@ class PublicacionesRepositoryImpl implements PublicacionesRepository {
   }) async {
     final nuevoEstado = !esActivoActual;
 
-    // Ejecutar secuencialmente — Future.wait con `if` condicional
-    // dentro de la lista causa excepción en runtime (pantalla blanca)
     await _ds.updateActivo(pubId, nuevoEstado);
 
     await _ds.insertNotificacion(
@@ -68,7 +70,8 @@ class PublicacionesRepositoryImpl implements PublicacionesRepository {
     }
   }
 
-   @override
+  /// Funcion para ignorar reporte
+  @override
   Future<void> ignorarReportes({
     required int pubId,
     required String idUsuario,

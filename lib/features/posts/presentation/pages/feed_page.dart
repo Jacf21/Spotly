@@ -698,7 +698,7 @@ class _FeedPageState extends State<FeedPage> {
     final subColor = dark ? Colors.white70 : Colors.black54;
 
     return FutureBuilder<bool>(
-      future: item.isShared ? _isOriginalPostBlocked(item.idPublicacionOriginal) : Future.value(false),
+      future: item.isShared ? _isOriginalPostBlocked(item.originalPostId) : Future.value(false),
       builder: (context, snapshot) {
         final isOriginalBlocked = snapshot.data ?? false;
         

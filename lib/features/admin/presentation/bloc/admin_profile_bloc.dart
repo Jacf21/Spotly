@@ -1,7 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../../data/repositories/admin_profile_repository_impl.dart';
-
 part 'admin_profile_event.dart';
 part 'admin_profile_state.dart';
 
@@ -18,6 +16,7 @@ class AdminProfileBloc
     on<OnChangeAdminPassword>(_onChangePassword);
   }
 
+  /// Obtiene la información del perfil del administrador y actualiza el estado con los datos recuperados.
   Future<void> _onFetchProfile(
     OnFetchAdminProfile event,
     Emitter<AdminProfileState> emit,
@@ -41,6 +40,7 @@ class AdminProfileBloc
     }
   }
 
+  /// Actualiza los datos personales del administrador y recarga la información actualizada del perfil.
   Future<void> _onUpdateProfile(
     OnUpdateAdminProfile event,
     Emitter<AdminProfileState> emit,
@@ -80,6 +80,7 @@ class AdminProfileBloc
     }
   }
 
+  /// Cambia la contraseña del administrador y maneja los posibles errores de validación.
   Future<void> _onChangePassword(
     OnChangeAdminPassword event,
     Emitter<AdminProfileState> emit,

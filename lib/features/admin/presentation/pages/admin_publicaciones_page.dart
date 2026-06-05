@@ -1,5 +1,3 @@
-// features/admin/presentation/pages/admin_publicaciones_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,10 +44,12 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     super.dispose();
   }
 
+  /// Obtener datos
   Future<void> _loadAll() async {
     await Future.wait([_loadStats(), _loadReportadas(), _loadTodas()]);
   }
 
+  /// Obtener totales
   Future<void> _loadStats() async {
     if (mounted) setState(() => _loadingStats = true);
     try {
@@ -67,6 +67,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     }
   }
 
+  /// cargar publicaciones reportadas
   Future<void> _loadReportadas() async {
     if (mounted) setState(() => _loadingReportadas = true);
     try {
@@ -77,6 +78,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     }
   }
 
+  /// Cargar todas las publicaciones
   Future<void> _loadTodas() async {
     if (mounted) setState(() => _loadingTodas = true);
     try {
@@ -87,6 +89,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     }
   }
 
+  /// ignorar reporte
   Future<void> _ignorarReportes(
       int pubId, String idUsuario, final dark) async {
     final confirm = await showModalBottomSheet<bool>(
@@ -194,8 +197,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     }
   }
 
-  // ── Modal de detalle de publicación ──────────────────────────────────────
-
+  ///Modal de detalle de publicación
   void _mostrarDetalle(Map<String, dynamic> pub, bool dark) {
     final titulo = pub['titulo'] ?? pub['descripcion_experiencia'] ?? 'Sin título';
     final descripcion = pub['descripcion_experiencia'] ?? '';
@@ -306,8 +308,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     );
   }
 
-  // ── Toggle con modal de confirmación ─────────────────────────────────────
-
+  /// Toggle con modal de confirmación 
   Future<void> _toggleActivo(
       int pubId, String idUsuario, bool esActivoActual, final dark) async {
     final nuevoEstado = !esActivoActual;
@@ -421,8 +422,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
+  /// Constructor 
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -571,8 +571,7 @@ class _AdminPublicacionesPageState extends State<AdminPublicacionesPage>
   }
 }
 
-// ── Widgets auxiliares ────────────────────────────────────────────────────────
-
+/// Widgets auxiliares 
 class _PublicacionCard extends StatelessWidget {
   final Map<String, dynamic> pub;
   final bool dark;

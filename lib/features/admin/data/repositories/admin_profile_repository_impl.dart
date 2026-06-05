@@ -5,6 +5,7 @@ class AdminProfileRepository {
 
   AdminProfileRepository(this.supabase);
 
+  /// Obtener informacion de un perfil de usuario
   Future<Map<String, dynamic>> getProfile(String userId) async {
     final response = await supabase
         .from('perfiles')
@@ -15,6 +16,7 @@ class AdminProfileRepository {
     return response;
   }
 
+  /// editar informacion basica del perfil
   Future<void> updateProfile({
     required String userId,
     required String nombres,
@@ -28,6 +30,7 @@ class AdminProfileRepository {
     }).eq('id_usuario', userId);
   }
 
+  /// Cambiar contraseña
   Future<void> changePassword(String newPassword) async {
     await supabase.auth.updateUser(
       UserAttributes(password: newPassword),

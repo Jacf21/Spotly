@@ -19,6 +19,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
   final usernameCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
 
+  /// Constructor se perfil
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -147,7 +148,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     );
   }
 
-  // Método auxiliar para construir los campos de texto
+  /// Metodo auxiliar para construir los campos de texto
   Widget _buildField({
     required TextEditingController controller,
     required String label,
