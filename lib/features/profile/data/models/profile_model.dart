@@ -1,3 +1,6 @@
+/// Modelo de datos para el perfil de usuario en la capa de datos.
+/// Se encarga de la serialización/deserialización entre la base de datos (Supabase)
+/// y la aplicación. Los nombres de los campos deben coincidir con la tabla 'perfiles'.
 class ProfileModel {
   final String idUsuario;
   final String email;
@@ -25,7 +28,9 @@ class ProfileModel {
     this.ciudadOrigen,
   });
 
-  // Mapeo de la base de datos (Supabase) al código
+  /// Convierte un JSON de Supabase a un objeto ProfileModel.
+  /// Los nombres de los campos deben coincidir con la tabla 'perfiles'.
+  /// Retorna una instancia de ProfileModel con los datos mapeados.
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
       idUsuario: json['id_usuario'] ?? '',
@@ -42,7 +47,8 @@ class ProfileModel {
     );
   }
 
-  // Mapeo del código a la base de datos para actualizar
+  /// Convierte un ProfileModel a JSON para operaciones de UPDATE o INSERT en Supabase.
+  /// Retorna un Map con los campos listos para enviar a la base de datos.
   Map<String, dynamic> toJson() {
     return {
       'id_usuario': idUsuario,
