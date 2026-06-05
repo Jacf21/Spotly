@@ -1,5 +1,8 @@
 part of 'comments_page.dart';
 
+/// Widget de entrada de texto para comentarios y respuestas.
+/// Incluye campo de texto, botón de emojis, y botón de envío.
+/// Muestra un hint diferente si se está respondiendo a otro usuario.
 class _CommentInput extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -27,6 +30,7 @@ class _CommentInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    /// Hint dinámico: si se está respondiendo a alguien, muestra "Responder a @usuario"
     final hint = replyingToUserName != null
         ? 'Responder a @$replyingToUserName...'
         : 'Agrega un comentario...';
@@ -35,6 +39,7 @@ class _CommentInput extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Row(
         children: [
+          /// Botón para abrir/cerrar el selector de emojis
           GestureDetector(
             onTap: onToggleEmoji,
             child: Icon(
@@ -44,6 +49,8 @@ class _CommentInput extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          
+          /// Campo de texto multilínea para escribir el comentario
           Expanded(
             child: TextField(
               controller: controller,
@@ -69,6 +76,8 @@ class _CommentInput extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          
+          /// Botón de envío (muestra indicador de carga mientras se envía)
           isSending
               ? const SizedBox(
                   width: 24,
