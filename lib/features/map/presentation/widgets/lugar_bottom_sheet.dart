@@ -6,14 +6,11 @@ import 'package:spotly/core/themes/spotly_colors.dart';
 
 import '../../data/models/map_lugar_model.dart';
 
-/// Bottom sheet compacto que aparece al tocar un marcador en el mapa.
-/// Muestra la info básica del lugar y dos acciones:
-///   • Ver detalle → navega a /lugar/:id
-///   • Cómo llegar → traza la ruta (callback al MapPage)
+/// Bottom sheet compacto que aparece al tocar un marcador en el mapa
 class LugarBottomSheet extends StatelessWidget {
   final MapLugarModel lugar;
   final bool dark;
-  final bool tieneUbicacion; // si es false, deshabilita "Cómo llegar"
+  final bool tieneUbicacion;
   final VoidCallback onComoLlegar;
 
   const LugarBottomSheet({

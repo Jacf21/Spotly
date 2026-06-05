@@ -44,15 +44,15 @@ class MapLoading extends MapState {}
 
 class MapLoaded extends MapState {
   final LatLng currentCenter;
-  final LatLng? miUbicacion;           // posición GPS real del usuario
+  final LatLng? miUbicacion;
   final List<MapLugarModel> todosLugares;
   final List<MapLugarModel> lugaresEnZona;
   final double radioKm;
   final bool locationObtained;
   final List<SearchResult> resultadosBusqueda;
   final bool buscando;
-  final MapLugarModel? lugarSeleccionado; // marcador tocado
-  final RouteInfo? rutaActiva;           // ruta trazada
+  final MapLugarModel? lugarSeleccionado;
+  final RouteInfo? rutaActiva;
 
   const MapLoaded({
     required this.currentCenter,

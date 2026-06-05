@@ -26,7 +26,7 @@ class MapCubit extends Cubit<MapState> {
     try {
       final lugares = await repository.getLugaresConCoordenadas();
 
-      // 1. Obtener ubicación GPS (siempre la intentamos para el marcador azul)
+      // 1. Obtener ubicación GPS
       LatLng? miUbicacion;
       bool locationObtained = false;
       try {
@@ -57,14 +57,14 @@ class MapCubit extends Cubit<MapState> {
     }
   }
 
-  // ── Tracking GPS en tiempo real ───────────────────────────────────────────
+  //  Tracking GPS en tiempo real 
 
   void _iniciarTracking() {
     _posicionStream?.cancel();
     _posicionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // actualiza cada 10 metros para no saturar
+        distanceFilter: 10,
       ),
     ).listen((pos) {
       final current = state;
@@ -80,7 +80,7 @@ class MapCubit extends Cubit<MapState> {
     return null;
   }
 
-  // ── Movimiento manual del mapa ────────────────────────────────────────────
+  //  Movimiento manual del mapa 
 
   void updateCenter(LatLng newCenter) {
     final current = state;
@@ -94,7 +94,7 @@ class MapCubit extends Cubit<MapState> {
     ));
   }
 
-  // ── Selección de marcador ─────────────────────────────────────────────────
+  //  Selección de marcador 
 
   void seleccionarLugar(MapLugarModel lugar) {
     final current = state;
@@ -122,7 +122,7 @@ class MapCubit extends Cubit<MapState> {
     if (current is! MapLoaded) return;
 
     final origen = current.miUbicacion;
-    if (origen == null) return; // sin ubicación no podemos trazar
+    if (origen == null) return;
 
     try {
       final uri = Uri.parse(
@@ -167,8 +167,7 @@ class MapCubit extends Cubit<MapState> {
     emit(current.copyWith(clearRuta: true));
   }
 
-  // ── Búsqueda combinada ────────────────────────────────────────────────────
-
+  //  Búsqueda combinada 
   Future<void> buscarLugar(String query) async {
     final current = state;
     if (current is! MapLoaded) return;
@@ -248,6 +247,7 @@ class MapCubit extends Cubit<MapState> {
     }
   }
 
+  /// funcion del buscador
   Future<List<SearchResult>> _buscarEnNominatim(String query) async {
     try {
       final uri = Uri.https(
@@ -270,7 +270,7 @@ class MapCubit extends Cubit<MapState> {
           'Accept-Language': 'es',
           'User-Agent': 'Spotly/1.0',
         },
-      ).timeout(const Duration(seconds: 20)); // ← más tiempo para APK
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode != 200) return [];
       
@@ -301,8 +301,7 @@ class MapCubit extends Cubit<MapState> {
     }
   }
 
-  // ── Navegar a resultado de búsqueda ───────────────────────────────────────
-
+  //  Navegar a resultado de búsqueda 
   void actualizarZonaBusqueda(LatLng coordenadas) {
     final current = state;
     if (current is! MapLoaded) return;
@@ -321,8 +320,7 @@ class MapCubit extends Cubit<MapState> {
     emit(current.copyWith(resultadosBusqueda: [], buscando: false));
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
+  //  Helpers 
   Future<LatLng> _obtenerUbicacion() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) throw Exception('GPS desactivado');

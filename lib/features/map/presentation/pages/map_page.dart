@@ -39,7 +39,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   bool _showResults = false;
   bool _buscando = false;
 
-  // Flag para evitar abrir el bottom sheet múltiples veces
   bool _sheetAbierto = false;
 
   late final AnimationController _recenterAnim;
@@ -97,7 +96,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // ── Búsqueda con debounce ──
+  //  Búsqueda con debounce 
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
@@ -133,7 +132,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   void _seleccionarResultado(SearchResult resultado) {
     
-    // 1. Actualiza el texto y oculta el dropdown
+    // 1. Actualiza el texto
     _searchController.text = resultado.titulo;
     setState(() {
       _resultadosLocales = [];
@@ -152,8 +151,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     });
   }
 
-  // ── Volver a mi ubicación ─────────────────────────────────────────────────
-
+  //  Volver a mi ubicación 
   void _irAMiUbicacion() {
     final ubicacion = _cubit.getMiUbicacion();
     if (ubicacion == null) {
@@ -168,15 +166,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _mapController.move(ubicacion, 15.0);
   }
 
-  // ── Toque en marcador ─────────────────────────────────────────────────────
-
+  //  Toque en marcador
   void _onMarkerTap(MapLugarModel lugar) {
     _searchFocus.unfocus();
     _cubit.seleccionarLugar(lugar);
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
+  // Constructor
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -197,10 +193,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           backgroundColor: SpotlyColors.bg(dark),
           body: Stack(
             children: [
-              // ── Mapa base ──────────────────────────────────────────────────
+              //  Mapa base 
               _buildMap(state, dark),
 
-              // ── Overlays de estado (loading / error / loaded) ──────────────
               if (state is MapLoading) _buildLoadingOverlay(dark),
               if (state is MapError) _buildError(state.message, dark),
               if (state is MapLoaded) ...[
@@ -224,7 +219,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Mapa ───────────────────────────────────────────────────────────────────
+  // Mapa 
 
   Widget _buildMap(MapState state, bool dark) {
     final loaded = state is MapLoaded ? state : null;
@@ -297,7 +292,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             }).toList(),
           ),
 
-        // Marcador de MI UBICACIÓN (punto azul pulsante)
+        // Marcador de MI UBICACIÓN
         if (loaded?.miUbicacion != null)
           MarkerLayer(
             markers: [
@@ -313,7 +308,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Bottom sheet del lugar seleccionado ───────────────────────────────────
+  //  Bottom sheet del lugar seleccionado
 
   void _mostrarLugarBottomSheet(
     BuildContext context,
@@ -343,7 +338,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       _sheetAbierto = false;
 
       if (eligioRuta) {
-        // Limpia solo el marcador, NO la ruta — luego traza
+        // Limpia el marcador
         _cubit.soloLimpiarSeleccion();
         _cubit.trazarRuta(lugar.coordenadas);
         if (state.miUbicacion != null) {
@@ -362,14 +357,13 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           });
         }
       } else {
-        // Cerró sin elegir ruta: limpia todo
+        //limpia todo
         _cubit.cerrarLugarSeleccionado();
       }
     });
   }
 
-  // ── Círculo de zona ────────────────────────────────────────────────────────
-
+  //  Círculo de zona 
   Widget _buildCircleOverlay(bool dark) {
     final accent = SpotlyColors.accent(dark);
     return Positioned.fill(
@@ -387,8 +381,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Banner de ruta activa ─────────────────────────────────────────────────
-
+  // Banner de ruta activa 
   Widget _buildRutaBanner(RouteInfo ruta, bool dark) {
     final accent = SpotlyColors.accent(dark);
     return Positioned(
@@ -433,7 +426,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 ],
               ),
             ),
-            // Botón X con área de toque grande para no confundirlo con el FAB
+            // Botón X
             GestureDetector(
               onTap: _cubit.limpiarRuta,
               behavior: HitTestBehavior.opaque,
@@ -448,8 +441,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Barra de búsqueda ─────────────────────────────────────────────────────
-
+  //  Barra de búsqueda 
   Widget _buildSearchBar(bool dark) {
     final card = SpotlyColors.card(dark);
     final sub = SpotlyColors.subText(dark);
@@ -527,8 +519,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Dropdown de resultados (controlado por estado LOCAL) ──────────────────
-
+  //  Dropdown de resultados (controlado por estado LOCAL) 
   Widget _buildSearchResults(bool dark) {
     final card = SpotlyColors.card(dark);
     final accent = SpotlyColors.accent(dark);
@@ -567,9 +558,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                     itemBuilder: (_, i) {
                       final r = _resultadosLocales[i];
                       return GestureDetector(
-                        // onTapDown se dispara ANTES de que el TextField
-                        // pierda el foco, garantizando que la selección
-                        // siempre se procesa sin importar si hubo Enter previo
                         onTapDown: (_) => _seleccionarResultado(r),
                         behavior: HitTestBehavior.opaque,
                         child: Padding(
@@ -634,8 +622,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── FAB Explorar zona ─────────────────────────────────────────────────────
-
+  // Explorar zona 
   Widget _buildExploreFab(MapLoaded state, bool dark) {
     final accent = SpotlyColors.accent(dark);
     final count = state.lugaresEnZona.length;
@@ -696,8 +683,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── FAB Re-centrar (volver a mi ubicación) ─────────────────────────────────
-
+  // Re-centrar (volver a mi ubicación) 
   Widget _buildRecenterFab(bool dark) {
     final card = SpotlyColors.card(dark);
     final accent = SpotlyColors.accent(dark);
@@ -715,8 +701,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // ── Loading / Error ────────────────────────────────────────────────────────
-
+  // Loading
   Widget _buildLoadingOverlay(bool dark) {
     return Container(
       color: SpotlyColors.bg(dark).withOpacity(0.7),
@@ -735,6 +720,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
+  /// Error
   Widget _buildError(String message, bool dark) {
     return Center(
       child: Padding(

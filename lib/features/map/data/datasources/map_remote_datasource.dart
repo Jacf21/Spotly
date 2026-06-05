@@ -4,13 +4,13 @@ class MapRemoteDatasource {
   final SupabaseClient client;
   MapRemoteDatasource(this.client);
 
-  /// Requiere la función RPC `get_lugares_con_coordenadas` en Supabase.
+  /// Obtener lugares con sus coordenadas
   Future<List<Map<String, dynamic>>> getLugaresConCoordenadas() async {
     final response = await client.rpc('get_lugares_con_coordenadas');
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Busca lugares por nombre usando la función RPC `buscar_lugares`.
+  /// Busca lugares por nombre
   Future<List<Map<String, dynamic>>> buscarLugares(String query) async {
     final response = await client.rpc(
       'buscar_lugares',
