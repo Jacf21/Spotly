@@ -1,5 +1,8 @@
 part of 'comments_page.dart';
 
+/// Botón de like para comentarios individuales.
+/// Permite dar y quitar like a un comentario con actualización optimista.
+/// Muestra el contador de likes y cambia de color según el estado.
 class _CommentLikeButton extends StatefulWidget {
   final int commentId;
   final int likeCount;
@@ -30,29 +33,30 @@ class _CommentLikeButtonState extends State<_CommentLikeButton> {
     _likeCount = widget.likeCount;
   }
 
+  /// Alterna el estado del like.
+  /// Aplica optimistic update primero, luego persiste en BD.
+  /// Si falla, revierte al estado anterior.
   Future<void> _toggleLike() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-    // Estado actual antes del cambio
     final wasLiked = _isLiked;
     final newLiked = !wasLiked;
     final newCount = newLiked ? _likeCount + 1 : _likeCount - 1;
 
-    // Optimistic update
+    /// Optimistic update: actualiza UI inmediatamente
     setState(() {
       _isLiked = newLiked;
       _likeCount = newCount;
     });
 
-    // Notificar al padre para actualizar el modelo
     widget.onLikeUpdate(newLiked, newCount);
 
     try {
       final datasource = CommentRemoteDatasource(Supabase.instance.client);
       await datasource.toggleLike(widget.commentId, user.id, wasLiked);
     } catch (e) {
-      // Revertir en caso de error
+      /// Revertir en caso de error
       setState(() {
         _isLiked = wasLiked;
         _likeCount = wasLiked ? _likeCount + 1 : _likeCount - 1;
@@ -74,12 +78,15 @@ class _CommentLikeButtonState extends State<_CommentLikeButton> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          /// Icono de corazón (lleno si tiene like, vacío si no)
           Icon(
             _isLiked ? Icons.favorite : Icons.favorite_border,
             color: _isLiked ? Colors.red : widget.subColor,
             size: 16,
           ),
           const SizedBox(width: 4),
+          
+          /// Contador de likes (solo se muestra si hay al menos uno)
           if (_likeCount > 0)
             Text(
               '$_likeCount',

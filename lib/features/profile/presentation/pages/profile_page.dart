@@ -18,6 +18,10 @@ import 'package:spotly/core/utils/theme_utils.dart';
 import 'package:spotly/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 
+/// Pantalla principal del perfil del usuario autenticado.
+/// Muestra la información del usuario y permite acceder a edición de perfil,
+/// favoritos y publicaciones guardadas a través del menú.
+/// No muestra botón de retroceso en el AppBar.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -26,6 +30,7 @@ class ProfilePage extends StatelessWidget {
     final dark = ThemeUtils.isDark(context);
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
+    /// Si no hay usuario autenticado, redirige a la pantalla de login
     if (currentUserId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) context.go('/login');
@@ -44,6 +49,7 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         actions: [
+          /// Menú de opciones (tres puntos)
           PopupMenuButton<String>(
             icon: Icon(
               LucideIcons.menu,
@@ -68,6 +74,7 @@ class ProfilePage extends StatelessWidget {
               });
             },
             itemBuilder: (context) => [
+              /// Opción: Lugares favoritos
               PopupMenuItem(
                 value: 'favoritos',
                 child: Row(
@@ -87,6 +94,7 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
+              /// Opción: Editar perfil
               PopupMenuItem(
                 value: 'edit_profile',
                 child: Row(
@@ -106,33 +114,34 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
+              /// Opción: Publicaciones guardadas
               PopupMenuItem(
-                    value: 'favorite_posts',
-                        child: Row(
-                       children: [
-                   Icon(
+                value: 'favorite_posts',
+                child: Row(
+                  children: [
+                    Icon(
                       LucideIcons.bookmark,
-                       size: 18,
+                      size: 18,
                       color: SpotlyColors.text(dark),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Publicaciones guardadas',
+                      style: TextStyle(
+                        color: SpotlyColors.text(dark),
                       ),
-                            const SizedBox(width: 10),
-                      Text(
-                        'Publicaciones guardadas',
-                            style: TextStyle(
-                            color: SpotlyColors.text(dark),
-                        ),
-                        ),
-               ],
-             ),
-            ),
-
+                    ),
+                  ],
+                ),
+              ),
             ],
           )
         ],
         backgroundColor: SpotlyColors.bg(dark),
         elevation: 0,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Sin botón de retroceso
       ),
+      /// Reutiliza UserProfilePage para mostrar el perfil
       body: UserProfilePage(
         userId: currentUserId,
         showBackButton: false,
@@ -144,6 +153,9 @@ class ProfilePage extends StatelessWidget {
 // ============================================================================
 // Pantalla de edición de perfil (formulario completo)
 // ============================================================================
+
+/// Pantalla de edición completa del perfil de usuario.
+/// Permite modificar datos personales, foto de perfil y contraseña.
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
 
@@ -196,6 +208,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
+  /// Abre selector de fecha para la fecha de nacimiento
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -211,6 +224,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  /// Actualiza la contraseña del usuario autenticado.
+  /// Valida que la contraseña actual sea correcta y que la nueva coincida.
   Future<void> _handleUpdatePassword() async {
     final current = _currentPassController.text.trim();
     final next = _newPassController.text.trim();
@@ -231,6 +246,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final email = Supabase.instance.client.auth.currentUser?.email;
       if (email == null) return;
 
+      /// Verifica contraseña actual antes de actualizar
       await Supabase.instance.client.auth
           .signInWithPassword(email: email, password: current);
       await Supabase.instance.client.auth
@@ -249,8 +265,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  /// Agrega (o reemplaza) un query param ?t=<timestamp> a la URL
-  /// para forzar a Flutter a no usar la imagen cacheada.
+  /// Agrega un parámetro ?t=<timestamp> a la URL para forzar a Flutter a no usar la imagen cacheada.
+  /// Esto asegura que la imagen actualizada se muestre inmediatamente después de cambiar el avatar.
   String _bustCache(String url) {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final uri = Uri.parse(url);
@@ -274,8 +290,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           if (mounted) Navigator.pop(context);
         }
         if (state is ProfileAvatarUpdated) {
-          // FIX: cache-buster para que NetworkImage descargue la imagen nueva
-          // en lugar de mostrar la versión anterior que tiene en caché.
+          /// Aplica cache-buster para mostrar la imagen nueva inmediatamente
           setState(() {
             _currentAvatarUrl = _bustCache(state.newUrl);
             _pendingAvatar = null;
@@ -284,8 +299,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         }
         if (state is ProfileError) SpotlyUI.toast(context, state.message);
         if (state is ProfileLoaded) {
-          // FIX: también al cargar el perfil, rompemos caché por si el usuario
-          // ya había actualizado antes y Flutter tiene la URL vieja cacheada.
+          /// Carga los datos actuales del perfil en los controladores
           _currentAvatarUrl = state.profile.photoUrl != null
               ? _bustCache(state.profile.photoUrl!)
               : null;
@@ -436,6 +450,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Widget selector de avatar con cámara/gale
   Widget _buildAvatarPicker(bool dark) {
     return GestureDetector(
       onTap: () => _showAvatarOptions(dark),
@@ -466,6 +481,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     ).animate().scale(duration: 400.ms);
   }
 
+  /// Construye la imagen de avatar (preview o URL cacheada)
   ImageProvider? _buildAvatarImage() {
     if (_pendingAvatar != null) {
       return kIsWeb
@@ -473,12 +489,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
           : FileImage(File(_pendingAvatar!.path)) as ImageProvider;
     }
     if (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty) {
-      // La URL ya viene con cache-buster aplicado desde el listener
       return NetworkImage(_currentAvatarUrl!);
     }
     return null;
   }
 
+  /// Muestra opciones para tomar foto o elegir de galería
   void _showAvatarOptions(bool dark) {
     showModalBottomSheet(
       context: context,
@@ -522,6 +538,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Título de sección estilizado
   Widget _buildSectionTitle(bool dark, String title) {
     return Container(
       width: double.infinity,
@@ -535,6 +552,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Botón secundario (ej: actualizar contraseña)
   Widget _buildSecondaryButton(bool dark, String label, VoidCallback onTap) {
     return SpotlyInteractive(
       onTap: onTap,
@@ -553,6 +571,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Botón principal para guardar cambios del perfil
   Widget _buildSaveButton(bool dark) {
     return SpotlyInteractive(
       onTap: () {
@@ -590,6 +609,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Decoración base para campos de texto
   InputDecoration _inputDecoration(String label, IconData icon, bool dark) {
     return InputDecoration(
       labelText: label,
@@ -604,6 +624,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  /// Campo de texto reutilizable
   Widget _buildInput(
       String label, IconData icon, TextEditingController controller, bool dark,
       {bool enabled = true, bool obscure = false, int maxLines = 1}) {

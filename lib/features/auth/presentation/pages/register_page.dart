@@ -11,6 +11,8 @@ import '../../../../core/widgets/common/spotly_card.dart';
 import '../../../../core/widgets/interactive/spotly_interactive.dart';
 import '../../../../core/utils/spotly_ui.dart';
 
+/// Pantalla de registro de nuevos usuarios en la aplicación
+/// Permite crear cuenta con correo electrónico, contraseña y datos personales
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -37,12 +39,14 @@ class _RegisterPageState extends State<RegisterPage>
   void initState() {
     super.initState();
 
+    // Agregar listeners para validar campos en tiempo real
     _nameController.addListener(_validarCampos);
     _lastNameController.addListener(_validarCampos);
     _emailController.addListener(_validarCampos);
     _passwordController.addListener(_validarCampos);
     _confirmPasswordController.addListener(_validarCampos);
 
+    // Animación de entrada para el formulario
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -53,7 +57,7 @@ class _RegisterPageState extends State<RegisterPage>
     _controller.forward();
   }
 
- @override
+  @override
   void dispose() {
     _controller.dispose();
 
@@ -66,7 +70,8 @@ class _RegisterPageState extends State<RegisterPage>
     super.dispose();
   }
 
-  /// VALIDACIÓN
+  /// Valida que todos los campos del formulario estén completos
+  /// Actualiza el estado _camposValidos para habilitar/deshabilitar el botón de registro
   void _validarCampos() {
     setState(() {
       _camposValidos = _nameController.text.isNotEmpty &&
@@ -74,59 +79,64 @@ class _RegisterPageState extends State<RegisterPage>
           _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
           _confirmPasswordController.text.isNotEmpty;
-    
     });
   }
+
+  /// Registra un nuevo usuario en Supabase Auth.
+  /// Valida que todos los campos estén completos y que las contraseñas coincidan.
+  /// Envía correo de confirmación y redirige a la pantalla de login.
+  /// Maneja errores como correo duplicado o límite de intentos (código 429).
   Future<void> _handleRegister() async {
-  if (!_camposValidos) {
-    SpotlyUI.toast(context, "Completa todos los campos");
-    return;
-  }
+    if (!_camposValidos) {
+      SpotlyUI.toast(context, "Completa todos los campos");
+      return;
+    }
 
-  if (_passwordController.text != _confirmPasswordController.text) {
-    SpotlyUI.toast(context, "Las contraseñas no coinciden");
-    return;
-  }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      SpotlyUI.toast(context, "Las contraseñas no coinciden");
+      return;
+    }
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    await Supabase.instance.client.auth.signUp(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-      data: {
-        'nombres': _nameController.text.trim(),
-        'apellidos': _lastNameController.text.trim(),
-      },
-    );
+    try {
+      await Supabase.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        data: {
+          'nombres': _nameController.text.trim(),
+          'apellidos': _lastNameController.text.trim(),
+        },
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    SpotlyUI.toast(
-      context,
-      "Revisa tu correo para confirmar tu cuenta 📩",
-    );
-
-    context.go('/login');
-
-  } on AuthException catch (e) {
-    if (e.statusCode == '429') {
       SpotlyUI.toast(
         context,
-        "Espera un minuto antes de volver a intentar 📩",
+        "Revisa tu correo para confirmar tu cuenta 📩",
       );
-    } else {
-      SpotlyUI.toast(context, e.message);
-    }
-  } catch (e) {
-    SpotlyUI.toast(context, "Error: $e");
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
-  }
-}
 
+      context.go('/login');
+    } on AuthException catch (e) {
+      if (e.statusCode == '429') {
+        SpotlyUI.toast(
+          context,
+          "Espera un minuto antes de volver a intentar 📩",
+        );
+      } else {
+        SpotlyUI.toast(context, e.message);
+      }
+    } catch (e) {
+      SpotlyUI.toast(context, "Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Cambia entre tema oscuro y claro
   void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
 
+  /// Navega de regreso a la pantalla de inicio de sesión
   void _goBack() => context.go('/login');
 
   @override
@@ -141,18 +151,15 @@ class _RegisterPageState extends State<RegisterPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                /// TOP BAR
                 SpotlyTopBar(
                   dark: _isDarkMode,
                   isAdmin: false,
                   onTheme: _toggleTheme,
                   onSearch: () {},
                 ),
-
                 const SizedBox(height: 30),
 
-                /// CARD
+                /// Tarjeta central del formulario de registro
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -166,14 +173,11 @@ class _RegisterPageState extends State<RegisterPage>
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-
                                 const SpotlyLogo(dark: true, size: 32)
                                     .animate()
                                     .fadeIn(duration: 600.ms)
                                     .scale(delay: 200.ms),
-
                                 const SizedBox(height: 10),
-
                                 Text(
                                   "Crear cuenta",
                                   style: TextStyle(
@@ -182,10 +186,9 @@ class _RegisterPageState extends State<RegisterPage>
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ).animate().fadeIn(delay: 300.ms),
-
                                 const SizedBox(height: 30),
 
-                                /// NOMBRES
+                                /// Campo Nombres
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
@@ -204,7 +207,7 @@ class _RegisterPageState extends State<RegisterPage>
                                 _buildInput("Ej: Carlos Andrés", LucideIcons.user, _nameController),
                                 const SizedBox(height: 15),
 
-                                /// APELLIDOS
+                                /// Campo Apellidos
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
@@ -223,7 +226,7 @@ class _RegisterPageState extends State<RegisterPage>
                                 _buildInput("Ej: Pérez Gómez", LucideIcons.userCheck, _lastNameController),
                                 const SizedBox(height: 15),
 
-                                /// CORREO
+                                /// Campo Correo Electrónico
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
@@ -242,7 +245,7 @@ class _RegisterPageState extends State<RegisterPage>
                                 _buildInput("Ej: carlos@email.com", LucideIcons.mail, _emailController),
                                 const SizedBox(height: 15),
 
-                                /// PASSWORD
+                                /// Campo Contraseña
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
@@ -261,7 +264,7 @@ class _RegisterPageState extends State<RegisterPage>
                                 _buildInput("Mínimo 6 caracteres", LucideIcons.lock, _passwordController, obscure: true),
                                 const SizedBox(height: 15),
 
-                                /// CONFIRMAR
+                                /// Campo Confirmar Contraseña
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
@@ -278,17 +281,17 @@ class _RegisterPageState extends State<RegisterPage>
                                   ),
                                 ),
                                 _buildInput("Repite tu contraseña",
-                                 LucideIcons.shieldCheck, _confirmPasswordController, obscure: true),
+                                    LucideIcons.shieldCheck, _confirmPasswordController, obscure: true),
                                 const SizedBox(height: 30),
 
+                                /// Botón de registro o indicador de carga
                                 _isLoading
                                     ? const CircularProgressIndicator()
                                     : SpotlyInteractive(
                                         onTap: () {
-                                        
-                                         if (!_isLoading) {
-                                    _handleRegister();
-                                         }
+                                          if (!_isLoading) {
+                                            _handleRegister();
+                                          }
                                         },
                                         child: Container(
                                           width: double.infinity,
@@ -315,9 +318,9 @@ class _RegisterPageState extends State<RegisterPage>
                                           ),
                                         ),
                                       ),
-
                                 const SizedBox(height: 15),
 
+                                /// Enlace para volver al login
                                 TextButton(
                                   onPressed: _goBack,
                                   child: Text(
@@ -335,7 +338,6 @@ class _RegisterPageState extends State<RegisterPage>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
               ],
             ),
@@ -345,7 +347,8 @@ class _RegisterPageState extends State<RegisterPage>
     );
   }
 
-  /// INPUT
+  /// Campo de texto reutilizable para el formulario de registro
+  /// Permite personalizar hint, ícono, y si es campo de contraseña
   Widget _buildInput(
     String label,
     IconData icon,

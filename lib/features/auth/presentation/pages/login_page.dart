@@ -15,6 +15,8 @@ import '../../../../core/widgets/common/spotly_card.dart';
 import '../../../../core/widgets/interactive/spotly_interactive.dart';
 import '../../../../core/utils/spotly_ui.dart';
 
+/// Pantalla de inicio de sesión de la aplicación
+/// Permite autenticación con correo/contraseña, Google, o acceso como invitado
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -28,6 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
+  /// Cambia entre tema oscuro y claro
   void _toggleTheme() {
     ThemeUtils.toggle(context);
   }
@@ -43,6 +46,9 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  /// Escucha cambios en el estado de autenticación
+  /// Redirige según rol (admin a /admin, usuario normal a /feed)
+  /// Muestra mensaje de baneo si corresponde
   void _onAuthChanged() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
@@ -74,7 +80,10 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// 🔐 LOGIN REAL CON SUPABASE
+  /// Autentica al usuario con correo y contraseña usando Supabase Auth.
+  /// Si el perfil no existe en la tabla 'perfiles', lo crea automáticamente.
+  /// En caso de éxito, redirige según el rol (admin o usuario normal).
+  /// Muestra mensajes de error si las credenciales son inválidas.
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       SpotlyUI.toast(context, "Por favor, llena todos los campos");
@@ -92,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.user != null) {
         final user = response.user!;
 
-        // 🔍 Crear perfil si no existe
+        // Crear perfil si no existe
         final perfil = await Supabase.instance.client
             .from('perfiles')
             .select()
@@ -120,12 +129,15 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Autenticación con Google OAuth.
+  /// Redirige a la pantalla de autenticación de Google.
+  /// El callback lo maneja AuthProvider para mantener consistencia.
   Future<void> _handleGoogleRegister() async {
     setState(() => _isLoading = true);
 
     try {
       final redirectTo = kIsWeb
-        ? 'http://localhost:${Uri.base.port}/auth/callback'  // ← puerto dinámico
+        ? 'http://localhost:${Uri.base.port}/auth/callback'
         : 'io.supabase.flutter://login-callback/';
         
       await Supabase.instance.client.auth.signInWithOAuth(
@@ -135,7 +147,6 @@ class _LoginPageState extends State<LoginPage> {
             ? LaunchMode.platformDefault
             : LaunchMode.externalApplication,
       );
-      // NO navegues aquí — el onAuthStateChange en AuthProvider lo maneja
     } on AuthException catch (e) {
       if (mounted) SpotlyUI.toast(context, e.message);
     } catch (e) {
@@ -145,7 +156,8 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 👀 CONTINUAR COMO INVITADO
+  /// Modo invitado: permite navegar sin autenticación.
+  /// Cierra sesión si había un usuario logueado y redirige al feed.
   void _goGuest() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.isLoggedIn) auth.logout();
@@ -161,15 +173,12 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Column(
           children: [
-            /// 🔝 TOP BAR
             SpotlyTopBar(
               dark: dark,
               isAdmin: false,
               onTheme: _toggleTheme,
               onSearch: () {},
             ),
-
-            /// 📦 CONTENIDO
             Expanded(child: _buildLoginContent(dark)),
           ],
         ),
@@ -177,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// 🔗 IR A REGISTRO
+  /// Botón para ir a la pantalla de registro de nueva cuenta
   Widget _buildGoToRegisterButton(bool dark) {
     return SpotlyInteractive(
       onTap: () => context.go('/register'),
@@ -186,9 +195,7 @@ class _LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: SpotlyColors.accent(dark),
-          ),
+          border: Border.all(color: SpotlyColors.accent(dark)),
         ),
         child: Center(
           child: Text(
@@ -204,6 +211,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Botón para autenticación con Google
   Widget _buildGoogleRegisterButton(bool dark) {
     return SpotlyInteractive(
       onTap: _handleGoogleRegister,
@@ -212,19 +220,13 @@ class _LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: SpotlyColors.accent(dark), // mismo acento que el otro botón
-          ),
+          border: Border.all(color: SpotlyColors.accent(dark)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.g_mobiledata,
-              color: SpotlyColors.accent(dark),
-              size: 22,
-            ),
+            Icon(Icons.g_mobiledata, color: SpotlyColors.accent(dark), size: 22),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
@@ -243,7 +245,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// 🎯 CONTENIDO CENTRAL
+  /// Contenido central de la pantalla de login
+  /// Incluye logo, campos de texto y botones de acción
   Widget _buildLoginContent(bool dark) {
     return Center(
       child: SingleChildScrollView(
@@ -260,10 +263,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 10),
               Text(
                 "Gestión de Turismo Bolivia",
-                style: TextStyle(
-                  color: SpotlyColors.subText(dark),
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: SpotlyColors.subText(dark), fontSize: 14),
               ).animate().fadeIn(delay: 400.ms),
               const SizedBox(height: 40),
               _buildTextField(
@@ -306,7 +306,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// 🔘 BOTÓN LOGIN
+  /// Botón principal de inicio de sesión
   Widget _buildLoginButton(bool dark) {
     return SpotlyInteractive(
       onTap: _handleLogin,
@@ -315,10 +315,7 @@ class _LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              SpotlyColors.accent(dark),
-              const Color(0xFF2DD4BF),
-            ],
+            colors: [SpotlyColors.accent(dark), const Color(0xFF2DD4BF)],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: SpotlyColors.shadow(dark),
@@ -326,18 +323,14 @@ class _LoginPageState extends State<LoginPage> {
         child: const Center(
           child: Text(
             "INGRESAR AL SISTEMA",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
         ),
       ),
     );
   }
 
-  /// 🧩 INPUTS
+  /// Campo de texto reutilizable para email y contraseña
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -348,18 +341,11 @@ class _LoginPageState extends State<LoginPage> {
     return TextField(
       controller: controller,
       obscureText: isPassword,
-      style: TextStyle(
-        color: SpotlyColors.text(isDark),
-      ),
+      style: TextStyle(color: SpotlyColors.text(isDark)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: SpotlyColors.subText(isDark),
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: SpotlyColors.accent(isDark),
-        ),
+        labelStyle: TextStyle(color: SpotlyColors.subText(isDark)),
+        prefixIcon: Icon(icon, color: SpotlyColors.accent(isDark)),
         filled: true,
         fillColor: isDark
             ? Colors.white.withOpacity(0.05)
