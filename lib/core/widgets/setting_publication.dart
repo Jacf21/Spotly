@@ -17,6 +17,7 @@ class PostSettingsPanel extends StatefulWidget {
   State<PostSettingsPanel> createState() => _PostSettingsPanelState();
 }
 
+// Este widget muestra opciones para configurar la privacidad de la publicación y activar/desactivar comentarios.
 class _PostSettingsPanelState extends State<PostSettingsPanel> {
   String _activePrivacy = 'Público';
   bool _disableComments = false;
@@ -74,6 +75,7 @@ class _PostSettingsPanelState extends State<PostSettingsPanel> {
     );
   }
 
+  // Función para construir el selector de privacidad
   Widget _buildPrivacySelector(bool dark) {
     return Row(
       children: [
@@ -102,6 +104,7 @@ class _PostSettingsPanelState extends State<PostSettingsPanel> {
     );
   }
 
+  // Función para construir los SwitchListTile de los ajustes
   Widget _buildSwitchTile({
     required String title,
     required String subtitle,
@@ -133,6 +136,7 @@ class _PostSettingsPanelState extends State<PostSettingsPanel> {
   }
 }
 
+// Widget para cada opción de privacidad en el selector
 class _PrivacyOption extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -148,6 +152,7 @@ class _PrivacyOption extends StatelessWidget {
     required this.onTap,
   });
 
+  // Función para construir cada opción de privacidad
   @override
   Widget build(BuildContext context) {
     return Expanded(

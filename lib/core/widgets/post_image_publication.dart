@@ -51,6 +51,7 @@ class _PostImagePickerState extends State<PostImagePicker> {
               ),
               image: _image != null
                   ? DecorationImage(
+
                       // En Web usamos NetworkImage, en Móvil FileImage
                       image: kIsWeb 
                           ? NetworkImage(_image!.path)
@@ -123,6 +124,7 @@ class _PostImagePickerState extends State<PostImagePicker> {
     );
   }
 
+  // Función para construir los botones de acción (Cámara/Galería)
   Widget _buildActionButton(IconData icon, bool dark, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,

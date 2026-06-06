@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'suggestion_card.dart';
 
+// Este widget muestra una sección horizontal de sugerencias de usuarios para seguir, con un título, un botón "Ver todo" y una lista desplazable horizontalmente de tarjetas de sugerencias.
 class HorizontalSuggestions extends StatefulWidget {
   final List<Map<String, dynamic>> suggestedUsers;
   final bool dark;

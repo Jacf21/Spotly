@@ -2,6 +2,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:spotly/features/destinations/domain/repositories/post_repository_Pu.dart';
 import '../datasources/subida_storage.dart';
 
+// Esta clase implementa el repositorio de publicaciones, utilizando el datasource para manejar
+// la lógica de subida de imágenes y creación de publicaciones. 
+//Es la capa que conecta la lógica de negocio con la capa de datos.
 class PostRepositoryImpl implements PostRepository {
   final PostRemoteDataSource remoteDataSource;
 

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 // Esta clase es la que se muestra en la pestaña de "Lugares" dentro del buscador
 class SearchPlacesTab extends StatelessWidget {
   final String query;
@@ -26,6 +27,7 @@ class SearchPlacesTab extends StatelessWidget {
     );
   }
 
+  // Esta función se encarga de mostrar un estado vacío cuando no hay resultados o cuando la consulta está vacía, con mensajes personalizados para cada caso.
   Widget _buildContent(Color bg, Color txt, Color subTxt, BuildContext context) {
     if (query.isEmpty) {
       return Center(
@@ -69,6 +71,7 @@ class SearchPlacesTab extends StatelessWidget {
           );
         }
 
+        // Construcción de la lista de lugares encontrados, mostrando su nombre y ciudad. Al hacer tap en un lugar, se navega a su página de detalles.
         return ListView.builder(
           itemCount: places.length,
           itemBuilder: (context, index) {

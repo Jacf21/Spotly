@@ -3,6 +3,7 @@ import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/features/search/widgets/search_account.dart';
 import 'package:spotly/features/search/widgets/search_places.dart';
 import 'package:spotly/features/search/widgets/search_publication.dart';
+
 // Esta clase es la que se encarga de manejar la lógica del buscador y mostrar las pestañas correspondientes
 class SpotlySearchDelegate extends SearchDelegate {
   final bool dark;
@@ -28,6 +29,7 @@ class SpotlySearchDelegate extends SearchDelegate {
     );
   }
 
+  // Construcción de la barra de búsqueda con el botón de limpiar y el botón de volver atrás
   @override
   Widget? buildLeading(BuildContext context) {
     return IconButton(
@@ -37,6 +39,7 @@ class SpotlySearchDelegate extends SearchDelegate {
     );
   }
 
+  // Construcción de las acciones de la barra de búsqueda, como el botón de limpiar el texto
   @override
   List<Widget>? buildActions(BuildContext context) {
     return [
@@ -59,6 +62,8 @@ class SpotlySearchDelegate extends SearchDelegate {
   Widget buildSuggestions(BuildContext context) => _SearchBody(query: query, dark: dark);
 }
 
+// Esta clase maneja el estado de la pantalla de resultados de búsqueda, incluyendo la lógica 
+//para mostrar las pestañas de publicaciones, cuentas y lugares, y pasar la consulta de búsqueda a cada una de ellas.
 class _SearchBody extends StatefulWidget {
   final String query;
   final bool dark;

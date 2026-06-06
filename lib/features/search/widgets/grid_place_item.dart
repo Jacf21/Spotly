@@ -18,6 +18,7 @@ class PlacesGrid extends StatelessWidget {
     required this.dark,
   });
 
+  // Esta función se encarga de obtener los datos de los lugares según el tipo de filtro seleccionado (distancia o departamento) y maneja los permisos de ubicación si es necesario.
   Future<List<Map<String, dynamic>>> _fetchData(BuildContext context) async {
     final repo = SearchRepository();
 
@@ -39,6 +40,7 @@ class PlacesGrid extends StatelessWidget {
     }
   }
 
+  // Construcción de la UI principal con FutureBuilder para mostrar los resultados filtrados, incluyendo manejo de estados de carga, error y datos vacíos.
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
