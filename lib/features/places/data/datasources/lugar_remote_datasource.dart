@@ -52,18 +52,18 @@ class LugarRemoteDatasource {
 
   Future<List<FavoritePlaceModel>> getFavoritePlaces(String userId) async {
     final response = await client.from('favoritos_lugares').select('''
-          lugar_id,
-          lugares!inner (
-            id_lugar,
-            nombre_lugar,
-            foto_portada_url,
-            id_categoria,
-            id_departamento,
-            es_verificado,
-            categorias!inner (nombre_categoria),
-            departamentos!inner (nombre_departamento)
-          )
-        ''').eq('user_id', userId);
+      lugar_id,
+      lugares!inner (
+        id_lugar,
+        nombre_lugar,
+        foto_portada_url,
+        id_categoria,
+        id_departamento,
+        es_verificado,
+        categorias (nombre_categoria),
+        departamentos (nombre_departamento)
+      )
+    ''').eq('user_id', userId);
 
     return response.map((fav) {
       final lugar = fav['lugares'] as Map<String, dynamic>;
@@ -74,8 +74,8 @@ class LugarRemoteDatasource {
         'id_categoria': lugar['id_categoria'],
         'id_departamento': lugar['id_departamento'],
         'es_verificado': lugar['es_verificado'],
-        'categoria_nombre': lugar['categorias']['nombre_categoria'],
-        'departamento_nombre': lugar['departamentos']['nombre_departamento'],
+        'categoria_nombre': lugar['categorias']?['nombre_categoria'],
+        'departamento_nombre': lugar['departamentos']?['nombre_departamento'],
       });
     }).toList();
   }
@@ -100,5 +100,14 @@ class LugarRemoteDatasource {
           .eq('user_id', userId)
           .eq('lugar_id', lugarId);
     }
+  }
+
+  /// Obtener categorias
+  Future<List<Map<String, dynamic>>> getCategorias() async {
+    final res = await client
+        .from('categorias')
+        .select('id_categoria, nombre_categoria')
+        .order('nombre_categoria');
+    return List<Map<String, dynamic>>.from(res);
   }
 }

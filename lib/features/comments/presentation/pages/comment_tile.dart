@@ -1,8 +1,5 @@
 part of 'comments_page.dart';
 
-/// Widget que representa un comentario individual en la lista.
-/// Muestra avatar, nombre de usuario, texto, fecha, botones de responder y like,
-/// y opción de eliminar si es propio.
 class _CommentTile extends StatelessWidget {
   final CommentModel comment;
   final bool isOwn;
@@ -10,7 +7,7 @@ class _CommentTile extends StatelessWidget {
   final Color textColor;
   final Color subColor;
   final VoidCallback onDelete;
-  final VoidCallback? onReply; // Puede ser null (si depth >= 1, no se muestra botón responder)
+  final VoidCallback? onReply;
   final void Function(bool isLiked, int newCount) onLikeUpdate;
   final String? targetCommentId;
 
@@ -43,7 +40,6 @@ class _CommentTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// Avatar del usuario
             CircleAvatar(
               radius: 18,
               backgroundColor: dark ? Colors.white24 : Colors.grey.shade200,
@@ -59,41 +55,29 @@ class _CommentTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// Texto del comentario con soporte para menciones (@usuario)
-                  Flexible(
-                    child: RichText(
-                      softWrap: true,
-                      overflow: TextOverflow.visible,
-                      text: _buildTextWithMention(),
-                    ),
+                  RichText(
+                    text: _buildTextWithMention(),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      /// Fecha formateada (ej: "hace 5 minutos")
                       Text(
                         timeago.format(comment.createdAt, locale: 'es'),
                         style: TextStyle(color: subColor, fontSize: 11),
                       ),
                       const SizedBox(width: 12),
-                      
-                      /// Botón "Responder" - solo visible si onReply no es null
-                      /// (se oculta en respuestas de profundidad >= 1)
-                      if (onReply != null)
-                        GestureDetector(
-                          onTap: onReply,
-                          child: Text(
-                            'Responder',
-                            style: TextStyle(
-                              color: SpotlyColors.accent(dark),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
+                      GestureDetector(
+                        onTap: onReply,
+                        child: Text(
+                          'Responder',
+                          style: TextStyle(
+                            color: SpotlyColors.accent(dark),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
+                      ),
                       const SizedBox(width: 12),
-                      
-                      /// Botón de like del comentario
                       _CommentLikeButton(
                         commentId: comment.id,
                         likeCount: comment.likeCount,
@@ -106,8 +90,6 @@ class _CommentTile extends StatelessWidget {
                 ],
               ),
             ),
-            
-            /// Botón de eliminar - solo visible para comentarios del usuario actual
             if (isOwn)
               GestureDetector(
                 onTap: onDelete,
@@ -121,12 +103,8 @@ class _CommentTile extends StatelessWidget {
       ),
     );
   }
-
-  /// Construye el texto del comentario con formato especial para menciones.
-  /// Si el texto comienza con @, extrae la mención y la muestra en color azul.
-  /// Ejemplo: "@usuario Hola" → muestra "[nombre] @usuario Hola"
   TextSpan _buildTextWithMention() {
-    final texto = comment.texto;
+  final texto = comment.texto;
     // Si el texto empieza con @, extraer la mención
     if (texto.startsWith('@')) {
       final espacioIndex = texto.indexOf(' ');
