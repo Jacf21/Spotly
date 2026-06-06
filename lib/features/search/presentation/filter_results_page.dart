@@ -36,6 +36,7 @@ class _FilterResultsPageState extends State<FilterResultsPage> with SingleTicker
     super.dispose();
   }
 
+  // Construcción de la UI principal con AppBar, TabBar y TabBarView para mostrar los resultados filtrados
   @override
   Widget build(BuildContext context) {
     final bgColor = SpotlyColors.bg(widget.dark);
@@ -68,14 +69,14 @@ class _FilterResultsPageState extends State<FilterResultsPage> with SingleTicker
             child: TabBarView(
               controller: _tabController,
               children: [
-                // PESTAÑA 1: CERCANOS (GPS)
+                // PESTAÑA CERCANOS (GPS)
                 PlacesGrid(
                   type: 'distancia', 
                   value: _radius, 
                   dark: widget.dark
                 ),
 
-                // PESTAÑA 2: DEPARTAMENTOS
+                // PESTAÑA DEPARTAMENTOS
                 PlacesGrid(
                   type: 'depto', 
                   value: _selectedDeptId, 
@@ -102,6 +103,7 @@ class _FilterResultsPageState extends State<FilterResultsPage> with SingleTicker
     );
   }
 
+  // Construcción del slider para filtrar por distancia
   Widget _buildDistanceSlider(Color txtColor) {
     return Row(
       key: const ValueKey(0),
@@ -120,6 +122,7 @@ class _FilterResultsPageState extends State<FilterResultsPage> with SingleTicker
     );
   }
 
+  // Construcción del dropdown para filtrar por departamento
   Widget _buildDeptSelector(Color txtColor) {
     return Row(
       key: const ValueKey(1),

@@ -15,9 +15,6 @@ part 'comment_input.dart';
 part 'emoji_picker_section.dart';
 part 'comment_like_button.dart';
 
-/// Pantalla de comentarios de una publicación.
-/// Permite ver, agregar, responder y dar like a comentarios.
-/// Soporta respuestas anidadas con límite de 2 niveles.
 class CommentsPage extends StatefulWidget {
   final int postId;
   final String? targetCommentId;
@@ -62,16 +59,13 @@ class _CommentsPageState extends State<CommentsPage> {
     super.dispose();
   }
 
-  /// Establece el comentario al que se está respondiendo y enfoca el campo de texto.
   void _setReplyingTo(CommentModel comment) {
     setState(() => _replyingTo = comment);
     _focusNode.requestFocus();
   }
 
-  /// Cancela la respuesta en curso.
   void _cancelReply() => setState(() => _replyingTo = null);
 
-  /// Muestra u oculta el selector de emojis.
   void _toggleEmoji() {
     if (_showEmoji) {
       _focusNode.requestFocus();
@@ -81,7 +75,6 @@ class _CommentsPageState extends State<CommentsPage> {
     setState(() => _showEmoji = !_showEmoji);
   }
 
-  /// Desplaza la vista hacia un comentario específico (targetCommentId).
   void _scrollToTargetComment() {
     if (widget.targetCommentId == null) return;
     final key = _commentKeys[widget.targetCommentId];
@@ -94,8 +87,6 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
-  /// Carga los comentarios desde Supabase.
-  /// Si el usuario está autenticado, también carga el estado de likes.
   Future<void> _loadComments() async {
     setState(() => _isLoading = true);
     try {
@@ -124,9 +115,6 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
-  /// Envía un nuevo comentario o respuesta.
-  /// Si es respuesta, agrega mención automática al usuario padre.
-  /// Crea notificación al autor de la publicación.
   Future<void> _sendComment() async {
     final user = Supabase.instance.client.auth.currentUser;
     final texto = _controller.text.trim();
@@ -154,7 +142,7 @@ class _CommentsPageState extends State<CommentsPage> {
         parentId: replyToId,
         replyToUserName: replyToUserName,
       );
-      
+
       final post = await Supabase.instance.client
           .from('publicaciones')
           .select('id_usuario')
@@ -164,9 +152,7 @@ class _CommentsPageState extends State<CommentsPage> {
       final ownerPostId = post['id_usuario'];
 
       if (ownerPostId != user.id) {
-        await Supabase.instance.client
-            .from('notificaciones')
-            .insert({
+        await Supabase.instance.client.from('notificaciones').insert({
           'id_usuario_destino': ownerPostId,
           'id_usuario_actor': user.id,
           'tipo': 'comentario',
@@ -191,41 +177,23 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
-  /// Elimina un comentario propio después de confirmación.
-  Future<void> _deleteComment(CommentModel comment, bool dark) async {
+  Future<void> _deleteComment(CommentModel comment) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null || user.id != comment.userId) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: SpotlyColors.card(dark),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Eliminar comentario',
-          style: TextStyle(
-            color: SpotlyColors.text(dark),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          '¿Seguro que quieres eliminar este comentario?',
-          style: TextStyle(color: SpotlyColors.subText(dark)),
-        ),
+        title: const Text('Eliminar comentario'),
+        content: const Text('¿Seguro que quieres eliminar este comentario?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: SpotlyColors.accent(dark)),
-            ),
+            child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -242,16 +210,12 @@ class _CommentsPageState extends State<CommentsPage> {
       debugPrint('Error eliminando: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('No se pudo eliminar el comentario'),
-            backgroundColor: SpotlyColors.card(dark),
-          ),
+          const SnackBar(content: Text('No se pudo eliminar el comentario')),
         );
       }
     }
   }
 
-  /// Actualiza el estado de like de un comentario localmente.
   void _updateCommentLike(int commentId, bool isLiked, int newLikeCount) {
     setState(() {
       final index = _comments.indexWhere((c) => c.id == commentId);
@@ -264,11 +228,9 @@ class _CommentsPageState extends State<CommentsPage> {
     });
   }
 
-  /// Lista de comentarios raíz (sin parentId).
   List<CommentModel> get _rootComments =>
       _comments.where((c) => c.parentId == null).toList();
 
-  /// Obtiene las respuestas de un comentario padre.
   List<CommentModel> _repliesOf(int parentId) =>
       _comments.where((c) => c.parentId == parentId).toList();
 
@@ -301,7 +263,6 @@ class _CommentsPageState extends State<CommentsPage> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   color: divColor,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
                         child: Text(
@@ -381,49 +342,50 @@ class _CommentsPageState extends State<CommentsPage> {
     );
   }
 
-  /// Construye un hilo de comentarios con respuestas anidadas.
-  /// Limita la profundidad de anidamiento a 2 niveles (solo se puede responder a comentarios principales).
-  Widget _buildThread(CommentModel comment, bool dark, Color textColor,
-      Color subColor, User? user, [int depth = 0]) {
+  /// Construye un comentario y sus respuestas.
+  /// [isReply] indica si este comentario es una respuesta (true) o un comentario raíz (false).
+  /// El padding se aplica SOLO al tile individual, nunca al Column contenedor,
+  /// evitando así que se acumule con cada nivel de recursión.
+  Widget _buildThread(
+    CommentModel comment,
+    bool dark,
+    Color textColor,
+    Color subColor,
+    User? user, [
+    bool isReply = false,
+  ]) {
     final isOwn = user?.id == comment.userId;
     final replies = _repliesOf(comment.id);
-    
-    final visualDepth = depth > 3 ? 3 : depth;
-    
-    /// Solo permite responder si depth == 0 (comentario principal)
-    final canReply = depth == 0;
 
     _commentKeys.putIfAbsent(comment.id.toString(), () => GlobalKey());
 
-    return Padding(
-      padding: EdgeInsets.only(left: visualDepth > 0 ? 24.0 : 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CommentTile(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ✅ El padding solo envuelve el tile, NO el Column completo.
+        // Así los hijos no heredan ninguna indentación extra.
+        Padding(
+          key: _commentKeys[comment.id.toString()],
+          padding: EdgeInsets.only(left: isReply ? 32.0 : 0.0),
+          child: _CommentTile(
             comment: comment,
             isOwn: isOwn,
             dark: dark,
             textColor: textColor,
             subColor: subColor,
-            onDelete: () => _deleteComment(comment, dark),
-            onReply: canReply ? () => _setReplyingTo(comment) : null,
+            onDelete: () => _deleteComment(comment),
+            onReply: () => _setReplyingTo(comment),
             onLikeUpdate: (isLiked, newCount) =>
                 _updateCommentLike(comment.id, isLiked, newCount),
             targetCommentId: widget.targetCommentId,
           ),
-          if (replies.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Column(
-                children: replies
-                    .map((r) => _buildThread(
-                        r, dark, textColor, subColor, user, depth + 1))
-                    .toList(),
-              ),
-            ),
-        ],
-      ),
+        ),
+        // ✅ Las respuestas siempre reciben isReply=true (indentación fija de 32px),
+        // sin importar qué tan profunda sea la cadena.
+        ...replies.map(
+          (r) => _buildThread(r, dark, textColor, subColor, user, true),
+        ),
+      ],
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../features/posts/data/models/location_model.dart'; // ← solo uno
-
+// Este Helper se encarga de manejar la obtención de la ubicación del usuario, tanto en Web como en Móvil.
 class LocationHelper {
   // Obtiene la ubicación y los nombres geográficos
   static Future<LocationModel?> getCurrentLocationName() async {
@@ -52,7 +52,7 @@ class LocationHelper {
         try {
           List<Placemark> placemarks = await placemarkFromCoordinates(
               position.latitude, position.longitude);
-
+          // Si se obtienen nombres, se asignan; si no, se usan valores por defecto
           if (placemarks.isNotEmpty) {
             Placemark place = placemarks[0];
             return LocationModel(
@@ -86,12 +86,12 @@ class LocationHelper {
       return 3; // Cochabamba por defecto
 
     final name = deptoName.toLowerCase();
-
+    // Mapear nombres comunes a IDs (ajustar según la estructura real de tu backend)
     if (name.contains('chuquisaca')) return 1;
     if (name.contains('paz')) return 2; // La Paz
     if (name.contains('cocha')) return 3; // Cochabamba
     if (name.contains('oruro')) return 4;
-    if (name.contains('potos')) return 5; // Potosí / Potosi
+    if (name.contains('potos')) return 5; // Potosí
     if (name.contains('tarija')) return 6;
     if (name.contains('santa')) return 7; // Santa Cruz
     if (name.contains('beni')) return 8;

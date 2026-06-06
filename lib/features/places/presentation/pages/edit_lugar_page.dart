@@ -24,7 +24,8 @@ class _EditLugarPageState extends State<EditLugarPage> {
   late final TextEditingController _climaController;
   late final TextEditingController _mejorEpocaController;
   late final TextEditingController _informacionUtilController;
-  late final TextEditingController _categoriaController;
+  List<Map<String, dynamic>> _categorias = [];
+  int? _selectedCategoriaId;
 
   bool _isLoading = false;
   late final LugarRepository _repo;
@@ -57,8 +58,8 @@ class _EditLugarPageState extends State<EditLugarPage> {
         text: _safeString(widget.lugar.mejorEpocaVisitar));
     _informacionUtilController =
         TextEditingController(text: _safeString(widget.lugar.informacionUtil));
-    _categoriaController =
-        TextEditingController(text: _safeString(widget.lugar.categoria));
+    _selectedCategoriaId = widget.lugar.idCategoria;
+    _loadCategorias();
   }
 
   // Método de seguridad para strings nulos
@@ -74,7 +75,6 @@ class _EditLugarPageState extends State<EditLugarPage> {
     _safeDispose(_climaController);
     _safeDispose(_mejorEpocaController);
     _safeDispose(_informacionUtilController);
-    _safeDispose(_categoriaController);
     super.dispose();
   }
 
@@ -94,6 +94,16 @@ class _EditLugarPageState extends State<EditLugarPage> {
       return int.tryParse(value);
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Cargar categorias
+  Future<void> _loadCategorias() async {
+    try {
+      final data = await _repo.datasource.getCategorias();
+      if (mounted) setState(() => _categorias = data);
+    } catch (e) {
+      debugPrint('Error cargando categorías: $e');
     }
   }
 
@@ -133,6 +143,7 @@ class _EditLugarPageState extends State<EditLugarPage> {
             : _safeTrim(_informacionUtilController.text),
         // Mantener la imagen actual (no se puede editar)
         'foto_portada_url': widget.lugar.fotoPortadaUrl,
+        'id_categoria': _selectedCategoriaId,
       };
 
       print("Enviando datos para actualizar: $data"); // Debug
@@ -327,13 +338,42 @@ class _EditLugarPageState extends State<EditLugarPage> {
   
 
               _buildSectionTitle(dark, "CARACTERÍSTICAS"),
-              _buildTextField(
-                dark,
-                "Categoría (solo información, no editable en BD)",
-                _categoriaController,
-                icon: Icons.category,
-                hintText: "Ej: Montaña, Playa, Museo, Parque Nacional",
-                enabled: false, // Campo solo lectura
+              const SizedBox(height: 4),
+              Container(
+                decoration: BoxDecoration(
+                  color: dark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: _categorias.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _selectedCategoriaId,
+                          isExpanded: true,
+                          hint: Text(
+                            'Selecciona una categoría',
+                            style: TextStyle(color: SpotlyColors.subText(dark)),
+                          ),
+                          dropdownColor: SpotlyColors.card(dark),
+                          icon: Icon(Icons.expand_more, color: SpotlyColors.accent(dark)),
+                          items: _categorias.map((cat) {
+                            return DropdownMenuItem<int>(
+                              value: cat['id_categoria'] as int,
+                              child: Text(
+                                cat['nombre_categoria'] as String,
+                                style: TextStyle(color: SpotlyColors.text(dark)),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) => setState(() => _selectedCategoriaId = val),
+                        ),
+                      ),
               ),
               const SizedBox(height: 15),
               _buildTextField(

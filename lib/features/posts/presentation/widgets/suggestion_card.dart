@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
+
 // Tarjeta individual para cada sugerencia de usuario
 class SuggestionCard extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -19,6 +20,8 @@ class SuggestionCard extends StatefulWidget {
   State<SuggestionCard> createState() => _SuggestionCardState();
 }
 
+// Esta clase maneja el estado de cada tarjeta de sugerencia, incluyendo si el usuario
+// ya es seguido o no, y maneja las acciones de seguir/dejar de seguir con sus respectivas notificaciones.
 class _SuggestionCardState extends State<SuggestionCard> {
   late bool _isFollowing;
   bool _isLoadingFollow = false;
@@ -37,6 +40,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
     }
   }
 
+  // Acción de Seguir + Notificación
   @override
   Widget build(BuildContext context) {
     final txtColor = SpotlyColors.text(widget.dark);
@@ -112,7 +116,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
                     width: double.infinity,
                     height: 32,
                     child: _isFollowing 
-                      ? _buildFollowingButton() 
+                      ? _buildFollowingButton(userId)
                       : _buildFollowButton(userId),
                   ),
                 ],
@@ -160,40 +164,98 @@ class _SuggestionCardState extends State<SuggestionCard> {
     );
   }
 
-  Widget _buildFollowingButton() {
+  Widget _buildFollowingButton(String userIdToUnfollow) {
     return OutlinedButton(
-      onPressed: null, 
+      onPressed: _isLoadingFollow ? null : () async {
+        if (!mounted) return;
+
+        setState(() {
+          _isFollowing = false;
+          _isLoadingFollow = true;
+        });
+
+        final success = await _performUnfollowAction(userIdToUnfollow);
+
+        if (!mounted) return;
+
+        setState(() {
+          _isLoadingFollow = false;
+          if (!success) {
+            _isFollowing = true;
+          }
+        });
+      }, 
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: SpotlyColors.subText(widget.dark)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: EdgeInsets.zero,
       ),
-      child: Text(
-        "Siguiendo",
-        style: TextStyle(
-          color: SpotlyColors.subText(widget.dark),
-          fontSize: 12, 
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: _isLoadingFollow
+        ? SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: SpotlyColors.subText(widget.dark)))
+        : Text(
+            "Siguiendo",
+            style: TextStyle(
+              color: SpotlyColors.subText(widget.dark),
+              fontSize: 12, 
+              fontWeight: FontWeight.w600,
+            ),
+          ),
     );
   }
 
+  //Acción de Seguir + Registro en la tabla maestra de notificaciones
   Future<bool> _performFollowAction(String targetUserId) async {
     try {
       final supabase = Supabase.instance.client;
       final currentUserId = supabase.auth.currentUser?.id;
       if (currentUserId == null) return false;
 
-      // Inserción limpia en tu tabla relacional
+      // Crear la relación en la tabla de seguidores
       await supabase.from('seguidores').insert({
         'id_usuario_seguidor': currentUserId,
         'id_usuario_seguido': targetUserId,
       });
+
+      // Insertar la alerta en la tabla maestra unificada
+      await supabase.from('notificaciones').insert({
+        'id_usuario_destino': targetUserId,   // Quién recibe el follow
+        'id_usuario_actor': currentUserId,    // Quién presiona el botón "Seguir"
+        'tipo': 'follow',                      // El tipo que lee tu switch/case
+        'leido': false,
+      });
       
       return true;
     } catch (e) {
-      print('Error en Supabase al seguir: $e');
+      print('Error en Supabase al seguir / notificar: $e');
+      return false;
+    }
+  }
+
+  // Acción de Dejar de Seguir + Limpieza automática de la notificación
+  Future<bool> _performUnfollowAction(String targetUserId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) return false;
+
+      // Eliminar el registro de seguimiento
+      await supabase
+          .from('seguidores')
+          .delete()
+          .eq('id_usuario_seguidor', currentUserId)
+          .eq('id_usuario_seguido', targetUserId);
+
+      // Eliminar la notificación de follow para no dejar datos huérfanos
+      await supabase
+          .from('notificaciones')
+          .delete()
+          .eq('id_usuario_destino', targetUserId)
+          .eq('id_usuario_actor', currentUserId)
+          .eq('tipo', 'follow');
+
+      return true;
+    } catch (e) {
+      print('Error en Supabase al dejar de seguir / remover notificación: $e');
       return false;
     }
   }

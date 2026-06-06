@@ -308,12 +308,11 @@ class _FavoritesPlacesPageState
                           ],
                         ),
 
-                        if (place.categoria.isNotEmpty) ...[
+                        if (place.categoria != null && place.categoria!.isNotEmpty) ...[
                           const SizedBox(height: 4),
 
                           Text(
-                            place.categoria,
-
+                            place.categoria!,
                             style: const TextStyle(
                               color: Colors.white60,
                               fontSize: 12,

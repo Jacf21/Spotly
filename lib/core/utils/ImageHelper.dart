@@ -1,6 +1,10 @@
 import 'package:image_picker/image_picker.dart';
 
-// Este Helper se encarga de manejar la selección de imágenes tanto para Web como para Móvil, utilizando el paquete image_picker. Proporciona una función genérica que puede ser llamada desde cualquier parte de la aplicación para obtener una imagen del usuario, ya sea desde la cámara o la galería.
+/** Este Helper se encarga de manejar la selección de imágenes tanto para Web como para Móvil, 
+utilizando el paquete image_picker. Proporciona una función genérica que puede ser llamada 
+desde cualquier parte de la aplicación para obtener una imagen del usuario, ya sea desde la cámara
+ o la galería.
+*/
 class ImageHelper {
   static final ImagePicker _picker = ImagePicker();
 

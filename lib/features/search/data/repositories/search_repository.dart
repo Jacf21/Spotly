@@ -17,6 +17,7 @@ class SearchRepository {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  // Búsqueda por Departamento usando la columna 'id_departamento'
   Future<List<Map<String, dynamic>>> getDepartamentos() async {
     final data = await _supabase
         .from('departamentos')
@@ -84,6 +85,7 @@ class SearchRepository {
     }
   }
 
+  // Búsqueda de personas para la sección "Discover", mostrando si ya las sigo o no
   Future<List<Map<String, dynamic>>> getAllPeopleDiscover() async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;

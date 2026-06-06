@@ -16,7 +16,8 @@ class LugarDetalleModel {
   final int likeCount;
   final String categoria;
   final String departamento;
-  final LatLng? coordenadas; // null si el lugar no tiene ubicación cargada
+  final LatLng? coordenadas;
+  final int? idCategoria;
 
   const LugarDetalleModel({
     required this.id,
@@ -35,6 +36,7 @@ class LugarDetalleModel {
     required this.categoria,
     required this.departamento,
     this.coordenadas,
+    this.idCategoria,
   });
 
   factory LugarDetalleModel.fromJson(Map<String, dynamic> j) {
@@ -63,6 +65,7 @@ class LugarDetalleModel {
       departamento:      j['departamento'] as String? ?? '',
       // Coordenadas opcionales (null si el lugar no tiene mapa)
       coordenadas: (lat != null && lng != null) ? LatLng(lat, lng) : null,
+      idCategoria: j['id_categoria'] as int?,
     );
   }
 }

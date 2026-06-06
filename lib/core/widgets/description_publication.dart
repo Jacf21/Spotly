@@ -14,6 +14,7 @@ class PostDescriptionInput extends StatefulWidget {
   State<PostDescriptionInput> createState() => _PostDescriptionInputState();
 }
 
+// Este widget es un campo de texto para que el usuario ingrese la descripción de su publicación.
 class _PostDescriptionInputState extends State<PostDescriptionInput> {
   final TextEditingController _controller = TextEditingController();
   final int _maxLength = 2200;
@@ -54,6 +55,8 @@ class _PostDescriptionInputState extends State<PostDescriptionInput> {
           ),
           child: Column(
             children: [
+
+              // Campo de texto para la descripción
               TextField(
                 controller: _controller,
                 maxLines: 5,
@@ -77,6 +80,7 @@ class _PostDescriptionInputState extends State<PostDescriptionInput> {
                   widget.onDescriptionChanged(value); 
                 },
               ),
+
               // Divisor que se adapta al modo
               Divider(height: 20, color: dark ? Colors.white10 : Colors.grey[200]),
               Align(

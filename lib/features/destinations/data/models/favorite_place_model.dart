@@ -7,7 +7,7 @@ class FavoritePlaceModel {
   final bool esVerificado;
 
   // campos para UI
-  final String categoria;
+  final String? categoria;
   final String departamento;
 
   FavoritePlaceModel({
@@ -29,7 +29,7 @@ class FavoritePlaceModel {
       idCategoria: map['id_categoria'],
       idDepartamento: map['id_departamento'],
       esVerificado: map['es_verificado'] ?? false,
-      categoria: map['categoria_nombre'] ?? '',
+      categoria: map['categoria_nombre'],
       departamento: map['departamento_nombre'] ?? '',
     );
   }

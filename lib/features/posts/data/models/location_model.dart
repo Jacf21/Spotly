@@ -1,3 +1,5 @@
+// Este modelo representa la ubicación geográfica con sus coordenadas y nombres geográficos,
+// y se utiliza para almacenar la información de ubicación en las publicaciones.
 class LocationModel {
   final double latitude;
   final double longitude;
