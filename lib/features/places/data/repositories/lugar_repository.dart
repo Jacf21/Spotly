@@ -6,21 +6,25 @@ import 'package:spotly/features/destinations/data/models/favorite_place_model.da
 
 class LugarRepository {
   final LugarRemoteDatasource datasource;
+   // Cliente directo de Supabase (usado solo para consultas simples aquí)
   final _client = Supabase.instance.client;
   LugarRepository(this.datasource);
 
+  /// Obtiene el detalle completo de un lugar
+  /// Convierte el JSON del datasource en un modelo tipado
   Future<LugarDetalleModel?> getDetalle(int lugarId) async {
     final data = await datasource.getLugarDetalle(lugarId);
     if (data == null) return null;
     return LugarDetalleModel.fromJson(data);
   }
-
+ /// Obtiene la lista de lugares favoritos del usuario
   Future<List<FavoritePlaceModel>> getFavoritePlaces(
     String userId,
   ) async {
     return await datasource.getFavoritePlaces(userId);
   }
-
+/// Obtiene publicaciones de un lugar con soporte de paginación
+  /// lastCreatedAt se usa para cargar más datos (scroll infinito)
   Future<List<LugarPostModel>> getPublicaciones({
     required int lugarId,
     required String userId,
@@ -31,9 +35,11 @@ class LugarRepository {
       userId: userId,
       lastCreatedAt: lastCreatedAt,
     );
+    // Convierte cada JSON en un modelo tipado
     return data.map((j) => LugarPostModel.fromJson(j)).toList();
   }
-
+/// Verifica si un lugar está en favoritos del usuario
+  /// Retorna true si existe registro en la tabla
   Future<bool> isFavorite({
     required String userId,
     required int lugarId,
@@ -47,7 +53,9 @@ class LugarRepository {
 
     return res != null;
   }
-
+/// Agrega o elimina un lugar de favoritos (toggle)
+  /// Si existe → elimina
+  /// Si no existe → inserta
   Future<void> toggleFavorite({
     required String userId,
     required int lugarId,

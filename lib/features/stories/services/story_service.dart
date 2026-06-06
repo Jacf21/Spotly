@@ -12,7 +12,7 @@ class StoryService {
   Future<XFile?> takePhoto() async {
     final picked = await ImagePicker().pickImage(
       source: ImageSource.camera,
-      imageQuality: 60,
+      imageQuality: 60,//  reduce peso antes de subir a Supabase
     );
     return picked;
   }
@@ -23,7 +23,7 @@ class StoryService {
   Future<XFile?> pickGallery() async {
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      imageQuality: 60,
+      imageQuality: 60,//  optimización para storage
     );
     return picked;
   }
@@ -33,13 +33,14 @@ class StoryService {
   // =========================
   Future<void> uploadStory(XFile imageFile) async {
     final user = supabase.auth.currentUser;
+    //  seguridad: no permitir subir sin sesión
     if (user == null) return;
-
+     //  nombre único para evitar colisiones en Storage
     final fileName =
         '${DateTime.now().millisecondsSinceEpoch}.jpg';
 
     final bytes = await imageFile.readAsBytes();
-
+     //  subida directa a Supabase Storage
     await supabase.storage
         .from('Stories')
         .uploadBinary(
@@ -47,14 +48,14 @@ class StoryService {
           bytes,
           fileOptions: const FileOptions(
             contentType: 'image/jpeg',
-            upsert: false,
+            upsert: false,// no sobrescribe archivos existentes
           ),
         );
-
+     // obtener URL pública del archivo subido
     final imageUrl = supabase.storage
         .from('Stories')
         .getPublicUrl(fileName);
-
+//  registrar story en base de datos
     await supabase.from('historias').insert({
       'id_usuario': user.id,
       'imagen_url': imageUrl,
@@ -81,6 +82,7 @@ class StoryService {
       id_usuario
     )
   ''')
+  // ⚠️ solo stories no expiradas
   .gt('expires_at', DateTime.now().toIso8601String())
   .order('created_at', ascending: true);
 
@@ -95,7 +97,7 @@ class StoryService {
   Future<void> markAsViewed(String storyId) async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
-
+   // upsert = evita duplicados (1 usuario = 1 vista por story)
     await supabase.from('historias_vistas').upsert({
       'id_historia': storyId,
       'id_usuario': user.id,

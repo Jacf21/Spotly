@@ -21,13 +21,13 @@ class StoriesBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
-
+    // Agrupa stories por usuario para mostrar 1 avatar por persona
     final grouped = <String, List<StoryModel>>{};
 
     final supabase = Supabase.instance.client;
     final currentUser = supabase.auth.currentUser?.id;
     final user = supabase.auth.currentUser;
-
+// Separa mis stories del resto de usuarios
     for (final s in stories) {
   if (s.userId != currentUser) {
     grouped.putIfAbsent(s.userId, () => []).add(s);
@@ -65,11 +65,11 @@ if (index == 0) {
         Stack(
           children: [
 
-            // 🔵 AVATAR (SOLO VISUAL + CLICK DEPENDIENDO DE ESTADO)
+            //  AVATAR (SOLO VISUAL + CLICK DEPENDIENDO DE ESTADO)
             GestureDetector(
               onTap: () async {
                 if (!hasStories) {
-                  // ❌ NO TIENE STORIES → abre selector
+                  //  NO TIENE STORIES → abre selector
                   final service = StoryService();
 
                   final XFile? file =
@@ -87,7 +87,8 @@ if (index == 0) {
               Icons.camera_alt,
               color: SpotlyColors.text(dark),
             ),
-
+            
+             // Cámara
             title: Text(
               "Cámara",
               style: TextStyle(
@@ -108,7 +109,7 @@ if (index == 0) {
               Icons.photo,
               color: SpotlyColors.text(dark),
             ),
-
+           // Galería
             title: Text(
               "Galería",
               style: TextStyle(
@@ -131,7 +132,7 @@ if (index == 0) {
                       );
                     },
                   );
-
+                // Si seleccionó imagen → subir story
                   if (file != null) {
   await service.uploadStory(file);
   onReload();
@@ -145,7 +146,7 @@ if (index == 0) {
   );
 }
                 } else {
-                  // ✔ YA TIENE STORIES → ABRE VIEWER
+                  //  YA TIENE STORIES → ABRE VIEWER
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -167,6 +168,7 @@ if (index == 0) {
           width: 2,
         )
       : null,
+       // Avatar del usuario
   color: dark
       ? const Color(0xFF1E293B)
       : const Color(0xFFF1F5F9),
@@ -195,7 +197,7 @@ if (index == 0) {
               ),
             ),
 
-            // ➕ SOLO BOTÓN REAL DE SUBIR STORY
+            /// Botón de agregar story (acceso directo)
             Positioned(
               bottom: 0,
               right: 0,
@@ -262,7 +264,7 @@ if (index == 0) {
                       );
                     },
                   );
-
+                      // Subida de story
                   if (file != null) {
   await service.uploadStory(file);
   onReload();
@@ -309,7 +311,7 @@ if (index == 0) {
 }
 
           // =====================================
-          // STORIES USUARIOS
+          // STORIES DE OTROS USUARIOS
           // =====================================
           final userEntry = users[index - 1];
 final userStories = userEntry.value;
@@ -318,7 +320,7 @@ final first = userStories.first;
 
           final currentUser =
               Supabase.instance.client.auth.currentUser?.id;
-
+          // Determina si ya viste todas las stories del usuario
           final viewed = userStories.every((s) =>
               s.viewedBy.any((v) => v['id_usuario'] == currentUser));
 
@@ -338,7 +340,7 @@ final first = userStories.first;
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
 
-                  // 🔥 Borde tipo Instagram + Spotly
+                  // Avatar con borde que indica si fue visto o no
                   Container(
                     padding: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(

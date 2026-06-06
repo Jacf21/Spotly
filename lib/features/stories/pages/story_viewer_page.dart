@@ -24,7 +24,8 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
   void initState() {
     super.initState();
 
-    // Marcar vistas SOLO UNA VEZ
+    // Marca todas las historias como vistas al abrir el viewer
+    // (se ejecuta solo una vez al entrar a la pantalla)
     for (final story in widget.stories) {
       StoryService().markAsViewed(story.id);
     }
@@ -34,7 +35,8 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
   Widget build(BuildContext context) {
     final currentUserId =
         Supabase.instance.client.auth.currentUser?.id;
-
+     //  Determina si las historias pertenecen al usuario logueado
+    // Esto habilita opciones como eliminar o ver viewers
     final isMine = widget.stories.first.userId == currentUserId;
 
     return Scaffold(
@@ -50,17 +52,19 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
                 url: story.imageUrl,
                 controller: controller,
                 shown: false,
+                // ⏱️ duración por historia
                 duration: const Duration(seconds: 15),
                 
               );
             }).toList(),
             controller: controller,
             repeat: false,
+             //  Cierra pantalla cuando terminan todas las historias
             onComplete: () => Navigator.pop(context),
           ),
 
           /// =========================
-          /// DELETE STORY (SOLO MÍO)
+          /// Eliminar historia (SOLO MÍO)
           /// =========================
           if (isMine)
             Positioned(
@@ -95,7 +99,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
             ),
 
           /// =========================
-          /// VIEWERS (👁️)
+          /// Visualizadores (👁️)
           /// =========================
           if (isMine)
             Positioned(
@@ -107,13 +111,13 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-          
+          // ⏸️ pausa story mientras se abre modal
           debugPrint("👁️ OJO PRESIONADO");
 
           controller.pause();
 
           final story = widget.stories.first;
-         
+         //  obtiene usuarios que vieron la historia
           final viewers =
               await StoryService().getStoryViews(story.id);
 
@@ -168,7 +172,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
               );
             },
           );
-
+          // reanuda story después de cerrar modal
           controller.play();
         },
         child: Container(
@@ -185,7 +189,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> {
   children: [
     Icon(Icons.remove_red_eye, color: Colors.white),
     const SizedBox(width: 6),
-
+    // 👁️ contador de vistas locales del modelo
     Text(
       '${widget.stories.first.viewedBy.length}',
       style: const TextStyle(color: Colors.white),

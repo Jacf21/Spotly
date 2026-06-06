@@ -38,13 +38,15 @@ class LugarDetalleModel {
   });
 
   factory LugarDetalleModel.fromJson(Map<String, dynamic> j) {
-    // Coordenadas opcionales — presentes si la query las incluye
+   // Latitud y longitud vienen separadas desde la BD
+    // Solo se crea LatLng si ambos valores existen
     final lat = (j['latitud'] as num?)?.toDouble();
     final lng = (j['longitud'] as num?)?.toDouble();
 
     return LugarDetalleModel(
       id:                (j['id_lugar'] as num).toInt(),
       nombre:            j['nombre_lugar']       as String? ?? '',
+       // Campos opcionales de información del lugar
       descripcion:       j['descripcion']         as String?,
       resumen:           j['resumen']             as String?,
       direccion:         j['direccion']           as String?,
@@ -53,11 +55,13 @@ class LugarDetalleModel {
       mejorEpocaVisitar: j['mejor_epoca_visitar'] as String?,
       informacionUtil:   j['informacion_util']    as String?,
       fotoPortadaUrl:    j['foto_portada_url']    as String?,
+      // Flags importantes de estado del lugar
       esVerificado:      j['es_verificado']       as bool? ?? false,
       esDestacado:       j['es_destacado']        as bool? ?? false,
       likeCount:         (j['like_count'] as num?)?.toInt() ?? 0,
       categoria:         j['categoria']    as String? ?? '',
       departamento:      j['departamento'] as String? ?? '',
+      // Coordenadas opcionales (null si el lugar no tiene mapa)
       coordenadas: (lat != null && lng != null) ? LatLng(lat, lng) : null,
     );
   }

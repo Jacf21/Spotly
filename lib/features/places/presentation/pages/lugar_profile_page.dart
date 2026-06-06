@@ -35,12 +35,17 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
   @override
   void initState() {
     super.initState();
+    // Repository principal para acceder a Supabase (lugar + posts)
     _repo = LugarRepository(LugarRemoteDatasource(Supabase.instance.client));
+   // Carga inicial de datos del lugar
     _loadDetalle();
+    // Carga inicial de publicaciones del lugar
     _loadPosts();
+     // Verifica si el lugar está en favoritos del usuario
     _loadFavoriteState();
   }
 
+   /// Obtiene información general del lugar (nombre, imagen, etc.)
   Future<void> _loadDetalle() async {
     final data = await _repo.getDetalle(widget.lugarId);
     if (mounted) {
@@ -51,6 +56,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     }
   }
 
+  /// Carga publicaciones del lugar con paginación (scroll infinito)
   Future<void> _loadPosts() async {
     if (_loadingPosts || !_hasMore) return;
     setState(() => _loadingPosts = true);
@@ -59,18 +65,20 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
     final newPosts = await _repo.getPublicaciones(
       lugarId: widget.lugarId,
       userId: userId,
+       // clave para paginación: última fecha cargada
       lastCreatedAt:
           _posts.isEmpty ? null : _posts.last.createdAt.toIso8601String(),
     );
     setState(() {
       if (newPosts.isEmpty)
-        _hasMore = false;
+        _hasMore = false;// ya no hay más datos
       else
         _posts.addAll(newPosts);
       _loadingPosts = false;
     });
   }
 
+  /// Verifica si el lugar está marcado como favorito por el usuario
   Future<void> _loadFavoriteState() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -117,6 +125,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
         lugarId: widget.lugarId,
       );
 
+  /// Abre el mapa si el lugar tiene coordenadas
   void _irAlMapaEnEsteLugar() {
     final coords = _lugar?.coordenadas;
     if (coords == null) {
@@ -142,10 +151,12 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                   CircularProgressIndicator(color: SpotlyColors.accent(dark)))
           : _lugar == null
               ? _buildError(dark)
+              // UI principal cuando el lugar ya cargó
               : _buildContent(dark),
     );
   }
 
+/// UI cuando el lugar no existe o falló la carga
   Widget _buildError(bool dark) => Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(LucideIcons.mapPin, size: 48, color: SpotlyColors.subText(dark)),
@@ -155,15 +166,18 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
         ]),
       );
 
+  /// Contenido principal del perfil del lugar
   Widget _buildContent(bool dark) {
     final l = _lugar!;
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
+        // trigger de scroll infinito
         if (n.metrics.pixels > n.metrics.maxScrollExtent - 300) _loadPosts();
         return false;
       },
       child: CustomScrollView(
         slivers: [
+          /// HEADER CON IMAGEN DEL LUGAR
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -184,6 +198,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                       : SpotlyColors.text(dark),
                 ),
                 onPressed: () async {
+                  // Navega a pantalla de edición
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -191,6 +206,7 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
                       fullscreenDialog: true,
                     ),
                   );
+                  // Recarga datos si hubo cambios
                   if (result == true && mounted) {
                     _loadDetalle(); // Recargar datos después de editar
                   }
@@ -219,12 +235,14 @@ class _LugarProfilePageState extends State<LugarProfilePage> {
             ),
           ),
 
+          /// INFO DEL LUGAR + BOTONES
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                   // BOTONES: mapa + favorito + sugerir
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [

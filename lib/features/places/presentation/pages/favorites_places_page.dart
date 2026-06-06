@@ -29,16 +29,19 @@ class _FavoritesPlacesPageState
   @override
   void initState() {
     super.initState();
-
+     
+     // Inicializa repository con Supabase como datasource
     _repo = LugarRepository(
       LugarRemoteDatasource(
         Supabase.instance.client,
       ),
     );
-
+     
+     // Carga inicial de favoritos del usuario
     _loadFavorites();
   }
 
+  /// Obtiene los lugares favoritos del usuario actual
   Future<void> _loadFavorites() async {
     final user = Supabase.instance.client.auth.currentUser;
 
@@ -98,10 +101,12 @@ class _FavoritesPlacesPageState
             )
           : _favorites.isEmpty
               ? _buildEmpty(dark)
+              // Grid principal de favoritos
               : _buildGrid(dark),
     );
   }
 
+   /// UI cuando no hay favoritos
   Widget _buildEmpty(bool dark) {
     return Center(
       child: Padding(
@@ -144,6 +149,7 @@ class _FavoritesPlacesPageState
     );
   }
 
+  /// Grid principal de lugares favoritos
   Widget _buildGrid(bool dark) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -152,7 +158,7 @@ class _FavoritesPlacesPageState
 
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 2,// 2 columnas
 
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
@@ -165,11 +171,12 @@ class _FavoritesPlacesPageState
 
         return GestureDetector(
           onTap: () {
+             // Navega al detalle del lugar seleccionado
             context.push('/lugar/${place.id}');
           },
 
           child: Hero(
-            tag: 'favorite_${place.id}',
+            tag: 'favorite_${place.id}', // animación transición
 
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
@@ -178,10 +185,11 @@ class _FavoritesPlacesPageState
                 fit: StackFit.expand,
 
                 children: [
+                   // Imagen principal del lugar
                   Image.network(
                     place.fotoPortadaUrl ?? '',
                     fit: BoxFit.cover,
-
+                      // fallback si la imagen falla
                     errorBuilder: (_, __, ___) => Container(
                       color: SpotlyColors.card(dark),
 
@@ -191,7 +199,8 @@ class _FavoritesPlacesPageState
                       ),
                     ),
                   ),
-
+                  
+                  // Oscurece imagen para legibilidad del texto
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -205,7 +214,7 @@ class _FavoritesPlacesPageState
                       ),
                     ),
                   ),
-
+                   // Icono de favorito (decorativo)
                   Positioned(
                     top: 12,
                     right: 12,
@@ -225,7 +234,7 @@ class _FavoritesPlacesPageState
                       ),
                     ),
                   ),
-
+                   // Información del lugar
                   Positioned(
                     left: 14,
                     right: 14,
@@ -236,6 +245,7 @@ class _FavoritesPlacesPageState
                           CrossAxisAlignment.start,
 
                       children: [
+                        // Nombre + verificación
                         Row(
                           children: [
                             Expanded(
@@ -270,7 +280,7 @@ class _FavoritesPlacesPageState
                         ),
 
                         const SizedBox(height: 6),
-
+                       // Ubicación (departamento)
                         Row(
                           children: [
                             const Icon(

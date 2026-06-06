@@ -24,7 +24,9 @@ class _AlertsPageState extends State<AlertsPage> {
 
     timeago.setLocaleMessages('es', timeago.EsMessages());
 
+    // Carga notificaciones del usuario
     load();
+    // Marca automáticamente como leídas las notificaciones al entrar
     clearBadge();
   }
 
@@ -33,6 +35,7 @@ class _AlertsPageState extends State<AlertsPage> {
 
     if (user == null) return;
 
+    // Marca todas las notificaciones no leídas como leídas
     await Supabase.instance.client
         .from('notificaciones')
         .update({'leido': true})
@@ -48,7 +51,7 @@ class _AlertsPageState extends State<AlertsPage> {
     final user = Supabase.instance.client.auth.currentUser;
 
     if (user == null) return;
-
+     // Consulta principal: trae notificaciones + relaciones (actor, post, lugar)
     final data = await Supabase.instance.client
         .from('notificaciones')
         .select('''
@@ -74,6 +77,7 @@ class _AlertsPageState extends State<AlertsPage> {
     });
   }
 
+  // Construye el texto dinámico según el tipo de notificación
   String buildNotificationText(Map n) {
   final actor = n['actor'];
 
@@ -113,7 +117,7 @@ class _AlertsPageState extends State<AlertsPage> {
 
   return n['publicaciones']?['titulo'] ?? '';
 }
-
+  // Marca una notificación específica como leída
   Future<void> markAsRead(int id) async {
     await Supabase.instance.client
         .from('notificaciones')
@@ -193,7 +197,7 @@ class _AlertsPageState extends State<AlertsPage> {
                             }
 
                         if (tipo == 'advertencia_publicacion') {
-                          return;
+                          return; // no navega a nada
                         }
 
                         if (tipo == 'compartir') {
@@ -239,6 +243,7 @@ class _AlertsPageState extends State<AlertsPage> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
+                          // UI de la notificación (estado leído/no leído)
                           color: isRead
                               ? (dark
                                   ? Colors.white.withOpacity(0.05)

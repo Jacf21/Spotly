@@ -1,6 +1,6 @@
 class LugarPostModel {
   final int id;
-  final String userId; // ← NUEVO
+  final String userId; // ID del usuario que creó la publicación
   final String usuario;
   final String avatar;
   final String descripcion;
@@ -12,7 +12,7 @@ class LugarPostModel {
 
   LugarPostModel({
     required this.id,
-    required this.userId, // ← NUEVO
+    required this.userId, 
     required this.usuario,
     required this.avatar,
     required this.descripcion,
@@ -26,14 +26,18 @@ class LugarPostModel {
   factory LugarPostModel.fromJson(Map<String, dynamic> json) {
     return LugarPostModel(
       id: (json['id_publicacion'] as num).toInt(),
-      userId: json['id_usuario'] as String? ?? '', // ← NUEVO
+      // ID del usuario dueño del post (útil para perfil / navegación)
+      userId: json['id_usuario'] as String? ?? '', 
       usuario: json['nombre_usuario'] as String? ?? '',
       avatar: json['foto_perfil_url'] as String? ?? '',
       descripcion: json['descripcion_experiencia'] as String? ?? '',
       mediaUrl: json['media_url'] as String? ?? '',
+      // Convierte string ISO a DateTime
       createdAt: DateTime.parse(json['created_at'] as String),
+       // Contadores con fallback seguro
       likesCount: (json['likes_count'] as num?)?.toInt() ?? 0,
       comentarioCount: (json['comentario_count'] as num?)?.toInt() ?? 0,
+      // Indica si el usuario actual ya dio like
       isLiked: json['is_liked'] as bool? ?? false,
     );
   }
