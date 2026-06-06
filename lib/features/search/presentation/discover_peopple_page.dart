@@ -4,6 +4,7 @@ import 'package:spotly/core/utils/theme_utils.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/features/search/data/repositories/search_repository.dart';
+
 // Página de Descubrir Personas, que muestra sugerencias de usuarios para seguir
 class DiscoverPeoplePage extends StatefulWidget {
   const DiscoverPeoplePage({super.key});
@@ -109,6 +110,7 @@ class _DiscoverPeoplePageState extends State<DiscoverPeoplePage> {
           padding: const EdgeInsets.symmetric(vertical: 10.0),
           child: Row(
             children: [
+              
               // Avatar con redirección al perfil
               GestureDetector(
                 onTap: () => userId.isNotEmpty ? context.push('/user/$userId') : null,
@@ -152,6 +154,7 @@ class _DiscoverPeoplePageState extends State<DiscoverPeoplePage> {
                 child: isFollowing
                     ? OutlinedButton(
                         onPressed: () async {
+
                           // Permitir dejar de seguir al presionar el botón gris
                           setRowState(() => isFollowing = false);
                           final success = await _performUnfollow(userId);
@@ -192,11 +195,11 @@ class _DiscoverPeoplePageState extends State<DiscoverPeoplePage> {
                       ),
               ),
               
-              // Icono de tres puntos sin ninguna función por ahora, pero que puede servir para opciones adicionales en el futuro
+              // Icono de tres puntos
               IconButton(
                 icon: Icon(Icons.more_vert, color: SpotlyColors.text(dark), size: 20),
                 onPressed: () {
-                  // Menú de opciones extra si lo requieres más adelante
+                  // Menú de opciones extra si lo requiere más adelante opcional.
                 },
               ),
             ],
@@ -206,16 +209,27 @@ class _DiscoverPeoplePageState extends State<DiscoverPeoplePage> {
     );
   }
 
+  // Botón de Seguir + Registro unificado en 'notificaciones'
   Future<bool> _performFollow(String targetUserId) async {
     try {
       final supabase = Supabase.instance.client;
       final currentUserId = supabase.auth.currentUser?.id;
       if (currentUserId == null) return false;
 
+      // Crear el vínculo en seguidores
       await supabase.from('seguidores').insert({
         'id_usuario_seguidor': currentUserId,
         'id_usuario_seguido': targetUserId,
       });
+
+      // Insertar alerta en la tabla global para que la reciba la AlertsPage
+      await supabase.from('notificaciones').insert({
+        'id_usuario_destino': targetUserId,   // El viajero que es seguido
+        'id_usuario_actor': currentUserId,    // Tú realizando la acción
+        'tipo': 'follow',                      // Clave para mapear el texto del feed de alertas
+        'leido': false,
+      });
+
       return true;
     } catch (e) {
       print('Error al seguir en pantalla de descubrimiento: $e');
@@ -223,21 +237,28 @@ class _DiscoverPeoplePageState extends State<DiscoverPeoplePage> {
     }
   }
 
-  /// Remueve la relación de seguimiento en Supabase
+  // Remueve la relación de seguimiento y limpia la alerta en Supabase
   Future<bool> _performUnfollow(String targetUserId) async {
     try {
       final supabase = Supabase.instance.client;
       final currentUserId = supabase.auth.currentUser?.id;
       if (currentUserId == null) return false;
 
-      // Eliminamos la fila correspondiente en tu tabla de relaciones
+      // Eliminamos de la tabla de seguidores
       await supabase
           .from('seguidores')
           .delete()
           .eq('id_usuario_seguidor', currentUserId)
           .eq('id_usuario_seguido', targetUserId);
           
-      print('Se dejó de seguir exitosamente a: $targetUserId');
+      // Eliminamos la alerta asociada para no ensuciar la base de datos
+      await supabase
+          .from('notificaciones')
+          .delete()
+          .eq('id_usuario_destino', targetUserId)
+          .eq('id_usuario_actor', currentUserId)
+          .eq('tipo', 'follow');
+
       return true;
     } catch (e) {
       print('Error en Supabase al dejar de seguir: $e');

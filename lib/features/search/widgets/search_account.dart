@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spotly/core/themes/spotly_colors.dart';
 import 'package:spotly/features/posts/presentation/pages/user_profile_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 // Esta clase es la que se muestra en la pestaña de "Cuentas" dentro del buscador
 class SearchAccountsTab extends StatelessWidget {
   final String query;
@@ -15,6 +16,8 @@ class SearchAccountsTab extends StatelessWidget {
     required this.onSelect,
   });
 
+  // Esta función se encarga de construir la UI principal de la pestaña de cuentas, 
+  //incluyendo la lógica para mostrar un estado de carga, manejar errores y mostrar los resultados de búsqueda de usuarios.
   @override
   Widget build(BuildContext context) {
     // Definimos el color de fondo según el tema
@@ -56,6 +59,7 @@ class SearchAccountsTab extends StatelessWidget {
             return _buildEmptyState("No se encontraron exploradores", backgroundColor, subTextColor);
           }
 
+          // Construcción de la lista de usuarios encontrados, con su avatar, nombre de usuario y un subtítulo fijo. Al hacer tap en un usuario, se navega a su perfil.
           return ListView.builder(
             itemCount: users.length,
             itemBuilder: (context, index) {

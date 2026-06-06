@@ -18,6 +18,7 @@ abstract class PostRemoteDataSource {
   });
 }
 
+// Esta clase se encarga de manejar la lógica de subida de imágenes a Supabase Storage y la creación de publicaciones, incluyendo la llamada al RPC para insertar el post en la base de datos.
 class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   final SupabaseClient supabase;
 

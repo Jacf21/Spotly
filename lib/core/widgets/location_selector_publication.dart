@@ -98,8 +98,8 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
     } catch (_) {}
   }
 
-  /// Actualiza el mapa y selecciona una ubicación obtenida
-  /// desde los resultados de búsqueda.
+  // Actualiza el mapa y selecciona una ubicación obtenida
+  // desde los resultados de búsqueda.
   void _selectSearchResult(Map<String, dynamic> result) {
     final coords = LatLng(result['lat'], result['lon']);
     setState(() {
@@ -112,6 +112,7 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
     _reverseGeocode(coords);
   }
 
+  // Construye la interfaz del selector de ubicación, adaptándose al tema oscuro y claro.
   @override
   Widget build(BuildContext context) {
     final dark = ThemeUtils.isDark(context);
@@ -342,8 +343,6 @@ class _PostLocationSelectorState extends State<PostLocationSelector> {
                       height: 40,
                       child: GestureDetector(
                         onPanUpdate: (details) {
-                          // Arrastre del pin — convertir offset a LatLng requiere el mapController
-                          // Esto es ilustrativo; el tap en onTap del mapa ya cubre el caso
                         },
                         child: const Icon(Icons.location_pin, color: Colors.redAccent, size: 40),
                       ),

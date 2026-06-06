@@ -16,6 +16,12 @@ import '../../../../core/utils/theme_utils.dart';
 import '../../../../core/themes/spotly_colors.dart';
 import '../../../../core/themes/spotly_config.dart';
 
+/**Esta página es la pantalla de creación de una nueva publicación. 
+Permite al usuario seleccionar una imagen, ingresar un título y descripción, 
+elegir la ubicación en un mapa, configurar la privacidad y finalmente publicar su aventura. 
+Es la pantalla más compleja del proceso de publicación, ya que integra múltiples widgets y 
+lógica para manejar cada paso de la creación del post.
+*/
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});
 
@@ -23,6 +29,8 @@ class CreatePostPage extends StatefulWidget {
   State<CreatePostPage> createState() => _CreatePostPageState();
 }
 
+// Esta clase maneja el estado de la pantalla de creación de publicaciones, 
+//incluyendo la imagen seleccionada, descripción, ubicación, ajustes de privacidad y el proceso de validación y publicación del post.
 class _CreatePostPageState extends State<CreatePostPage> {
   XFile? _selectedImage;
   String _description = "";
@@ -90,6 +98,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               ),
               const SizedBox(height: 8),
 
+              // Campo de texto para el título del post
               TextField(
                 onChanged: (val) => _title = val,
                 style: TextStyle(
@@ -106,12 +115,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
               const SizedBox(height: 24),
 
+              // Widget para ingresar la descripción del post
               PostDescriptionInput(
                 onDescriptionChanged: (text) => _description = text,
               ),
 
               const SizedBox(height: 24),
 
+              // Widget para seleccionar la ubicación del post
               PostLocationSelector(
                 onLocationChanged: (coords, deptoName, city) {
                   setState(() {
@@ -124,6 +135,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
               const SizedBox(height: 24),
 
+              // Panel de ajustes (privacidad, comentarios)
               PostSettingsPanel(
                 onPrivacyChanged: (val) => _privacy = val,
                 onCommentsDisabledChanged: (val) => _disableComments = val,
@@ -157,6 +169,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     );
   }
 
+  // Función para manejar la lógica de validación y publicación del post.
   Future<void> _validateAndSubmit() async {
     if (_selectedImage == null) {
       _showErrorSnackBar("¡Por favor selecciona una foto de tu aventura!");
@@ -167,11 +180,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
       return;
     }
 
-    // 1. Sheet de perfil del lugar
+    // Sheet de perfil del lugar
     final profileData = await PlaceProfileSheet.show(context, _title, dark);
     if (profileData == null) return;
 
-    // 2. Buscar lugares cercanos
+    // Buscar lugares cercanos
     int? lugarIdElegido;
     try {
       final remoteDataSource = PostRemoteDataSourceImpl(Supabase.instance.client);
@@ -180,7 +193,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         lng: _currentLatLng.longitude,
       );
 
-      // 3. Si hay lugares cercanos → mostrar selector
+      // Si hay lugares cercanos → mostrar selector
       if (cercanos.isNotEmpty && mounted) {
         final seleccion = await NearbyPlaceSelector.show(
           context,
@@ -200,7 +213,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       lugarIdElegido = null;
     }
 
-    // 4. Convertir privacidad
+    // Convertir privacidad
     String privacidadDB = "public";
     if (_privacy == "Amigos") privacidadDB = "friends";
     if (_privacy == "Privado") privacidadDB = "private";
@@ -237,12 +250,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
+  // Función para mostrar un SnackBar de error en caso de que algo falle durante la validación o publicación.
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
+  // Función para mostrar un SnackBar de éxito después de publicar correctamente.
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

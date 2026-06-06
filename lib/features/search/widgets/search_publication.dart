@@ -6,6 +6,7 @@ import 'package:spotly/features/posts/data/datasources/feed_remote_datasource.da
 import 'package:spotly/features/posts/data/models/feed_item_model.dart';
 import 'package:spotly/features/posts/data/repositories/feed_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 // Esta clase es la que se muestra en la pestaña de "Publicaciones" dentro del buscador
 class SearchPostsTab extends StatelessWidget {
   final String query;
@@ -38,6 +39,7 @@ class SearchPostsTab extends StatelessWidget {
       );
     }
 
+    // Construcción de la UI principal con FutureBuilder para mostrar los resultados de búsqueda de publicaciones, incluyendo manejo de estados de carga, error y datos vacíos.
     return FutureBuilder<List<FeedItemModel>>(
       future: _fetchSearchPosts(),
       builder: (context, snapshot) {
@@ -116,6 +118,7 @@ class SearchPostsTab extends StatelessWidget {
     ).toList());
   }
 
+  // Esta función se encarga de mostrar un estado vacío cuando no hay resultados o cuando la consulta está vacía, con mensajes personalizados para cada caso.
   Widget _buildInfoState(String text, Color textColor) {
     return Center(
       child: Padding(
